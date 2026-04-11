@@ -1185,7 +1185,25 @@ const AWARDS = [
     pool:'all', minGp:30, ageMax:26, sortBy:'value', rookieOnly:true },
 ];
 function getCat(p,grp,name){const cats=(p.categories||{})[grp]||[];const m=cats.find(c=>c.name===name);return m&&m.pct!=null?m.pct:null;}
-function awardScore(p,weights){let tw=0,ts=0;for(const[g,n,w]of weights){const v=getCat(p,g,n);if(v!=null){ts+=v*w;tw+=w;}}return tw>0?Math.round(ts/tw):null;}
+awardScore(p, Array.isArray(award.weights) ? award.weights : []) {
+  if (!Array.isArray(weights)) return null;
+
+  let tw = 0, ts = 0;
+
+  for (const item of weights) {
+    if (!Array.isArray(item)) continue;
+
+    const [g, n, w] = item;
+    const v = getCat(p, g, n);
+
+    if (v != null) {
+      ts += v * w;
+      tw += w;
+    }
+  }
+
+  return tw > 0 ? Math.round(ts / tw) : null;
+}
 function computeAward(award){
   let pool=ALL_PLAYERS;
   if(award.pool==='F')pool=pool.filter(p=>p._type==='F');
