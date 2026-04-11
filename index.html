@@ -1225,7 +1225,7 @@ function renderAwards(awardId){
         <span style="font-size:.68rem;color:var(--text3);margin-right:4px;">Formula:</span>
         ${award.weights.map(([g,n,w])=>`<div class="award-weight-item"><div class="award-weight-dot" style="opacity:${0.4+w*2.5};"></div>${n} (${Math.round(w*100)}%)</div>`).join('')}
       </div>
-    </div>`;
+    </div>`
   document.querySelectorAll('.award-row').forEach(row=>{
     row.addEventListener('click',()=>{const p=ALL_PLAYERS.find(x=>x.name===row.dataset.name);if(p)showPlayer(p);});
   });
