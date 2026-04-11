@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billy Puck Grades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Karla:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0d0f14;--surface:#14161d;--surface2:#1c1f28;--surface3:#242835;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#e8eaf0;--text2:#8b90a0;--text3:#555a6a;
+  --teal:#2dd4a0;--teal-dim:rgba(45,212,160,0.12);
+  --coral:#f4624a;--coral-dim:rgba(244,98,74,0.12);
+  --mid:#6b7280;--blue:#5b9cf6;--blue-dim:rgba(91,156,246,0.15);
+  --radius:12px;--radius-sm:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;}
+.view{display:none;}
+.view.active{display:block;}
+#landing.active{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;position:relative;overflow:hidden;}
+#landing::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 20% 50%,rgba(45,212,160,0.06) 0%,transparent 70%),radial-gradient(ellipse 50% 60% at 80% 30%,rgba(91,156,246,0.05) 0%,transparent 70%);pointer-events:none;}
+.wordmark{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,8vw,5rem);letter-spacing:-.02em;margin-bottom:.5rem;}
+.wordmark span{color:var(--teal);}
+.tagline{font-size:.95rem;color:var(--text2);letter-spacing:.12em;text-transform:uppercase;margin-bottom:3rem;}
+.search-wrap{width:100%;max-width:540px;position:relative;}
+.search-input{width:100%;padding:1rem 1.25rem 1rem 3rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'Karla',sans-serif;font-size:1rem;outline:none;transition:border-color .2s,box-shadow .2s;}
+.search-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(45,212,160,.12);}
+.search-input::placeholder{color:var(--text3);}
+.search-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
+.card-search-input{width:100%;padding:.7rem 1rem .7rem 2.5rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'Karla',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;}
+.card-search-input:focus{border-color:var(--teal);}
+.card-search-input::placeholder{color:var(--text3);}
+.card-search-icon{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
+.search-pos-filter{display:flex;gap:.5rem;margin-top:.75rem;justify-content:center;}
+.pos-btn{padding:.35rem 1rem;border-radius:999px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Karla',sans-serif;font-size:.8rem;letter-spacing:.06em;cursor:pointer;transition:all .15s;}
+.pos-btn.active,.pos-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+.dropdown{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);max-height:320px;overflow-y:auto;z-index:100;display:none;}
+.dropdown.open{display:block;}
+.dd-item{padding:.65rem 1.25rem;cursor:pointer;display:flex;align-items:center;gap:.75rem;border-bottom:1px solid var(--border);transition:background .12s;}
+.dd-item:last-child{border-bottom:none;}
+.dd-item:hover{background:var(--surface2);}
+.dd-name{font-weight:500;color:var(--text);font-size:.9rem;}
+.dd-meta{font-size:.8rem;color:var(--text2);}
+.dd-pos-badge{font-size:.7rem;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:4px;flex-shrink:0;}
+.dd-pos-badge.F{background:var(--teal-dim);color:var(--teal);}
+.dd-pos-badge.D{background:var(--blue-dim);color:var(--blue);}
+.app-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1.5rem;}
+.nav-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text);cursor:pointer;}
+.nav-logo span{color:var(--teal);}
+.nav-links{display:flex;gap:0;}
+.nav-link{padding:.4rem .85rem;font-size:.8rem;font-weight:500;letter-spacing:.04em;color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);transition:all .15s;text-transform:uppercase;}
+.nav-link:hover{color:var(--text2);background:var(--surface2);}
+.nav-link.active{color:var(--teal);background:var(--teal-dim);}
+.nav-search{flex:1;max-width:360px;position:relative;margin-left:auto;}
+#card-view.active{display:block;min-height:100vh;}
+.card-content{max-width:900px;margin:0 auto;padding:1.5rem;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem;}
+.panel-hd{padding:.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);}
+.panel-note{font-size:.7rem;color:var(--text3);}
+.player-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem;display:flex;gap:1.25rem;align-items:flex-start;position:relative;overflow:hidden;}
+.player-header::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--teal),transparent 60%);}
+.player-photo{width:72px;height:72px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--border2);}
+.player-initials{width:72px;height:72px;border-radius:50%;flex-shrink:0;background:var(--surface3);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--text2);}
+.player-name{font-family:'DM Serif Display',serif;font-size:1.75rem;line-height:1.1;margin-bottom:.35rem;}
+.player-sub{font-size:.85rem;color:var(--text2);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem;}
+.sep{color:var(--text3);}
+.tags{display:flex;gap:.4rem;flex-wrap:wrap;}
+.tag{font-size:.72rem;font-weight:600;letter-spacing:.05em;padding:3px 9px;border-radius:4px;text-transform:uppercase;}
+.tag-contract{background:var(--surface3);color:var(--text2);}
+.tag-style{background:var(--blue-dim);color:var(--blue);}
+.overall-badge{flex-shrink:0;display:flex;flex-direction:column;align-items:center;background:var(--teal-dim);border:1px solid rgba(45,212,160,.25);border-radius:var(--radius-sm);padding:.75rem 1rem;min-width:72px;}
+.overall-num{font-family:'DM Mono',monospace;font-size:2rem;font-weight:500;color:var(--teal);line-height:1;}
+.overall-lbl{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);opacity:.7;margin-top:4px;}
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
+.stat-cell{background:var(--surface);padding:.75rem 1rem;}
+.stat-val{font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:500;}
+.stat-lbl{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+.nhl-stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+@media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+.cat-section{padding:.5rem 1.25rem 1rem;}
+.grp-hd{display:flex;align-items:center;gap:.75rem;padding:.6rem 0 .25rem;}
+.grp-label{font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
+.grp-line{flex:1;height:1px;background:var(--border);}
+.cat-row{display:flex;align-items:center;gap:.75rem;padding:3px 0;position:relative;}
+.cat-name-wrap{width:152px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;gap:5px;}
+.cat-name{font-size:.8rem;color:var(--text2);text-align:right;}
+.info-btn{width:13px;height:13px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:8px;color:var(--text3);font-family:'DM Mono',monospace;transition:all .15s;}
+.info-btn:hover{border-color:var(--text2);color:var(--text2);}
+.tooltip-box{display:none;position:absolute;left:0;top:22px;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;font-size:.75rem;color:var(--text2);line-height:1.5;z-index:50;width:260px;pointer-events:none;}
+.tooltip-box.vis{display:block;}
+.cat-track{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.cat-fill{height:100%;border-radius:3px;}
+.cat-fill.strong{background:var(--teal);}
+.cat-fill.mid{background:var(--mid);}
+.cat-fill.weak{background:var(--coral);}
+.cat-pct{font-family:'DM Mono',monospace;font-size:.78rem;font-weight:500;width:28px;text-align:right;flex-shrink:0;}
+.cat-pct.strong{color:var(--teal);}
+.cat-pct.mid{color:var(--mid);}
+.cat-pct.weak{color:var(--coral);}
+.cat-legend{display:flex;gap:1rem;padding:.75rem 1.25rem;border-top:1px solid var(--border);flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--text3);}
+.leg-dot{width:8px;height:6px;border-radius:2px;flex-shrink:0;}
+.prog-wrap{padding:1rem 1.25rem .75rem;}
+.prog-legend{display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;}
+.prog-leg-item{font-size:.72rem;display:flex;align-items:center;gap:.4rem;}
+.tab-bar{display:flex;border-bottom:1px solid var(--border);}
+.tab{flex:1;padding:.65rem .5rem;font-size:.75rem;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:'Karla',sans-serif;transition:color .15s,border-color .15s;}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+.comp-list{padding:.25rem 0;min-height:140px;}
+.comp-row{display:flex;align-items:center;gap:.75rem;padding:.5rem 1.25rem;border-bottom:1px solid var(--border);transition:background .12s;cursor:pointer;}
+.comp-row:last-child{border-bottom:none;}
+.comp-row:hover{background:var(--surface2);}
+.comp-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:600;flex-shrink:0;background:var(--surface3);color:var(--text2);border:1px solid var(--border2);}
+.comp-info{flex:1;min-width:0;}
+.comp-name{font-size:.85rem;font-weight:500;color:var(--text);}
+.comp-yr{font-size:.72rem;color:var(--text3);}
+.comp-sim{font-family:'DM Mono',monospace;font-size:.8rem;color:var(--text2);}
+.contract-strip{display:flex;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);}
+.c-item:last-child{border-right:none;}
+.c-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:3px;}
+.c-val{font-family:'DM Mono',monospace;font-size:.9rem;font-weight:500;}
+.c-val.pos{color:var(--teal);}
+.c-val.neg{color:var(--coral);}
+.contract-chart-wrap{padding:1rem 1.25rem;}
+.contract-chart-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;}
+#leaderboard.active,#teamview.active{display:block;min-height:100vh;}
+.lb-content{max-width:1100px;margin:0 auto;padding:1.5rem;}
+.lb-controls{display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.lb-select{padding:.4rem .75rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Karla',sans-serif;font-size:.85rem;outline:none;cursor:pointer;}
+.lb-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.lb-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+.lb-table th{padding:.6rem 1rem;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);background:var(--surface2);cursor:pointer;white-space:nowrap;user-select:none;}
+.lb-table th:hover{color:var(--text2);}
+.lb-table th.sorted{color:var(--teal);}
+.lb-table td{padding:.55rem 1rem;border-bottom:1px solid var(--border);color:var(--text2);}
+.lb-table tr:last-child td{border-bottom:none;}
+.lb-table tr:hover td{background:var(--surface2);cursor:pointer;}
+.lb-rank{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--text3);width:36px;}
+.lb-player-name{color:var(--text);font-weight:500;}
+.lb-overall{font-family:'DM Mono',monospace;font-weight:500;}
+.lb-bar-cell{width:100px;}
+.lb-bar-bg{background:var(--surface3);border-radius:3px;height:5px;overflow:hidden;}
+.lb-bar-fill{height:100%;border-radius:3px;}
+.lb-money{font-family:'DM Mono',monospace;font-size:.82rem;}
+.tm-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:1rem;}
+.tm-cat-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .8rem;}
+.tm-cat-name{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.tm-cat-bar{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:3px;}
+.tm-cat-fill{height:100%;border-radius:3px;}
+.tm-cat-pct{font-family:'DM Mono',monospace;font-size:.78rem;font-weight:500;}
+.tm-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
+.tm-stat{background:var(--surface);padding:.7rem 1rem;}
+.tm-stat-val{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:500;}
+.tm-stat-lbl{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+#loading-msg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:.85rem;color:var(--text2);letter-spacing:.08em;z-index:999;}
+.pulse{animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+.landing-hint{margin-top:2.5rem;font-size:.8rem;color:var(--text3);letter-spacing:.05em;}
+.card-footer{padding:1.5rem 0 2rem;text-align:center;font-size:.72rem;color:var(--text3);}
+.lb-footer{padding:1rem 0 2rem;text-align:center;font-size:.72rem;color:var(--text3);}
+.award-btn{padding:.4rem .9rem;border-radius:999px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Karla',sans-serif;font-size:.8rem;cursor:pointer;transition:all .15s;}
+.award-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+.award-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem;}
+.award-hd{padding:1rem 1.25rem;border-bottom:1px solid var(--border);}
+.award-title{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--text);margin-bottom:.2rem;}
+.award-desc{font-size:.8rem;color:var(--text3);line-height:1.5;}
+.award-row{display:flex;align-items:center;gap:.75rem;padding:.6rem 1.25rem;border-bottom:1px solid var(--border);transition:background .12s;cursor:pointer;}
+.award-row:last-child{border-bottom:none;}
+.award-row:hover{background:var(--surface2);}
+.award-rank{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:500;width:32px;color:var(--text3);flex-shrink:0;text-align:right;}
+.award-rank.gold{color:#f5c542;}.award-rank.silver{color:#9ca3af;}.award-rank.bronze{color:#cd7f32;}
+.award-score-bar{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.award-score-fill{height:100%;border-radius:3px;background:var(--teal);}
+.award-score-num{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--teal);width:32px;text-align:right;flex-shrink:0;}
+.award-player-info{min-width:160px;}
+.award-player-name{font-size:.9rem;font-weight:500;color:var(--text);}
+.award-player-meta{font-size:.72rem;color:var(--text3);}
+.award-weight-bar{display:flex;gap:.5rem;padding:.6rem 1.25rem;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center;}
+.award-weight-item{font-size:.7rem;color:var(--text3);display:flex;align-items:center;gap:3px;}
+.award-weight-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+.comp-loading{padding:1.5rem;text-align:center;font-size:.8rem;color:var(--text3);}
+</style>
+</head>
+<body>
+<div id="loading-msg"><span class="pulse">Loading player data...</span></div>
+
+<div id="landing" class="view">
+  <div class="wordmark">Billy Puck<span> Grades</span></div>
+  <div class="tagline">NHL Player Analytics</div>
+  <div class="search-wrap">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+    <input type="text" class="search-input" id="landing-search" placeholder="Search any NHL player..." autocomplete="off" spellcheck="false">
+    <div id="landing-dd" class="dropdown"></div>
+  </div>
+  <div class="search-pos-filter">
+    <button class="pos-btn active" data-pos="all">All</button>
+    <button class="pos-btn" data-pos="F">Forwards</button>
+    <button class="pos-btn" data-pos="D">Defensemen</button>
+  </div>
+  <div id="file-notice" style="display:none;background:rgba(244,98,74,.08);border:1px solid rgba(244,98,74,.25);border-radius:8px;padding:.5rem 1rem;margin-bottom:1rem;font-size:.78rem;color:#f4624a;text-align:center;max-width:540px;">
+    Headshots &amp; live stats require a web server — run <code style="background:rgba(0,0,0,.3);padding:0 5px;border-radius:3px;">python3 -m http.server 8000</code> in this folder
+  </div>
+  <div class="landing-hint">2025–26 Season &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-lb-link">Browse leaderboard →</span> &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-tm-link">Teams →</span> &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-aw-link">Awards →</span></div>
+</div>
+
+<div id="card-view" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link active" id="nav-players">Players</div>
+      <div class="nav-link" id="nav-leaderboard">Leaderboard</div>
+      <div class="nav-link" id="nav-teams">Teams</div>
+      <div class="nav-link" id="nav-awards">Awards</div>
+    </div>
+    <div class="nav-search">
+      <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+      <input type="text" class="card-search-input" id="card-search" placeholder="Search player..." autocomplete="off" spellcheck="false">
+      <div id="card-dd" class="dropdown"></div>
+    </div>
+  </nav>
+  <div class="card-content">
+    <div class="player-header" id="player-header"></div>
+    <div class="stat-strip" id="stat-strip"></div>
+    <div class="nhl-stat-strip" id="nhl-stat-strip"></div>
+    <div id="nhl-analytics-strip"></div>
+    <div class="panel" id="cat-panel">
+      <div class="panel-hd">
+        <span class="panel-title">Category breakdown</span>
+        <span class="panel-note">Percentile vs. all NHL players at position</span>
+      </div>
+      <div class="cat-section" id="cat-list"></div>
+      <div class="cat-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--teal);"></div>Strong (≥70th)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--mid);"></div>Average</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--coral);"></div>Weak (≤30th)</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-hd"><span class="panel-title">Progression</span><span class="panel-note" id="prog-note"></span></div>
+        <div class="prog-wrap">
+          <div style="position:relative;height:160px;"><canvas id="prog-chart"></canvas></div>
+          <div class="prog-legend">
+            <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--teal);border-radius:1px;"></div><span style="color:var(--teal);">Offensive Rating</span></div>
+            <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--coral);border-radius:1px;"></div><span style="color:var(--coral);">Defensive Rating</span></div>
+            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="rgba(220,220,230,0.7)" stroke-width="1.5" stroke-dasharray="4 3"/></svg><span style="color:rgba(220,220,230,0.7);">Overall</span></div>
+            <div class="prog-leg-item"><div style="width:18px;height:2px;background:rgba(244,98,74,0.5);border-radius:1px;"></div><span style="color:rgba(244,98,74,0.7);">Def analytics</span></div>
+            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="rgba(107,114,128,0.6)" stroke-width="1.5" stroke-dasharray="4 3"/></svg><span style="color:var(--text3);">Overall</span></div>
+          </div>d">
+            <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--teal);border-radius:1px;"></div><span style="color:var(--teal);">Offensive Rating</span></div>
+            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="#2dd4a0" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span style="color:var(--teal);">Off. Analytics</span></div>
+            <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--coral);border-radius:1px;"></div><span style="color:var(--coral);">Defensive Rating</span></div>
+            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="#f4624a" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span style="color:var(--coral);">Def. Analytics</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="tab-bar" id="comp-tabs">
+          <button class="tab active" data-comp="individual">Individual</button>
+          <button class="tab" data-comp="microstat">Microstat</button>
+          <button class="tab" data-comp="style">Style</button>
+        </div>
+        <div id="comp-list"><div class="comp-loading">Loading comparables...</div></div>
+      </div>
+    </div>
+    <div class="panel" id="contract-panel"></div>
+    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2025–26 NHL Season<br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
+  </div>
+</div>
+
+<div id="leaderboard" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-lb">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-lb">Players</div>
+      <div class="nav-link active" id="nav-leaderboard-lb">Leaderboard</div>
+      <div class="nav-link" id="nav-teams-lb">Teams</div>
+      <div class="nav-link" id="nav-awards-lb">Awards</div>
+    </div>
+    <div class="nav-search">
+      <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+      <input type="text" class="card-search-input" id="lb-search" placeholder="Filter players..." autocomplete="off" spellcheck="false">
+    </div>
+  </nav>
+  <div class="lb-content">
+    <div class="lb-controls">
+      <select class="lb-select" id="lb-pos"><option value="all">All positions</option><option value="F">Forwards</option><option value="D">Defensemen</option></select>
+      <select class="lb-select" id="lb-team"><option value="all">All teams</option></select>
+      <select class="lb-select" id="lb-role"><option value="all">All roles</option><option value="Elite">Elite</option><option value="Top Line">Top line</option><option value="T6">Top 6</option><option value="M6">Mid 6</option><option value="4th Line">4th line</option><option value="Top Pair">Top pair</option><option value="2nd Pair">2nd pair</option><option value="3rd Pair">3rd pair</option></select>
+      <select class="lb-select" id="lb-contract"><option value="all">All contracts</option><option value="UFA">UFA this summer</option><option value="RFA">RFA this summer</option><option value="best">Best value contracts</option><option value="improved">Most improved</option><option value="declined">Most declined</option></select>
+      <select class="lb-select" id="lb-sort"><option value="overall_pct">Overall rating</option><option value="value">Model value</option><option value="surplus">Surplus value</option><option value="avg_annual_surplus">Avg annual surplus</option><option value="cap">Cap hit</option><option value="yoy_delta">YoY improvement</option></select>
+      <span id="lb-count" style="font-size:.8rem;color:var(--text3);margin-left:auto;"></span>
+    </div>
+    <div class="lb-table-wrap">
+      <table class="lb-table">
+        <thead><tr>
+          <th class="lb-rank">#</th>
+          <th data-col="name">Player</th><th data-col="pos">Pos</th><th data-col="team">Team</th>
+          <th data-col="role">Role</th><th data-col="overall_pct" class="sorted">Overall</th>
+          <th data-col="overall_pct"> </th>
+          <th data-col="cap">Cap hit</th><th data-col="value">Model value</th><th data-col="surplus">Surplus</th><th data-col="yoy_delta">YoY</th>
+        </tr></thead>
+        <tbody id="lb-body"></tbody>
+      </table>
+    </div>
+    <div class="lb-footer">Billy Puck Grades · Data: NST · Evolving-Hockey · ATZ · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
+  </div>
+</div>
+
+<div id="teamview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-tm">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-tm">Players</div>
+      <div class="nav-link" id="nav-lb-tm">Leaderboard</div>
+      <div class="nav-link active" id="nav-teams-tm">Teams</div>
+    </div>
+  </nav>
+  <div class="lb-content">
+    <div class="lb-controls">
+      <select class="lb-select" id="tm-select"><option value="">Select a team...</option></select>
+      <select class="lb-select" id="tm-pos"><option value="all">All positions</option><option value="F">Forwards</option><option value="D">Defensemen</option></select>
+      <span id="tm-info" style="font-size:.8rem;color:var(--text3);margin-left:auto;"></span>
+    </div>
+    <div id="tm-summary"></div>
+    <div id="tm-roster"></div>
+    <div class="lb-footer">Billy Puck Grades · Data: NST · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
+  </div>
+</div>
+
+<script>
+// ── DATA (injected at build time) ─────────────────────────────────────────────
+// Player data loaded via fetch() in loadData()
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let ALL_PLAYERS = [];
+let posFilter = 'all';
+let currentPlayer = null;
+let progChart = null;
+let contractChart = null;
+let tipVisible = null;
+let lbSortCol = 'overall_pct';
+let lbSortAsc = false;
+let COMP_FWD = null;
+let COMP_DMAN = null;
+let compNorms = {fwd:{}, dman:{}};
+let nhlRosterCache = {};
+let nhlIdCache = {};
+let nhlHeadshotCache = {};
+let activeCompTab = 'individual';
+
+// ── LOAD ──────────────────────────────────────────────────────────────────────
+async function loadData() {
+  const loading = document.getElementById('loading-msg');
+  try {
+    const [fwdRes, dmanRes, cfwdRes, cdmanRes] = await Promise.all([
+      fetch("players_fwd.json"),
+      fetch("players_dman.json"),
+      fetch("comp_fwd.json"),
+      fetch("comp_dman.json"),
+    ]);
+    if (!fwdRes.ok || !dmanRes.ok) throw new Error('Failed to load player data');
+    const [fwds, dmans, cfwd, cdman] = await Promise.all([
+      fwdRes.json(), dmanRes.json(), cfwdRes.json(), cdmanRes.json()
+    ]);
+    fwds.forEach(p => p._type = 'F');
+    dmans.forEach(p => p._type = 'D');
+    ALL_PLAYERS = [...fwds, ...dmans];
+    COMP_FWD = cfwd;
+    COMP_DMAN = cdman;
+    precomputeNorms('fwd', cfwd);
+    precomputeNorms('dman', cdman);
+    // Build rookie map for Calder (comp data now available)
+    for (const r of [...cfwd, ...cdman]) {
+      if (!ROOKIE_FIRST_YEAR[r.base_name] || r.year < ROOKIE_FIRST_YEAR[r.base_name])
+        ROOKIE_FIRST_YEAR[r.base_name] = r.year;
+    }
+    if (loading) loading.style.display = 'none';
+    showView('landing');
+    populateLbTeams();
+    populateTeamSelect();
+  } catch(e) {
+    if (loading) loading.textContent = 'Error loading data: ' + e.message;
+    console.error(e);
+  }
+}
+
+async function loadComps(type) {
+  // COMP data loaded at startup via loadData() - return cached value
+  return type === 'F' ? COMP_FWD : COMP_DMAN;
+}
+
+function precomputeNorms(key, pool) {
+  const all2026 = pool.filter(r => r.year === 2026);
+  if (!all2026.length) return;
+  const vecs = ['individual_vec','microstat_vec','style_vec'];
+  compNorms[key] = {};
+  for (const vk of vecs) {
+    const n = all2026[0][vk].length;
+    const mins = Array(n).fill(Infinity);
+    const maxs = Array(n).fill(-Infinity);
+    for (const r of all2026) {
+      for (let i = 0; i < n; i++) {
+        if (r[vk][i] < mins[i]) mins[i] = r[vk][i];
+        if (r[vk][i] > maxs[i]) maxs[i] = r[vk][i];
+      }
+    }
+    compNorms[key][vk] = { mins, ranges: maxs.map((mx,i) => mx - mins[i]) };
+  }
+}
+
+function normEuclidean(a, b, norms) {
+  const { mins, ranges } = norms;
+  let sum = 0, cnt = 0;
+  for (let i = 0; i < a.length; i++) {
+    if (ranges[i] > 0) {
+      sum += ((a[i] - b[i]) / ranges[i]) ** 2;
+      cnt++;
+    }
+  }
+  if (!cnt) return 0;
+  return Math.max(0, Math.round((1 - Math.sqrt(sum / cnt)) * 100));
+}
+
+// ── VIEWS ─────────────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function searchPlayers(q, pos = 'all') {
+  if (!q || q.length < 2) return [];
+  const ql = q.toLowerCase();
+  return ALL_PLAYERS
+    .filter(p => {
+      if (pos === 'F' && p._type !== 'F') return false;
+      if (pos === 'D' && p._type !== 'D') return false;
+      return p.name.toLowerCase().includes(ql);
+    })
+    .sort((a, b) => (b.overall_pct || 0) - (a.overall_pct || 0))
+    .slice(0, 10);
+}
+
+function renderDropdown(results, ddEl) {
+  if (!results.length) { ddEl.className = 'dropdown'; return; }
+  ddEl.className = 'dropdown open';
+  ddEl.innerHTML = results.map((p, i) => `
+    <div class="dd-item" data-idx="${i}">
+      <span class="dd-pos-badge ${p._type}">${p.pos || p._type}</span>
+      <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.team||''} · ${p.actual_role||p.role||''}</div></div>
+      <div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--teal);">${p.overall_pct??'–'}</div>
+    </div>`).join('');
+  ddEl.querySelectorAll('.dd-item').forEach((el, i) => {
+    el.addEventListener('mousedown', e => { e.preventDefault(); showPlayer(results[i]); });
+  });
+}
+
+function wireSearch(inputEl, ddEl, getPosFilter) {
+  let last = [];
+  inputEl.addEventListener('input', () => {
+    last = searchPlayers(inputEl.value, getPosFilter ? getPosFilter() : 'all');
+    renderDropdown(last, ddEl);
+  });
+  inputEl.addEventListener('focus', () => { if (last.length) renderDropdown(last, ddEl); });
+  inputEl.addEventListener('blur', () => setTimeout(() => { ddEl.className = 'dropdown'; }, 150));
+  inputEl.addEventListener('keydown', e => { if (e.key === 'Escape') { ddEl.className = 'dropdown'; inputEl.blur(); } });
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const fmt$ = v => v == null ? '–' : '$' + Math.round(v).toLocaleString();
+const fmtSurplus = v => {
+  if (v == null) return '–';
+  const s = Math.round(v);
+  return (s >= 0 ? '+$' : '-$') + Math.abs(s).toLocaleString();
+};
+const barClass = p => p >= 70 ? 'strong' : p <= 30 ? 'weak' : 'mid';
+const barColor = p => p >= 70 ? '#2dd4a0' : p <= 30 ? '#f4624a' : '#6b7280';
+const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+const ANALYTICS_TIPS = {
+  "On-ice offense":   "How much his team outplays opponents offensively when he's on the ice at even strength.",
+  "On-ice defense":   "How well his team suppresses opponents when he's on the ice at even strength.",
+  "Relative offense": "How much better the team's offensive performance is when he is on the ice vs. when his teammates are on the ice without him.",
+  "Relative defense": "How much better the team's defensive performance is when he is on the ice vs. when his teammates are on the ice without him.",
+};
+
+// ── NHL API ───────────────────────────────────────────────────────────────────
+// NHL team abbreviation map (model abbrev -> NHL API abbrev)
+const NHL_ABBREV = {
+  'L.A':'LAK','N.J':'NJD','S.J':'SJS','T.B':'TBL',
+  'ANA':'ANA','BOS':'BOS','BUF':'BUF','CAR':'CAR','CBJ':'CBJ','CGY':'CGY',
+  'CHI':'CHI','COL':'COL','DAL':'DAL','DET':'DET','EDM':'EDM','FLA':'FLA',
+  'MIN':'MIN','MTL':'MTL','NSH':'NSH','NYI':'NYI','NYR':'NYR','OTT':'OTT',
+  'PHI':'PHI','PIT':'PIT','SEA':'SEA','STL':'STL','TOR':'TOR','UTA':'UTA',
+  'VAN':'VAN','VGK':'VGK','WPG':'WPG','WSH':'WSH',
+};
+const ALL_NHL_TEAMS = Object.values(NHL_ABBREV);
+let rosterFetchDone = false;
+
+// Pre-warm: fetch all 32 rosters in background to build name->id map
+async function prefetchAllRosters() {
+  if (rosterFetchDone || window.location.protocol === 'file:') return;
+  rosterFetchDone = true;
+  // Stagger fetches to avoid hammering the API
+  const chunk = async (teams) => {
+    await Promise.allSettled(teams.map(t => fetchRosterIds(t)));
+  };
+  const teams = ALL_NHL_TEAMS;
+  await chunk(teams.slice(0, 8));
+  await chunk(teams.slice(8, 16));
+  await chunk(teams.slice(16, 24));
+  await chunk(teams.slice(24));
+}
+
+async function fetchRosterIds(teamAbbrev) {
+  try {
+    const r = await fetch(`/nhl-api?path=/v1/roster/${teamAbbrev}/current`);
+    if (!r.ok) return;
+    const d = await r.json();
+    for (const grp of ['forwards','defensemen','goalies']) {
+      for (const p of (d[grp] || [])) {
+        const name = `${p.firstName?.default||''} ${p.lastName?.default||''}`.trim();
+        if (name && p.id) {
+          nhlIdCache[name] = p.id;
+          if (p.headshot) nhlHeadshotCache[name] = p.headshot;
+        }
+      }
+    }
+    // Also store in nhlRosterCache as Set of names
+    const names = new Set();
+    for (const grp of ['forwards','defensemen','goalies']) {
+      for (const p of (d[grp] || [])) {
+        const name = `${p.firstName?.default||''} ${p.lastName?.default||''}`.trim();
+        if (name) names.add(name);
+      }
+    }
+    // Map NHL abbrev back to model abbrev for the cache
+    const modelAbbrev = Object.entries(NHL_ABBREV).find(([,v])=>v===teamAbbrev)?.[0] || teamAbbrev;
+    nhlRosterCache[modelAbbrev] = names;
+  } catch(e) {}
+}
+
+async function fetchNHLPlayerData(playerName, onData) {
+  if (nhlIdCache[playerName] === null) return;
+  if (window.location.protocol === 'file:') { nhlIdCache[playerName] = null; return; }
+  // ID may already be cached from roster pre-fetch
+  if (nhlIdCache[playerName]) { onData({}, nhlIdCache[playerName]); return; }
+  // Poll until roster prefetch populates the ID (up to 8 seconds)
+  for (let i = 0; i < 16; i++) {
+    await new Promise(r => setTimeout(r, 500));
+    if (nhlIdCache[playerName] != null) {
+      if (nhlIdCache[playerName]) onData({}, nhlIdCache[playerName]);
+      return;
+    }
+  }
+  nhlIdCache[playerName] = null;
+}
+
+function tryHeadshot(pid, imgEl, fallbackEl, playerName) {
+  const cachedUrl = playerName && nhlHeadshotCache[playerName];
+  const url = cachedUrl || `https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`;
+  const img = new Image();
+  img.onload = () => {
+    if (document.getElementById('ph-img') === imgEl) {
+      imgEl.src = url; imgEl.style.display = 'block'; fallbackEl.style.display = 'none';
+    }
+  };
+  img.onerror = () => {
+    if (cachedUrl) {
+      const img2 = new Image();
+      img2.onload = () => {
+        if (document.getElementById('ph-img') === imgEl) {
+          imgEl.src = `https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`;
+          imgEl.style.display = 'block'; fallbackEl.style.display = 'none';
+        }
+      };
+      img2.src = `https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`;
+    }
+  };
+  img.src = url;
+}
+
+async function fetchNHLBoxScore(playerName) {
+  const pid = nhlIdCache[playerName];
+  if (!pid) return null;
+  try {
+    const res = await fetch(`/nhl-api?path=/v1/player/${pid}/landing`);
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (d.headshot && !nhlHeadshotCache[playerName]) nhlHeadshotCache[playerName] = d.headshot;
+    const stats = d.featuredStats?.regularSeason?.subSeason;
+    if (!stats) return null;
+    return {
+      goals: stats.goals ?? null,
+      assists: stats.assists ?? null,
+      points: stats.points ?? null,
+      plusMinus: stats.plusMinus ?? null,
+      ppPoints: stats.powerPlayPoints ?? null,
+      shPoints: stats.shorthandedPoints ?? null,
+    };
+  } catch(e) { return null; }
+}
+
+// Get current team from NHL API roster
+async function fetchCurrentTeam(playerName) {
+  const pid = nhlIdCache[playerName];
+  if (!pid) return null;
+  try {
+    const res = await fetch(`/nhl-api?path=/v1/player/${pid}/landing`);
+    if (!res.ok) return null;
+    const d = await res.json();
+    return d.currentTeamAbbrev || null;
+  } catch(e) { return null; }
+}
+
+// ── SHOW PLAYER ───────────────────────────────────────────────────────────────
+async function showPlayer(p) {
+  currentPlayer = p;
+  activeCompTab = 'individual';
+  showView('card-view');
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('nav-players').classList.add('active');
+  document.getElementById('card-search').value = '';
+  document.getElementById('card-dd').className = 'dropdown';
+  window.scrollTo(0, 0);
+  renderHeader(p);
+  renderStatStrip(p);
+  document.getElementById('nhl-stat-strip').innerHTML = '';
+  document.getElementById('nhl-analytics-strip').innerHTML = '';
+  renderAnalyticsStrip(p);
+  renderCategories(p);
+  renderProgression(p);
+  document.getElementById('comp-list').innerHTML = '<div class="comp-loading"><span class="pulse">Loading comparables...</span></div>';
+  renderContract(p);
+  // Async: NHL API
+  fetchNHLPlayerData(p.name, (match, pid) => {
+    const imgEl = document.getElementById('ph-img');
+    const fallEl = document.getElementById('ph-init');
+    if (imgEl && fallEl) tryHeadshot(pid, imgEl, fallEl, p.name);
+    fetchNHLBoxScore(p.name).then(stats => { if (stats) renderNHLStats(stats); });
+  });
+  // Async: comps
+  const compData = await loadComps(p._type);
+  renderComps(p, activeCompTab, compData);
+}
+
+function renderHeader(p) {
+  const el = document.getElementById('player-header');
+  const isD = p._type === 'D';
+  const ac = isD ? 'var(--blue)' : 'var(--teal)';
+  const exp = p.exp_year && p.expiry_type ? `${p.exp_year} ${p.expiry_type}` : (p.exp_year || '');
+  el.style.setProperty('--ha', ac);
+  if (isD) el.style.cssText += ';--teal:var(--blue);';
+  el.innerHTML = `
+    <img class="player-photo" id="ph-img" src="" style="display:none;" alt="${p.name}">
+    <div class="player-initials" id="ph-init" style="color:${ac};border-color:${ac}33;">${initials(p.name)}</div>
+    <div style="flex:1;min-width:0;">
+      <div class="player-name" style="color:var(--text);">${p.name}</div>
+      <div class="player-sub">
+        <span>${p.team||'–'}</span><span class="sep">·</span>
+        <span>Age ${p.age ? Math.floor(p.age) : '–'}</span><span class="sep">·</span>
+        <span>${p.height||'–'} · ${p.weight ? p.weight+' lbs' : '–'}</span>
+      </div>
+      <div class="tags">
+        <span class="tag tag-contract">${p.pos||p._type}</span>
+        ${p.role ? `<span class="tag" style="background:${ac}22;color:${ac};"><span style="opacity:.6;font-size:.62em;margin-right:2px;">TIER</span>${p.role}</span>` : ''}
+        ${p.actual_role ? `<span class="tag tag-contract"><span style="opacity:.6;font-size:.62em;margin-right:2px;">ROLE</span>${p.actual_role}</span>` : ''}
+        ${exp ? `<span class="tag tag-contract">${exp}</span>` : ''}
+        ${p.playstyle ? `<span class="tag tag-style">${p.playstyle}</span>` : ''}
+      </div>
+    </div>
+    <div class="overall-badge" style="background:${ac}18;border-color:${ac}33;">
+      <div class="overall-num" style="color:${ac};">${p.overall_pct??'–'}</div>
+      <div class="overall-lbl" style="color:${ac};">Overall</div>
+    </div>`;
+}
+
+function renderStatStrip(p) {
+  document.getElementById('stat-strip').innerHTML = [
+    {val: p.gp??'–', lbl:'GP'},
+    {val: p.toi_per_gp??'–', lbl:'TOI / GP'},
+    {val: fmt$(p.cap), lbl:'Cap hit'},
+    {val: fmt$(p.value), lbl:'25–26 value'},
+  ].map(c => `<div class="stat-cell"><div class="stat-val">${c.val}</div><div class="stat-lbl">${c.lbl}</div></div>`).join('');
+}
+
+function renderNHLStats(stats) {
+  const el = document.getElementById('nhl-stat-strip');
+  const cells = [
+    {val: stats.goals??'–', lbl:'Goals'},
+    {val: stats.assists??'–', lbl:'Assists'},
+    {val: stats.points??'–', lbl:'Points'},
+    {val: stats.plusMinus != null ? (stats.plusMinus >= 0 ? '+' : '') + stats.plusMinus : '–', lbl:'+/–'},
+    {val: stats.ppPoints??'–', lbl:'PP pts'},
+    {val: stats.shPoints??'–', lbl:'SH pts'},
+  ];
+  el.innerHTML = `
+    <div style="grid-column:1/-1;background:var(--surface2);padding:.4rem 1rem;font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);">NHL box score · 2025–26</div>
+    ${cells.map(c => `<div class="stat-cell"><div class="stat-val">${c.val}</div><div class="stat-lbl">${c.lbl}</div></div>`).join('')}`;
+  // Re-style the grid for 7 rows (1 header + 6 stats)
+  el.style.gridTemplateColumns = '1fr';
+  el.style.gridTemplateRows = 'auto';
+  // Actually do it properly
+  el.style.cssText = 'display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
+  el.innerHTML = `
+    <div style="grid-column:1/-1;background:var(--surface2);padding:.35rem 1rem;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">NHL box score · 2025–26</span>
+      <span style="font-size:.65rem;color:var(--text3);">via NHL API</span>
+    </div>
+    ${cells.map(c => `<div class="stat-cell"><div class="stat-val">${c.val}</div><div class="stat-lbl">${c.lbl}</div></div>`).join('')}`;
+}
+
+function renderCategories(p) {
+  const el = document.getElementById('cat-list');
+  el.innerHTML = '';
+  tipVisible = null;
+  Object.entries(p.categories || {}).forEach(([grp, rows]) => {
+    const ghd = document.createElement('div');
+    ghd.className = 'grp-hd';
+    ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
+    el.appendChild(ghd);
+    rows.forEach(cat => {
+      const pc = cat.pct ?? 0;
+      const cls = barClass(pc);
+      const row = document.createElement('div');
+      row.className = 'cat-row';
+      const nw = document.createElement('div');
+      nw.className = 'cat-name-wrap';
+      nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
+      if (cat.tip) {
+        const btn = document.createElement('button');
+        btn.className = 'info-btn'; btn.textContent = 'i';
+        const tipEl = document.createElement('div');
+        tipEl.className = 'tooltip-box'; tipEl.textContent = cat.tip;
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          if (tipVisible && tipVisible !== tipEl) tipVisible.classList.remove('vis');
+          tipEl.classList.toggle('vis');
+          tipVisible = tipEl.classList.contains('vis') ? tipEl : null;
+        });
+        nw.appendChild(btn); row.appendChild(tipEl);
+      }
+      const track = document.createElement('div');
+      track.className = 'cat-track';
+      track.innerHTML = `<div class="cat-fill ${cls}" style="width:${pc}%;"></div>`;
+      const pctEl = document.createElement('span');
+      pctEl.className = `cat-pct ${cls}`;
+      pctEl.textContent = cat.pct != null ? cat.pct : '–';
+      row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+      el.appendChild(row);
+    });
+  });
+  document.addEventListener('click', () => { if (tipVisible) { tipVisible.classList.remove('vis'); tipVisible = null; } });
+}
+
+function renderProgression(p) {
+  if (progChart) { progChart.destroy(); progChart = null; }
+  const ctx = document.getElementById('prog-chart').getContext('2d');
+  const prog = p.progression;
+  const isD = p._type === 'D';
+  let seasons, datasets;
+
+  if (prog && prog.overall) {
+    const allTracks = [prog.overall, prog.off_prod, prog.def_prod, prog.off_analytics, prog.def_analytics];
+    const firstIdx = prog.overall.findIndex((s,i) => allTracks.some(t => t?.[i]?.pct != null));
+    const sl = arr => (arr||[]).slice(firstIdx).map(s => s?.pct ?? null);
+    seasons = prog.overall.slice(firstIdx).map(s => s.season.replace('-','–').slice(2));
+    const delta = prog.overall.at(-1)?.pct != null && prog.overall.at(-2)?.pct != null
+      ? prog.overall.at(-1).pct - prog.overall.at(-2).pct : null;
+    const deltaStr = delta != null ? ` · ${delta > 0 ? '+' : ''}${delta} vs last yr` : '';
+    document.getElementById('prog-note').textContent = `${seasons.length} seasons${deltaStr}`;
+    // Helper: average two nullable arrays element-wise
+    const avgTracks = (a, b) => (a||[]).map((s,i) => {
+      const va = s?.pct, vb = b?.[i]?.pct;
+      return va!=null && vb!=null ? Math.round((va+vb)/2) : (va ?? vb ?? null);
+    });
+
+    if (isD) {
+      const offAvg = avgTracks(prog.off_prod, prog.off_analytics);
+      const defAvg = avgTracks(prog.def_prod, prog.def_analytics);
+      datasets = [
+        {label:'Overall',  data:sl(prog.overall), borderColor:'rgba(210,215,230,0.65)',borderWidth:1.5,borderDash:[4,3],pointBackgroundColor:'rgba(210,215,230,0.65)',pointRadius:3,tension:0.3,spanGaps:false},
+        {label:'Offense',  data:offAvg.slice(firstIdx).map(v=>v??null), borderColor:'#2dd4a0',borderWidth:2,pointBackgroundColor:'#2dd4a0',pointRadius:3.5,tension:0.3,spanGaps:false},
+        {label:'Defense',  data:defAvg.slice(firstIdx).map(v=>v??null), borderColor:'#f4624a',borderWidth:2,pointBackgroundColor:'#f4624a',pointRadius:3.5,tension:0.3,spanGaps:false},
+      ];
+    } else {
+      const offAvg = avgTracks(prog.off_prod, prog.off_analytics);
+      const defAvg = avgTracks(prog.def_prod, prog.def_analytics);
+      datasets = [
+        {label:'Overall',  data:sl(prog.overall), borderColor:'rgba(210,215,230,0.65)',borderWidth:1.5,borderDash:[4,3],pointBackgroundColor:'rgba(210,215,230,0.65)',pointRadius:3,tension:0.3,spanGaps:false},
+        {label:'Offense',  data:offAvg.slice(firstIdx).map(v=>v??null), borderColor:'#2dd4a0',borderWidth:2,pointBackgroundColor:'#2dd4a0',pointRadius:3.5,tension:0.3,spanGaps:false},
+        {label:'Defense',  data:defAvg.slice(firstIdx).map(v=>v??null), borderColor:'#f4624a',borderWidth:2,pointBackgroundColor:'#f4624a',pointRadius:3.5,tension:0.3,spanGaps:false},
+      ];
+    }
+  } else {
+    seasons = ['22–23','23–24','24–25','25–26'];
+    const b = p.overall_pct || 70;
+    datasets = [
+      {label:'Overall', data:[b-3,b-1,b,b],     borderColor:'rgba(210,215,230,0.65)',borderWidth:1.5,borderDash:[4,3],pointBackgroundColor:'rgba(210,215,230,0.65)',pointRadius:3,tension:0.3},
+      {label:'Offensive Rating',data:[b+2,b+4,b+3,b+5], borderColor:'#2dd4a0',borderWidth:2,pointBackgroundColor:'#2dd4a0',pointRadius:3.5,tension:0.3},
+      {label:'Defensive Rating',data:[b-10,b-8,b-12,b-9],borderColor:'#f4624a',borderWidth:2,pointBackgroundColor:'#f4624a',pointRadius:3.5,tension:0.3},
+    ];
+    document.getElementById('prog-note').textContent = 'estimated';
+  }
+
+  progChart = new Chart(ctx, {
+    type:'line', data:{labels:seasons, datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
+        callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw==null?'N/A':ctx.raw+'th pct'}`}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
+        y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10}}}
+      }
+    }
+  });
+}
+
+function renderComps(p, tabKey, pool) {
+  document.querySelectorAll('#comp-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.comp === tabKey));
+  const el = document.getElementById('comp-list');
+  if (!pool) {
+    el.innerHTML = `<div class="comp-loading" style="color:var(--text2);">No comp data found for this player.</div>`;
+    return;
+  }
+  const nk = p._type === 'F' ? 'fwd' : 'dman';
+  const vk = tabKey === 'individual' ? 'individual_vec' : tabKey === 'microstat' ? 'microstat_vec' : 'style_vec';
+  const norms = compNorms[nk]?.[vk];
+  if (!norms) { el.innerHTML = `<div class="comp-loading">Computing norms...</div>`; return; }
+  const curr = pool.find(r => r.base_name === p.name && r.year === 2026);
+  if (!curr) { el.innerHTML = `<div class="comp-loading" style="color:var(--text2);">No 2026 comp data for this player.</div>`; return; }
+  const sims = pool
+    .filter(r => r.base_name !== p.name)
+    .map(r => ({sim: normEuclidean(curr[vk], r[vk], norms), name:r.base_name, year:r.year, team:r.team}))
+    .sort((a,b) => b.sim - a.sim)
+    .slice(0, 5);
+  const sl = yr => (yr-1).toString().slice(2)+'–'+yr.toString().slice(2);
+  el.innerHTML = sims.map(c => `
+    <div class="comp-row" data-name="${c.name}">
+      <div class="comp-av">${initials(c.name)}</div>
+      <div class="comp-info"><div class="comp-name">${c.name}</div><div class="comp-yr">${c.team||''} · ${sl(c.year)}</div></div>
+      <div class="comp-sim">${c.sim}%</div>
+    </div>`).join('');
+  el.querySelectorAll('.comp-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const t = ALL_PLAYERS.find(x => x.name === row.dataset.name);
+      if (t) showPlayer(t);
+    });
+  });
+}
+
+function renderContract(p) {
+  const el = document.getElementById('contract-panel');
+  const cc = p.contract_calc;
+  if (!cc) { el.innerHTML = ''; return; }
+  const s25 = cc.years.find(y => y.year === 2026);
+  const s25v = s25 ? s25.surplus : null;
+  el.innerHTML = `
+    <div class="panel-hd"><span class="panel-title">Contract calculator</span><span class="panel-note">Implied value vs. cap hit</span></div>
+    <div class="contract-strip">
+      <div class="c-item"><div class="c-lbl">Cap hit</div><div class="c-val">${fmt$(p.cap)}</div></div>
+      <div class="c-item"><div class="c-lbl">25–26 value</div><div class="c-val">${fmt$(p.value)}</div></div>
+      <div class="c-item"><div class="c-lbl">25–26 surplus</div><div class="c-val ${(s25v||0)>=0?'pos':'neg'}">${fmtSurplus(s25v)}</div></div>
+      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
+      <div class="c-item"><div class="c-lbl">Avg. annual surplus</div><div class="c-val ${(cc.avg_aav_excess||0)>=0?'pos':'neg'}">${fmtSurplus(cc.avg_aav_excess)}</div></div>
+    </div>
+    <div class="contract-chart-wrap">
+      <div class="contract-chart-title">Implied value vs. cap hit — contract years</div>
+      <div style="position:relative;height:160px;"><canvas id="contract-chart"></canvas></div>
+      <div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Implied value</span></div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="font-size:.72rem;color:var(--text3);">Cap hit</span></div>
+      </div>
+    </div>`;
+  if (contractChart) { contractChart.destroy(); contractChart = null; }
+  const cy = cc.years.filter(y => y.on_contract);
+  if (!cy.length) return;
+  const ctx2 = document.getElementById('contract-chart').getContext('2d');
+  contractChart = new Chart(ctx2, {
+    type:'bar',
+    data:{labels:cy.map(y=>y.year+'–'+String(y.year+1).slice(2)),datasets:[
+      {label:'Implied value',data:cy.map(y=>y.implied_value),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
+      {label:'Cap hit',data:cy.map(y=>y.cap_hit),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
+        callbacks:{label:ctx=>`${ctx.dataset.label}: $${Math.round(ctx.raw).toLocaleString()}`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10},callback:v=>'$'+(v/1e6).toFixed(1)+'M'}}
+      }
+    }
+  });
+}
+
+// ── LEADERBOARD ───────────────────────────────────────────────────────────────
+function populateLbTeams() {
+  const teams = [...new Set(ALL_PLAYERS.map(p => p.current_team || p.team).filter(Boolean))].sort();
+  const sel = document.getElementById('lb-team');
+  teams.forEach(t => { const o = document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o); });
+}
+
+// Compute YoY delta from progression data
+function getYoYDelta(p) {
+  const prog = p.progression?.overall;
+  if (!prog) return null;
+  const prev = prog.find(s => s.season === '2024-25')?.pct;
+  const curr = prog.find(s => s.season === '2025-26')?.pct;
+  return (prev != null && curr != null) ? curr - prev : null;
+}
+
+function renderLeaderboard() {
+  const posVal = document.getElementById('lb-pos').value;
+  const teamVal = document.getElementById('lb-team').value;
+  const roleVal = document.getElementById('lb-role').value;
+  const contractVal = document.getElementById('lb-contract')?.value || 'all';
+  const filterQ = document.getElementById('lb-search').value.toLowerCase();
+
+  let players = ALL_PLAYERS.filter(p => {
+    if (posVal !== 'all' && p._type !== posVal) return false;
+    if (teamVal !== 'all' && p.current_team !== teamVal) return false;
+    if (roleVal !== 'all' && p.role !== roleVal) return false;
+    if (filterQ && !p.name.toLowerCase().includes(filterQ)) return false;
+    // Contract/mode filters
+    if (contractVal === 'UFA') return p.exp_year === '2026' && p.expiry_type === 'UFA';
+    if (contractVal === 'RFA') return p.exp_year === '2026' && (p.expiry_type === 'RFA' || p.expiry_type === 'RFA+ARB');
+    if (contractVal === 'best') return p.avg_annual_surplus != null && p.avg_annual_surplus > 0 && p.gp >= 30;
+    if (contractVal === 'improved') return getYoYDelta(p) != null && getYoYDelta(p) > 0 && p.gp >= 30;
+    if (contractVal === 'declined') return getYoYDelta(p) != null && getYoYDelta(p) < 0 && p.gp >= 30;
+    return true;
+  });
+
+  // Attach yoy_delta for sorting
+  players = players.map(p => ({ ...p, yoy_delta: getYoYDelta(p) }));
+
+  const sortCol = lbSortCol === 'yoy_delta' ? 'yoy_delta' :
+                  contractVal === 'best' ? (lbSortCol === 'overall_pct' ? 'avg_annual_surplus' : lbSortCol) :
+                  contractVal === 'improved' ? (lbSortCol === 'overall_pct' ? 'yoy_delta' : lbSortCol) :
+                  contractVal === 'declined' ? (lbSortCol === 'overall_pct' ? 'yoy_delta' : lbSortCol) :
+                  lbSortCol;
+
+  players.sort((a,b) => {
+    const av = a[sortCol]??-Infinity, bv = b[sortCol]??-Infinity;
+    // For declined mode, sort ascending by default (biggest drops first)
+    const asc = contractVal === 'declined' ? !lbSortAsc : lbSortAsc;
+    return asc ? av-bv : bv-av;
+  });
+  document.getElementById('lb-count').textContent = `${players.length} players`;
+  document.querySelectorAll('.lb-table th[data-col]').forEach(th => th.classList.toggle('sorted', th.dataset.col === lbSortCol));
+  document.getElementById('lb-body').innerHTML = players.slice(0,200).map((p,i) => {
+    const isD = p._type==='D'; const ac = isD?'#5b9cf6':'#2dd4a0';
+    const ov = p.overall_pct??0; const sv = p.surplus??0;
+    return `<tr data-name="${p.name}">
+      <td class="lb-rank">${i+1}</td>
+      <td><span class="lb-player-name">${p.name}</span></td>
+      <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
+      <td style="color:var(--text2);">${p.team||'–'}</td>
+      <td style="font-size:.82rem;color:var(--text2);">${p.role||'–'}</td>
+      <td class="lb-overall" style="color:${ac};">${ov}</td>
+      <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${ov}%;background:${barColor(ov)};"></div></div></td>
+      <td class="lb-money">${fmt$(p.cap)}</td>
+      <td class="lb-money">${fmt$(p.value)}</td>
+      <td class="lb-money" style="color:${sv>=0?'var(--teal)':'var(--coral)'};">${fmtSurplus(sv)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${p.yoy_delta==null?'var(--text3)':p.yoy_delta>0?'var(--teal)':'var(--coral)'};">${p.yoy_delta==null?'–':p.yoy_delta>0?'+'+p.yoy_delta:p.yoy_delta}</td>
+    </tr>`;
+  }).join('');
+  document.querySelectorAll('#lb-body tr').forEach(row => {
+    row.addEventListener('click', () => {
+      const p = ALL_PLAYERS.find(x => x.name === row.dataset.name);
+      if (p) showPlayer(p);
+    });
+  });
+}
+
+// ── TEAM VIEW ─────────────────────────────────────────────────────────────────
+const NHL_TEAMS = ['ANA','BOS','BUF','CAR','CBJ','CGY','CHI','COL','DAL','DET','EDM','FLA','L.A','MIN','MTL','N.J','NSH','NYI','NYR','OTT','PHI','PIT','S.J','SEA','STL','T.B','TOR','UTA','VAN','VGK','WSH','WPG'];
+
+function populateTeamSelect() {
+  const sel = document.getElementById('tm-select');
+  NHL_TEAMS.forEach(t => { const o = document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o); });
+}
+
+async function getTeamRoster(teamCode) {
+  if (nhlRosterCache[teamCode]) return nhlRosterCache[teamCode];
+  const nhlCode = NHL_ABBREV[teamCode] || teamCode;
+  try {
+    const res = await fetch(`/nhl-api?path=/v1/roster/${nhlCode}/current`);
+    if (!res.ok) throw new Error('failed');
+    const d = await res.json();
+    const names = new Set();
+    for (const grp of ['forwards','defensemen','goalies']) {
+      for (const p of (d[grp] || [])) {
+        const n = `${p.firstName?.default||''} ${p.lastName?.default||''}`.trim();
+        if (n) {
+          names.add(n);
+          // Cache player ID while we have it
+          if (p.id && !nhlIdCache[n]) nhlIdCache[n] = p.id;
+          if (p.headshot && !nhlHeadshotCache[n]) nhlHeadshotCache[n] = p.headshot;
+        }
+      }
+    }
+    nhlRosterCache[teamCode] = names;
+    return names;
+  } catch(e) { return null; }
+}
+
+async function renderTeamView(teamCode) {
+  if (!teamCode) return;
+  const posFilter = document.getElementById('tm-pos').value;
+  document.getElementById('tm-summary').innerHTML = `<div class="comp-loading"><span class="pulse">Loading ${teamCode} roster from NHL API...</span></div>`;
+  document.getElementById('tm-roster').innerHTML = '';
+
+  // Try to get live roster from NHL API
+  const liveRoster = await getTeamRoster(teamCode);
+
+  // Filter players - prefer live API if available, fall back to model team field
+  let players = ALL_PLAYERS.filter(p => {
+    if (posFilter !== 'all' && p._type !== (posFilter === 'F' ? 'F' : 'D')) return false;
+    if (liveRoster) {
+      return liveRoster.has(p.name);
+    } else {
+      return p.current_team === teamCode;
+    }
+  });
+
+  players.sort((a,b) => (b.overall_pct||0) - (a.overall_pct||0));
+  document.getElementById('tm-info').textContent = `${players.length} players · ${liveRoster ? 'Live NHL roster' : 'Model data'}`;
+
+  const avgOverall = players.length ? Math.round(players.reduce((s,p)=>s+(p.overall_pct||0),0)/players.length) : 0;
+  const totalCap = players.reduce((s,p)=>s+(p.cap||0),0);
+  const totalSurplus = players.reduce((s,p)=>s+(p.surplus||0),0);
+  const ac = '#2dd4a0';
+
+  document.getElementById('tm-summary').innerHTML = `
+    <div class="tm-summary-strip">
+      <div class="tm-stat"><div class="tm-stat-val" style="color:${ac};">${avgOverall}</div><div class="tm-stat-lbl">Avg overall pct</div></div>
+      <div class="tm-stat"><div class="tm-stat-val">${players.length}</div><div class="tm-stat-lbl">Players tracked</div></div>
+      <div class="tm-stat"><div class="tm-stat-val">${'$'+(totalCap/1e6).toFixed(1)+'M'}</div><div class="tm-stat-lbl">Total cap</div></div>
+      <div class="tm-stat"><div class="tm-stat-val" style="color:${totalSurplus>=0?'var(--teal)':'var(--coral)'};">${totalSurplus>=0?'+':''}$${(Math.abs(totalSurplus)/1e6).toFixed(1)}M</div><div class="tm-stat-lbl">Total surplus</div></div>
+    </div>`;
+
+  // Category breakdown
+  const ALL_CATS = posFilter === 'D' ? [
+    ["Usage","Time on ice"],["Usage","Quality of comp."],
+    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
+    ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot volume"],["Scoring","Shot quality"],["Scoring","Shot speed"],
+    ["Offense","Passing"],["Offense","Playdriving"],["Offense","Transition offense"],["Offense","Off. Zone Involvement"],
+    ["Defense","Entry defense"],["Defense","D zone exits"],["Defense","Shot suppression"],["Defense","Takeaways"],["Defense","Giveaways"],
+    ["Special teams","Power play"],["Special teams","Penalty kill"],["Special teams","Penalty differential"],
+    ["Analytics","On-ice offense"],["Analytics","On-ice defense"],["Analytics","Relative offense"],["Analytics","Relative defense"],
+  ] : [
+    ["Usage","Time on ice"],["Usage","Quality of comp."],
+    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
+    ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot volume"],["Scoring","Shot quality"],["Scoring","Shot speed"],
+    ["Offense","Passing"],["Offense","Playdriving"],["Offense","Rush offense"],["Offense","Forecheck offense"],["Offense","Cycle offense"],["Offense","Net-front presence"],["Offense","Faceoffs"],
+    ["Defense","Entry defense"],["Defense","Exits"],["Defense","Shot suppression"],["Defense","Takeaways"],
+    ["Special teams","Power play"],["Special teams","Penalty kill"],["Special teams","Penalty differential"],
+    ["Analytics","On-ice offense"],["Analytics","On-ice defense"],["Analytics","Relative offense"],["Analytics","Relative defense"],
+  ];
+
+  // Parse "M:SS" TOI string to decimal minutes
+  const parseTOI = s => {
+    if (!s) return null;
+    const parts = s.split(':');
+    return parts.length === 2 ? parseInt(parts[0]) + parseInt(parts[1])/60 : null;
+  };
+  const toiMap = {};
+  for (const p of players) {
+    const t = parseTOI(p.toi_per_gp);
+    toiMap[p.name] = (t && p.gp) ? t * p.gp : null;
+  }
+  const totalTOI = Object.values(toiMap).reduce((s, t) => s + (t||0), 0);
+  const ST_FLOOR = 4;
+
+  const catMap = {};
+  // Faceoffs: only top 6 players by faceoff pct (real FO specialists)
+  const faceoffTop6 = [...players]
+    .filter(p => {
+      const cat = (p.categories?.['Offense']||[]).find(c=>c.name==='Faceoffs');
+      return cat && cat.pct != null && cat.pct > ST_FLOOR;
+    })
+    .sort((a,b) => {
+      const pa = (a.categories?.['Offense']||[]).find(c=>c.name==='Faceoffs')?.pct||0;
+      const pb = (b.categories?.['Offense']||[]).find(c=>c.name==='Faceoffs')?.pct||0;
+      return pb - pa;
+    })
+    .slice(0, 6);
+
+  for (const [grp, name] of ALL_CATS) {
+    const isSpecialTeams = grp === 'Special teams' && (name === 'Power play' || name === 'Penalty kill');
+    const isFaceoffs = name === 'Faceoffs';
+    const pool = isFaceoffs ? faceoffTop6 : players;
+    let weightedSum = 0, weightedTotal = 0;
+    for (const p of pool) {
+      const g = p.categories?.[grp];
+      if (!g) continue;
+      const cat = g.find(c => c.name === name);
+      const v = cat?.pct;
+      if (v == null) continue;
+      if (isSpecialTeams && v <= ST_FLOOR) continue;
+      const w = toiMap[p.name] || (totalTOI / players.length);
+      weightedSum += v * w;
+      weightedTotal += w;
+    }
+    if (!catMap[grp]) catMap[grp] = [];
+    catMap[grp].push({name, avg: weightedTotal > 0 ? Math.round(weightedSum / weightedTotal) : null});
+  }
+  let catHtml = '';
+  for (const [grp, items] of Object.entries(catMap)) {
+    catHtml += `<div style="margin-bottom:.75rem;">
+      <div style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;">${grp}</div>
+      <div class="tm-cat-grid">`;
+    for (const {name, avg} of items) {
+      const p = avg??0; const clr = p>=70?'var(--teal)':p<=30?'var(--coral)':'var(--mid)';
+      catHtml += `<div class="tm-cat-card"><div class="tm-cat-name">${name}</div><div class="tm-cat-bar"><div class="tm-cat-fill" style="width:${p}%;background:${clr};"></div></div><div class="tm-cat-pct" style="color:${clr};">${avg!=null?avg:'–'}</div></div>`;
+    }
+    catHtml += '</div></div>';
+  }
+
+  const rosterHtml = `
+    <div class="lb-table-wrap" style="margin-top:1rem;">
+      <table class="lb-table">
+        <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Role</th><th>Overall</th><th> </th><th>TOI/GP</th><th>Cap hit</th><th>Surplus</th></tr></thead>
+        <tbody>${players.map((p,i)=>{
+          const isD=p._type==='D'; const pac=isD?'#5b9cf6':'#2dd4a0'; const ov=p.overall_pct??0; const sv=p.surplus??0;
+          return `<tr data-name="${p.name}">
+            <td class="lb-rank">${i+1}</td>
+            <td><span class="lb-player-name">${p.name}</span></td>
+            <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
+            <td style="font-size:.82rem;color:var(--text2);">${p.role||'–'}</td>
+            <td class="lb-overall" style="color:${pac};">${ov}</td>
+            <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${ov}%;background:${barColor(ov)};"></div></div></td>
+            <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${p.toi_per_gp||'–'}</td>
+            <td class="lb-money">${fmt$(p.cap)}</td>
+            <td class="lb-money" style="color:${sv>=0?'var(--teal)':'var(--coral)'};">${fmtSurplus(sv)}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+
+  document.getElementById('tm-roster').innerHTML = catHtml + rosterHtml;
+  document.querySelectorAll('#tm-roster tbody tr').forEach(row => {
+    row.addEventListener('click', () => {
+      const p = ALL_PLAYERS.find(x => x.name === row.dataset.name);
+      if (p) showPlayer(p);
+    });
+  });
+}
+
+// ── WIRE UP ───────────────────────────────────────────────────────────────────
+
+// Rookie map built inside loadData() once comp data is fetched
+const ROOKIE_FIRST_YEAR = {};
+
+const AWARDS = [
+  { id:'hart', name:'Hart Trophy', trophy:'🏆',
+    desc:'Most Valuable Player — ranked by 2025–26 model value.',
+    pool:'all', minGp:40, ageMax:null, sortBy:'value' },
+  { id:'norris', name:'Norris Trophy', trophy:'🛡',
+    desc:'Best Defenseman — ranked by 2025–26 model value.',
+    pool:'D', minGp:40, ageMax:null, sortBy:'value' },
+  { id:'selke', name:'Selke Trophy', trophy:'🔒',
+    desc:'Best Defensive Forward — weighted toward shot suppression, QoC, and penalty kill.',
+    pool:'F', minGp:40, ageMax:null, sortBy:'score',
+    weights:[['Defense','Shot suppression',.20],['Analytics','On-ice defense',.15],
+             ['Analytics','Relative defense',.13],['Defense','Entry defense',.10],
+             ['Defense','Takeaways',.12],['Defense','Exits',.08],
+             ['Special teams','Penalty kill',.14],['Usage','Quality of comp.',.08]] },
+  { id:'byng', name:'Lady Byng', trophy:'🕊',
+    desc:'Sportsmanship + Skill — Elite/Top Line/Top Pair players with fewest penalty minutes.',
+    pool:'all', minGp:40, ageMax:null, sortBy:'pim', eliteOnly:true },
+  { id:'calder', name:'Calder Trophy', trophy:'⭐',
+    desc:'Best Rookie — age 26 or under, not in the 2024-25 model (first full NHL season is 2025-26).',
+    pool:'all', minGp:30, ageMax:26, sortBy:'value', rookieOnly:true },
+];
+function getCat(p,grp,name){const cats=(p.categories||{})[grp]||[];const m=cats.find(c=>c.name===name);return m&&m.pct!=null?m.pct:null;}
+function awardScore(p,weights){let tw=0,ts=0;for(const[g,n,w]of weights){const v=getCat(p,g,n);if(v!=null){ts+=v*w;tw+=w;}}return tw>0?Math.round(ts/tw):null;}
+function computeAward(award){
+  let pool=ALL_PLAYERS;
+  if(award.pool==='F')pool=pool.filter(p=>p._type==='F');
+  if(award.pool==='D')pool=pool.filter(p=>p._type==='D');
+  return pool.filter(p=>p.gp&&p.gp>=award.minGp&&(!award.ageMax||(p.age&&p.age<=award.ageMax)))
+    .map(p=>({score:awardScore(p,award.weights),player:p})).filter(r=>r.score!=null)
+    .sort((a,b)=>b.score-a.score).slice(0,10);
+}
+let activeAward='hart';
+function renderAwards(awardId){
+  activeAward=awardId;
+  document.querySelectorAll('.award-btn').forEach(b=>b.classList.toggle('active',b.dataset.award===awardId));
+  const award=AWARDS.find(a=>a.id===awardId);if(!award)return;
+  const results=computeAward(award);
+  const maxScore=results[0]?.score||100;
+  const rl=i=>i===0?'1st':i===1?'2nd':i===2?'3rd':(i+1)+'th';
+  const rc=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  document.getElementById('award-panel').innerHTML=`
+    <div class="award-card">
+      <div class="award-hd"><div class="award-title">${award.trophy} ${award.name}</div><div class="award-desc">${award.desc}</div></div>
+      ${results.map((r,i)=>{
+        const p=r.player;const isD=p._type==='D';const ac=isD?'#5b9cf6':'#2dd4a0';
+        const pid=nhlIdCache[p.name];
+        return `<div class="award-row" data-name="${p.name}">
+          <div class="award-rank ${rc(i)}">${rl(i)}</div>
+          ${pid?`<img src="https://assets.nhle.com/mugs/nhl/20252026/${pid}.png" onerror="this.style.display='none'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">`:
+                `<div style="width:32px;height:32px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text3);flex-shrink:0;">${initials(p.name)}</div>`}
+          <div class="award-player-info">
+            <div class="award-player-name">${p.name}</div>
+            <div class="award-player-meta">${p.current_team||p.team||''} · <span style="color:${ac};">${p.pos||p._type}</span> · ${p.gp} GP${p.age?' · Age '+Math.floor(p.age):''}</div>
+          </div>
+          <div class="award-score-bar"><div class="award-score-fill" style="width:${Math.round(r.score/maxScore*100)}%;"></div></div>
+          <div class="award-score-num" style="font-size:.72rem;">${r.display||r.score}</div>
+        </div>`;
+      }).join('')}
+      ${award.weights ? `<div class="award-weight-bar">
+        <span style="font-size:.68rem;color:var(--text3);margin-right:4px;">Formula:</span>
+        ${award.weights.map(([g,n,w])=>`<div class="award-weight-item"><div class="award-weight-dot" style="opacity:${0.4+w*2.5};"></div>${n} (${Math.round(w*100)}%)</div>`).join('')}
+      </div>
+    </div>`;
+  document.querySelectorAll('.award-row').forEach(row=>{
+    row.addEventListener('click',()=>{const p=ALL_PLAYERS.find(x=>x.name===row.dataset.name);if(p)showPlayer(p);});
+  });
+}
+function initAwards(){
+  const bar=document.getElementById('award-btn-bar');if(!bar)return;
+  bar.innerHTML=AWARDS.map(a=>`<button class="award-btn${a.id===activeAward?' active':''}" data-award="${a.id}">${a.name}</button>`).join('');
+  bar.addEventListener('click',e=>{const btn=e.target.closest('.award-btn');if(btn)renderAwards(btn.dataset.award);});
+  renderAwards(activeAward);
+}
+
+
+function renderAnalyticsStrip(p) {
+  const el = document.getElementById('nhl-analytics-strip');
+  if (!el) return;
+  const prog = p.progression || {};
+  // Pull last season (2025-26) value from each track
+  const lastPct = (key) => {
+    const arr = prog[key];
+    if (!arr || !arr.length) return null;
+    return arr[arr.length - 1]?.pct ?? null;
+  };
+  const tiles = [
+    {val: lastPct('off_prod'),      lbl: 'Off production'},
+    {val: lastPct('def_prod'),      lbl: 'Def production'},
+    {val: lastPct('off_analytics'), lbl: 'Off analytics'},
+    {val: lastPct('def_analytics'), lbl: 'Def analytics'},
+  ];
+  const clr = v => v==null?'var(--text3)':v>=70?'var(--teal)':v<=30?'var(--coral)':'var(--mid)';
+  el.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
+  el.innerHTML = tiles.map(t =>
+    `<div class="stat-cell"><div class="stat-val" style="color:${clr(t.val)};font-size:.9rem;">${t.val??'–'}</div><div class="stat-lbl">${t.lbl}</div></div>`
+  ).join('');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+  if (window.location.protocol === 'file:') {
+    const n=document.getElementById('file-notice'); if(n) n.style.display='block';
+  } else {
+    // Pre-fetch all NHL rosters in background to build player ID cache
+    setTimeout(prefetchAllRosters, 1000);
+  }
+
+  const lSearch = document.getElementById('landing-search');
+  const lDD = document.getElementById('landing-dd');
+  wireSearch(lSearch, lDD, () => posFilter);
+  lDD.addEventListener('mousedown', e => {
+    const item = e.target.closest('.dd-item');
+    if (item) { e.preventDefault(); showPlayer(searchPlayers(lSearch.value, posFilter)[+item.dataset.idx]); }
+  });
+
+  const cSearch = document.getElementById('card-search');
+  const cDD = document.getElementById('card-dd');
+  wireSearch(cSearch, cDD, () => 'all');
+  cDD.addEventListener('mousedown', e => {
+    const item = e.target.closest('.dd-item');
+    if (item) { e.preventDefault(); const r = searchPlayers(cSearch.value, 'all'); if (r[+item.dataset.idx]) showPlayer(r[+item.dataset.idx]); }
+  });
+
+  document.querySelectorAll('.pos-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      posFilter = btn.dataset.pos;
+    });
+  });
+
+  const goPlayers = () => {
+    if (currentPlayer) showView('card-view'); else showView('landing');
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('nav-players')?.classList.add('active');
+  };
+  const goLeaderboard = () => {
+    showView('leaderboard'); renderLeaderboard();
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('nav-leaderboard')?.classList.add('active');
+    document.getElementById('nav-leaderboard-lb')?.classList.add('active');
+  };
+  const goTeams = () => {
+    showView('teamview');
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('nav-teams')?.classList.add('active');
+    document.getElementById('nav-teams-tm')?.classList.add('active');
+  };
+
+  ['nav-logo','nav-logo-lb','nav-logo-tm'].forEach(id => document.getElementById(id)?.addEventListener('click', () => showView('landing')));
+  ['nav-players','nav-players-lb','nav-players-tm'].forEach(id => document.getElementById(id)?.addEventListener('click', goPlayers));
+  ['nav-leaderboard','nav-leaderboard-lb','nav-lb-tm'].forEach(id => document.getElementById(id)?.addEventListener('click', goLeaderboard));
+  ['nav-teams','nav-teams-lb','nav-teams-tm'].forEach(id => document.getElementById(id)?.addEventListener('click', goTeams));
+  document.getElementById('landing-lb-link')?.addEventListener('click', goLeaderboard);
+  document.getElementById('landing-tm-link')?.addEventListener('click', goTeams);
+  const goAwards = () => {
+    showView('awardsview');
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    ['nav-awards','nav-awards-aw','nav-awards-lb'].forEach(id=>document.getElementById(id)?.classList.add('active'));
+    initAwards();
+  };
+  document.getElementById('landing-aw-link')?.addEventListener('click', goAwards);
+  ['nav-awards','nav-awards-lb','nav-awards-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click', goAwards));
+  ['nav-logo-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>showView('landing')));
+  ['nav-players-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click', goPlayers));
+  ['nav-lb-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click', goLeaderboard));
+  ['nav-teams-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click', goTeams));
+
+  document.getElementById('comp-tabs').addEventListener('click', e => {
+    const tab = e.target.closest('.tab');
+    if (tab && currentPlayer) {
+      activeCompTab = tab.dataset.comp;
+      const pool = currentPlayer._type === 'F' ? COMP_FWD : COMP_DMAN;
+      if (pool) renderComps(currentPlayer, activeCompTab, pool);
+      else loadComps(currentPlayer._type).then(d => renderComps(currentPlayer, activeCompTab, d));
+    }
+  });
+
+  ['lb-pos','lb-team','lb-role','lb-sort','lb-contract'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      if (id === 'lb-sort') lbSortCol = document.getElementById('lb-sort').value;
+      renderLeaderboard();
+    });
+  });
+  document.getElementById('lb-search')?.addEventListener('input', renderLeaderboard);
+  document.querySelectorAll('.lb-table th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (lbSortCol === col) lbSortAsc = !lbSortAsc;
+      else { lbSortCol = col; lbSortAsc = col === 'name'; }
+      renderLeaderboard();
+    });
+  });
+
+  document.getElementById('tm-select')?.addEventListener('change', e => { if (e.target.value) renderTeamView(e.target.value); });
+  document.getElementById('tm-pos')?.addEventListener('change', () => {
+    const v = document.getElementById('tm-select')?.value;
+    if (v) renderTeamView(v);
+  });
+});
+</script>
+
+<div id="awardsview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-aw">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-aw">Players</div>
+      <div class="nav-link" id="nav-lb-aw">Leaderboard</div>
+      <div class="nav-link" id="nav-teams-aw">Teams</div>
+      <div class="nav-link active" id="nav-awards-aw">Awards</div>
+    </div>
+  </nav>
+  <div class="lb-content">
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;">Select award</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;" id="award-btn-bar"></div>
+    </div>
+    <div id="award-panel"></div>
+    <div class="lb-footer">Billy Puck Grades · Award rankings based on model category scores · Data: NST · EH · ATZ · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
+  </div>
+</div>
+</body>
+</html>const ELITE_ROLES = new Set(['Elite','Top Line','Top Pair']);
+function getPenaltyDiffPct(p) {
+  return (p.categories?.['Special teams']||[]).find(c=>c.name==='Penalty differential')?.pct ?? null;
+}
+function computeAward(award) {
+  let pool = ALL_PLAYERS;
+  if (award.pool==='F') pool=pool.filter(p=>p._type==='F');
+  if (award.pool==='D') pool=pool.filter(p=>p._type==='D');
+  pool = pool.filter(p => {
+    if (!p.gp || p.gp < award.minGp) return false;
+    if (award.ageMax && (!p.age || p.age > award.ageMax)) return false;
+    if (award.eliteOnly && !ELITE_ROLES.has(p.role)) return false;
+    if (award.rookieOnly && p.prior_season) return false;  // in 24-25 model = not a rookie
+    return true;
+  });
+  let results;
+  if (award.sortBy === 'value') {
+    results = pool.filter(p=>p.value!=null)
+      .map(p=>({score:p.value, display:'$'+Math.round(p.value/1000)+'K', player:p}))
+      .sort((a,b)=>b.score-a.score);
+  } else if (award.sortBy === 'pim') {
+    // Lower PIM = better; sort ascending
+    results = pool.filter(p=>p.pim!=null)
+      .map(p=>({score:-p.pim, display:p.pim+" PIM", player:p}))
+      .sort((a,b)=>b.score-a.score);
+  } else if (award.sortBy === 'penaltydiff') {
+    results = pool.filter(p=>getPenaltyDiffPct(p)!=null)
+      .map(p=>({score:getPenaltyDiffPct(p), player:p}))
+      .sort((a,b)=>b.score-a.score);
+  } else {
+    results = pool.map(p=>({score:awardScore(p,award.weights||[]),player:p}))
+      .filter(r=>r.score!=null).sort((a,b)=>b.score-a.score);
+  }
+  return results.slice(0,10);
+}
+
