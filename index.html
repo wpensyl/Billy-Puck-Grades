@@ -1213,7 +1213,7 @@ function renderAwards(awardId){
           <div class="award-score-num" style="font-size:.72rem;">${r.display||r.score}</div>
         </div>`;
       }).join('')}
-      ${award.weights ? `
+     ${award.weights ? `
   <div class="award-weight-bar">
     <span style="font-size:.68rem;color:var(--text3);margin-right:4px;">Formula:</span>
     ${award.weights.map(([g,n,w]) => `
@@ -1224,6 +1224,7 @@ function renderAwards(awardId){
     `).join('')}
   </div>
 ` : ''}
+`;
   document.querySelectorAll('.award-row').forEach(row=>{
     row.addEventListener('click',()=>{const p=ALL_PLAYERS.find(x=>x.name===row.dataset.name);if(p)showPlayer(p);});
   });
