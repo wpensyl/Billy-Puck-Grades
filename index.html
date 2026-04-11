@@ -1185,7 +1185,7 @@ const AWARDS = [
     pool:'all', minGp:30, ageMax:26, sortBy:'value', rookieOnly:true },
 ];
 function getCat(p,grp,name){const cats=(p.categories||{})[grp]||[];const m=cats.find(c=>c.name===name);return m&&m.pct!=null?m.pct:null;}
-awardScore(p, Array.isArray(award.weights) ? award.weights : []) {
+function awardScore(p, weights = []) {
   if (!Array.isArray(weights)) return null;
 
   let tw = 0, ts = 0;
