@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head><title>Billy Puck Grades — API Diagnostic</title>
+<style>
+body{font-family:monospace;background:#0d0f14;color:#e8eaf0;padding:2rem;max-width:700px;}
+h2{color:#2dd4a0;margin-bottom:1.5rem;}
+.ok{color:#2dd4a0;}.fail{color:#f4624a;}.info{color:#5b9cf6;}
+pre{background:#1c1f28;padding:.5rem .75rem;border-radius:4px;font-size:.78rem;
+    white-space:pre-wrap;word-break:break-all;margin:.25rem 0 .75rem;}
+p{margin:.25rem 0;}
+</style>
+</head>
+<body>
+<h2>Billy Puck Grades — API Diagnostic v2</h2>
+<div id="out"></div>
+<script>
+const out = document.getElementById('out');
+
+function log(msg, cls='') {
+  const p = document.createElement('p');
+  p.className = cls;
+  p.textContent = msg;
+  out.appendChild(p);
+}
+function pre(msg) {
+  const p = document.createElement('pre');
+  p.textContent = msg;
+  out.appendChild(p);
+}
+
+async function test(label, url) {
+  log(`Testing: ${label}`, 'info');
+  try {
+    const r = await fetch(url);
+    log(`  HTTP status: ${r.status} ${r.statusText}`, r.ok ? 'ok' : 'fail');
+    const text = await r.text();
+    pre(text.slice(0, 300));
+    return r.ok;
+  } catch(e) {
+    log(`  Network error: ${e.message}`, 'fail');
+    log('  (This usually means the route does not exist or CORS blocked)', 'fail');
+    return false;
+  }
+}
+
+async function run() {
+  log(`Page origin: ${window.location.origin}`);
+  log(`Protocol: ${window.location.protocol}`);
+  log('');
+
+  // Test 1: Does the proxy route exist at all?
+  log('--- Test 1: Proxy route existence ---', 'info');
+  await test('Proxy /api/nhl/v1/roster/EDM/current', '/api/nhl/v1/roster/EDM/current');
+
+  log('');
+  log('--- Test 2: Direct NHL API (expect CORS failure) ---', 'info');
+  await test('Direct NHL API', 'https://api-web.nhle.com/v1/roster/EDM/current');
+
+  log('');
+  log('--- Test 3: Headshot CDN (should work) ---', 'info');
+  const img = new Image();
+  await new Promise(resolve => {
+    img.onload = () => { log('  Headshot CDN: OK', 'ok'); resolve(); };
+    img.onerror = () => { log('  Headshot CDN: FAIL', 'fail'); resolve(); };
+    img.src = 'https://assets.nhle.com/mugs/nhl/20252026/8478402.png';
+    setTimeout(resolve, 5000);
+  });
+
+  log('');
+  log('--- Test 4: Player landing via proxy ---', 'info');
+  await test('Proxy /api/nhl/v1/player/8478402/landing', '/api/nhl/v1/player/8478402/landing');
+
+  log('');
+  log('Done.', 'ok');
+}
+run();
+</script>
+</body>
+</html>
