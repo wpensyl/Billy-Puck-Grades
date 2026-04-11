@@ -1186,14 +1186,6 @@ const AWARDS = [
 ];
 function getCat(p,grp,name){const cats=(p.categories||{})[grp]||[];const m=cats.find(c=>c.name===name);return m&&m.pct!=null?m.pct:null;}
 function awardScore(p,weights){let tw=0,ts=0;for(const[g,n,w]of weights){const v=getCat(p,g,n);if(v!=null){ts+=v*w;tw+=w;}}return tw>0?Math.round(ts/tw):null;}
-function computeAward(award){
-  let pool=ALL_PLAYERS;
-  if(award.pool==='F')pool=pool.filter(p=>p._type==='F');
-  if(award.pool==='D')pool=pool.filter(p=>p._type==='D');
-  return pool.filter(p=>p.gp&&p.gp>=award.minGp&&(!award.ageMax||(p.age&&p.age<=award.ageMax)))
-    .map(p=>({score:awardScore(p,award.weights),player:p})).filter(r=>r.score!=null)
-    .sort((a,b)=>b.score-a.score).slice(0,10);
-}
 let activeAward='hart';
 function renderAwards(awardId){
   activeAward=awardId;
@@ -1221,11 +1213,17 @@ function renderAwards(awardId){
           <div class="award-score-num" style="font-size:.72rem;">${r.display||r.score}</div>
         </div>`;
       }).join('')}
-      ${award.weights ? `<div class="award-weight-bar">
-        <span style="font-size:.68rem;color:var(--text3);margin-right:4px;">Formula:</span>
-        ${award.weights.map(([g,n,w])=>`<div class="award-weight-item"><div class="award-weight-dot" style="opacity:${0.4+w*2.5};"></div>${n} (${Math.round(w*100)}%)</div>`).join('')}
+      ${award.weights ? `
+  <div class="award-weight-bar">
+    <span style="font-size:.68rem;color:var(--text3);margin-right:4px;">Formula:</span>
+    ${award.weights.map(([g,n,w]) => `
+      <div class="award-weight-item">
+        <div class="award-weight-dot" style="opacity:${0.4 + w * 2.5};"></div>
+        ${n} (${Math.round(w * 100)}%)
       </div>
-    </div>`;
+    `).join('')}
+  </div>
+` : ''}
   document.querySelectorAll('.award-row').forEach(row=>{
     row.addEventListener('click',()=>{const p=ALL_PLAYERS.find(x=>x.name===row.dataset.name);if(p)showPlayer(p);});
   });
@@ -1384,7 +1382,6 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 </body>
-</html>const ELITE_ROLES = new Set(['Elite','Top Line','Top Pair']);
 function getPenaltyDiffPct(p) {
   return (p.categories?.['Special teams']||[]).find(c=>c.name==='Penalty differential')?.pct ?? null;
 }
