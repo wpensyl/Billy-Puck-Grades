@@ -364,10 +364,10 @@ async function loadData() {
   const loading = document.getElementById('loading-msg');
   try {
     const [fwdRes, dmanRes, cfwdRes, cdmanRes] = await Promise.all([
-      fetch("players_fwd.json"),
-      fetch("players_dman.json"),
-      fetch("comp_fwd.json"),
-      fetch("comp_dman.json"),
+      fetch('/players_fwd.json'),
+      fetch('/players_dman.json'),
+      fetch('/comp_fwd.json'),
+      fetch('/comp_dman.json'),
     ]);
     if (!fwdRes.ok || !dmanRes.ok) throw new Error('Failed to load player data');
     const [fwds, dmans, cfwd, cdman] = await Promise.all([
