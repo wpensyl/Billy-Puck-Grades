@@ -1,0 +1,12 @@
+# Source Excel files - keep these local, don't commit
+*.xlsm
+*.xlsx
+output/
+
+# Python artifacts
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db

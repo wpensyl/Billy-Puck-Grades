@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head><title>NHL API Diagnostic</title>
+<style>body{font-family:monospace;background:#0d0f14;color:#e8eaf0;padding:2rem;}
+.ok{color:#2dd4a0;} .fail{color:#f4624a;} .pending{color:#6b7280;}
+pre{background:#1c1f28;padding:.5rem;border-radius:4px;font-size:.8rem;white-space:pre-wrap;}
+</style>
+</head>
+<body>
+<h2>NHL API Diagnostic — Ice Grade</h2>
+<p id="status">Running tests...</p>
+<div id="results"></div>
+
+<script>
+const results = document.getElementById('results');
+const status = document.getElementById('status');
+
+function log(label, ok, detail='') {
+  const d = document.createElement('div');
+  d.innerHTML = `<span class="${ok?'ok':'fail'}">[${ok?'OK':'FAIL'}]</span> ${label}${detail?'<br><pre>'+detail+'</pre>':''}`;
+  results.appendChild(d);
+}
+
+async function run() {
+  // Test 1: Basic connectivity
+  const tests = [
+    ['Roster EDM (current)', '/api/nhl/v1/roster/EDM/current'],
+    ['Roster LAK (L.A)', '/api/nhl/v1/roster/LAK/current'],
+    ['Roster UTA (Utah)', '/api/nhl/v1/roster/UTA/current'],
+    ['Player landing (McDavid 8478402)', '/api/nhl/v1/player/8478402/landing'],
+    ['Headshot URL', null],  // just test img load
+  ];
+  
+  for (const [label, url] of tests) {
+    if (!url) continue;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) { log(label, false, `HTTP ${r.status}`); continue; }
+      const d = await r.json();
+      
+      if (label.includes('Roster')) {
+        const fwds = d.forwards || [];
+        const first = fwds[0];
+        const firstName = first?.firstName?.default || '?';
+        const lastName = first?.lastName?.default || '?';
+        const id = first?.id || '?';
+        log(label, true, `${fwds.length} fwds, first: ${firstName} ${lastName} (id=${id})`);
+      } else if (label.includes('landing')) {
+        const name = d.firstName?.default + ' ' + d.lastName?.default;
+        const team = d.currentTeamAbbrev;
+        const stats = d.featuredStats?.regularSeason?.subSeason;
+        log(label, true, `${name}, team=${team}, goals=${stats?.goals}`);
+      }
+    } catch(e) {
+      log(label, false, e.message || e.toString());
+    }
+  }
+  
+  // Test headshot
+  const img = new Image();
+  img.onload = () => log('Headshot URL (McDavid 8478402)', true, '');
+  img.onerror = () => log('Headshot URL (McDavid 8478402)', false, 'Image failed to load');
+  img.src = 'https://assets.nhle.com/mugs/nhl/20252026/8478402.png';
+  
+  status.textContent = 'Tests complete — check results above';
+}
+
+run();
+</script>
+</body>
+</html>
