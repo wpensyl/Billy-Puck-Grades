@@ -1331,11 +1331,7 @@ async function fetchGoalieStats(name) {
 
 function fmtCap(v) { return v ? '$' + (v/1000000).toFixed(2) + 'M' : '–'; }
 function fmtVal(v) { return v ? '$' + Math.round(v/1000) + 'K' : '–'; }
-function fmtSurplus(v) {
-  if (v == null) return '–';
-  const s = '$' + Math.abs(Math.round(v/1000)) + 'K';
-  return (v >= 0 ? '+' : '-') + s;
-}
+// fmtSurplus already defined above — reuse it
 
 function renderGoalieGrid() {
   const q = (document.getElementById('goalie-search')?.value || '').toLowerCase();
