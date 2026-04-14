@@ -270,13 +270,6 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
             <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--teal);border-radius:1px;"></div><span style="color:var(--teal);">Offensive Rating</span></div>
             <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--coral);border-radius:1px;"></div><span style="color:var(--coral);">Defensive Rating</span></div>
             <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="rgba(220,220,230,0.7)" stroke-width="1.5" stroke-dasharray="4 3"/></svg><span style="color:rgba(220,220,230,0.7);">Overall</span></div>
-            <div class="prog-leg-item"><div style="width:18px;height:2px;background:rgba(244,98,74,0.5);border-radius:1px;"></div><span style="color:rgba(244,98,74,0.7);">Def analytics</span></div>
-            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="rgba(107,114,128,0.6)" stroke-width="1.5" stroke-dasharray="4 3"/></svg><span style="color:var(--text3);">Overall</span></div>
-          </div>d">
-            <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--teal);border-radius:1px;"></div><span style="color:var(--teal);">Offensive Rating</span></div>
-            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="#2dd4a0" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span style="color:var(--teal);">Off. Analytics</span></div>
-            <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--coral);border-radius:1px;"></div><span style="color:var(--coral);">Defensive Rating</span></div>
-            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="#f4624a" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span style="color:var(--coral);">Def. Analytics</span></div>
           </div>
         </div>
       </div>
@@ -1171,7 +1164,31 @@ async function renderTeamView(teamCode) {
       </table>
     </div>`;
 
-  document.getElementById('tm-roster').innerHTML = catHtml + rosterHtml;
+  // Goalies for this team
+  const teamGoalies = ALL_GOALIES.filter(g => g.current_team === teamCode || g.team === teamCode);
+  const goalieHtml = teamGoalies.length ? `
+    <div style="margin-top:1.25rem;">
+      <div style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;">Goalies</div>
+      <div class="lb-table-wrap">
+        <table class="lb-table">
+          <thead><tr><th>Player</th><th>Overall</th><th> </th><th>GP</th><th>Cap hit</th><th>Surplus</th></tr></thead>
+          <tbody>${teamGoalies.map(g=>{
+            const ov=g.comp_value_norm??0; const sv=g.surplus??0;
+            const clr=ov>=70?'var(--teal)':ov<=30?'var(--coral)':'var(--mid)';
+            return \`<tr>
+              <td><span class="lb-player-name">\${g.name}</span></td>
+              <td class="lb-overall" style="color:\${clr};">\${ov||'–'}</td>
+              <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:\${ov}%;background:\${barColor(ov)};"></div></div></td>
+              <td style="font-family:'DM Mono',monospace;font-size:.82rem;">\${g.gp||'–'}</td>
+              <td class="lb-money">\${fmt$(g.cap)}</td>
+              <td class="lb-money" style="color:\${sv>=0?'var(--teal)':'var(--coral)'};">\${fmtSurplus(sv)}</td>
+            </tr>\`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>` : '';
+
+  document.getElementById('tm-roster').innerHTML = catHtml + rosterHtml + goalieHtml;
   document.querySelectorAll('#tm-roster tbody tr').forEach(row => {
     row.addEventListener('click', () => {
       const p = ALL_PLAYERS.find(x => x.name === row.dataset.name);
@@ -1357,8 +1374,8 @@ function renderGoalieGrid() {
         </div>
       </div>
       <div class="goalie-stats" id="gstats-${g.name.replace(/\s/g,'_')}">
-        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${fmtVal(g.value_2526)}</div><div class="goalie-stat-lbl">25-26 value</div></div>
-        <div class="goalie-stat"><div class="goalie-stat-val">${fmtVal(g.value)}</div><div class="goalie-stat-lbl">Avg value</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.comp_value_norm!=null?g.comp_value_norm:'–'}</div><div class="goalie-stat-lbl">Overall</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val">${fmtVal(g.value_2526)}</div><div class="goalie-stat-lbl">25-26 value</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val" style="color:${svClr};">${fmtSurplus(g.surplus)}</div><div class="goalie-stat-lbl">Surplus</div></div>
       </div>
       <div class="goalie-contract">
@@ -1383,10 +1400,13 @@ function renderGoalieGrid() {
       if (!stats) return;
       const el = document.getElementById('gstats-' + g.name.replace(/\s/g,'_'));
       if (!el) return;
+      // Keep Overall (comp_value_norm), replace value tiles with live box stats
       el.innerHTML = `
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.comp_value_norm!=null?g.comp_value_norm:'–'}</div><div class="goalie-stat-lbl">Overall</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.svPct||'–'}</div><div class="goalie-stat-lbl">SV%</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.gaa||'–'}</div><div class="goalie-stat-lbl">GAA</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.wins!=null?stats.wins:'–'}</div><div class="goalie-stat-lbl">Wins</div></div>`;
+      el.style.gridTemplateColumns = 'repeat(4,1fr)';
     });
   });
 }
