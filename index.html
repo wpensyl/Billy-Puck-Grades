@@ -185,6 +185,21 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .award-weight-bar{display:flex;gap:.5rem;padding:.6rem 1.25rem;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center;}
 .award-weight-item{font-size:.7rem;color:var(--text3);display:flex;align-items:center;gap:3px;}
 .award-weight-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+
+.goalie-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;padding:1rem 0;}
+.goalie-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .15s,transform .15s;}
+.goalie-card:hover{border-color:var(--blue);transform:translateY(-2px);}
+.goalie-card-header{display:flex;align-items:center;gap:.75rem;padding:.9rem 1rem;background:var(--surface2);}
+.goalie-hs{width:48px;height:48px;border-radius:50%;object-fit:cover;background:var(--surface3);}
+.goalie-hs-init{width:48px;height:48px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:600;color:var(--text3);flex-shrink:0;}
+.goalie-info-name{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--text);}
+.goalie-info-meta{font-size:.75rem;color:var(--text3);}
+.goalie-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);}
+.goalie-stat{background:var(--surface);padding:.5rem .4rem;text-align:center;}
+.goalie-stat-val{font-family:'DM Mono',monospace;font-size:.95rem;font-weight:500;color:var(--text);}
+.goalie-stat-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-top:1px;}
+.goalie-contract{display:flex;gap:.5rem;padding:.6rem 1rem;border-top:1px solid var(--border);font-size:.75rem;color:var(--text2);}
+.goalie-contract span{color:var(--text3);}
 ::-webkit-scrollbar{width:6px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
@@ -220,6 +235,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       <div class="nav-link active" id="nav-players">Players</div>
       <div class="nav-link" id="nav-leaderboard">Leaderboard</div>
       <div class="nav-link" id="nav-teams">Teams</div>
+      <div class="nav-link" id="nav-goalies">Goalies</div>
       <div class="nav-link" id="nav-awards">Awards</div>
     </div>
     <div class="nav-search">
@@ -285,6 +301,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       <div class="nav-link" id="nav-players-lb">Players</div>
       <div class="nav-link active" id="nav-leaderboard-lb">Leaderboard</div>
       <div class="nav-link" id="nav-teams-lb">Teams</div>
+      <div class="nav-link" id="nav-goalies-lb">Goalies</div>
       <div class="nav-link" id="nav-awards-lb">Awards</div>
     </div>
     <div class="nav-search">
@@ -344,6 +361,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let ALL_PLAYERS = [];
+let ALL_GOALIES = [];
 let posFilter = 'all';
 let currentPlayer = null;
 let progChart = null;
@@ -363,19 +381,23 @@ let activeCompTab = 'individual';
 async function loadData() {
   const loading = document.getElementById('loading-msg');
   try {
-    const [fwdRes, dmanRes, cfwdRes, cdmanRes] = await Promise.all([
+    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes] = await Promise.all([
       fetch("players_fwd.json"),
       fetch("players_dman.json"),
+      fetch("players_goalie.json"),
       fetch("comp_fwd.json"),
       fetch("comp_dman.json"),
     ]);
     if (!fwdRes.ok || !dmanRes.ok) throw new Error('Failed to load player data');
-    const [fwds, dmans, cfwd, cdman] = await Promise.all([
-      fwdRes.json(), dmanRes.json(), cfwdRes.json(), cdmanRes.json()
+    const [fwds, dmans, goalies, cfwd, cdman] = await Promise.all([
+      fwdRes.json(), dmanRes.json(), gRes.ok?gRes.json():Promise.resolve([]),
+      cfwdRes.json(), cdmanRes.json()
     ]);
     fwds.forEach(p => p._type = 'F');
     dmans.forEach(p => p._type = 'D');
+    goalies.forEach(p => p._type = 'G');
     ALL_PLAYERS = [...fwds, ...dmans];
+    ALL_GOALIES = goalies;
     COMP_FWD = cfwd;
     COMP_DMAN = cdman;
     precomputeNorms('fwd', cfwd);
@@ -1185,32 +1207,34 @@ const AWARDS = [
     pool:'all', minGp:30, ageMax:26, sortBy:'value', rookieOnly:true },
 ];
 function getCat(p,grp,name){const cats=(p.categories||{})[grp]||[];const m=cats.find(c=>c.name===name);return m&&m.pct!=null?m.pct:null;}
-function awardScore(p, weights = []) {
-  if (!Array.isArray(weights)) return null;
-
-  let tw = 0, ts = 0;
-
-  for (const item of weights) {
-    if (!Array.isArray(item)) continue;
-
-    const [g, n, w] = item;
-    const v = getCat(p, g, n);
-
-    if (v != null) {
-      ts += v * w;
-      tw += w;
-    }
-  }
-
-  return tw > 0 ? Math.round(ts / tw) : null;
-}
+function awardScore(p,weights){if(!Array.isArray(weights))return null;let tw=0,ts=0;for(const[g,n,w]of weights){const v=getCat(p,g,n);if(v!=null){ts+=v*w;tw+=w;}}return tw>0?Math.round(ts/tw):null;}
+const ELITE_ROLES=new Set(['Elite','Top Line','Top Pair']);
+function getPenaltyDiffPct(p){return(p.categories?.['Special teams']||[]).find(c=>c.name==='Penalty differential')?.pct??null;}
 function computeAward(award){
   let pool=ALL_PLAYERS;
   if(award.pool==='F')pool=pool.filter(p=>p._type==='F');
   if(award.pool==='D')pool=pool.filter(p=>p._type==='D');
-  return pool.filter(p=>p.gp&&p.gp>=award.minGp&&(!award.ageMax||(p.age&&p.age<=award.ageMax)))
-    .map(p=>({score:awardScore(p,award.weights),player:p})).filter(r=>r.score!=null)
-    .sort((a,b)=>b.score-a.score).slice(0,10);
+  pool=pool.filter(p=>{
+    if(!p.gp||p.gp<award.minGp)return false;
+    if(award.ageMax&&(!p.age||p.age>award.ageMax))return false;
+    if(award.eliteOnly&&!ELITE_ROLES.has(p.role))return false;
+    if(award.rookieOnly&&p.prior_season)return false;
+    return true;
+  });
+  let results;
+  if(award.sortBy==='value'){
+    results=pool.filter(p=>p.value!=null)
+      .map(p=>({score:p.value,display:'$'+Math.round(p.value/1000)+'K',player:p}))
+      .sort((a,b)=>b.score-a.score);
+  } else if(award.sortBy==='pim'){
+    results=pool.filter(p=>p.pim!=null)
+      .map(p=>({score:-p.pim,display:p.pim+' PIM',player:p}))
+      .sort((a,b)=>b.score-a.score);
+  } else {
+    results=pool.map(p=>({score:awardScore(p,Array.isArray(award.weights)?award.weights:[]),player:p}))
+      .filter(r=>r.score!=null).sort((a,b)=>b.score-a.score);
+  }
+  return results.slice(0,10);
 }
 let activeAward='hart';
 function renderAwards(awardId){
@@ -1226,31 +1250,25 @@ function renderAwards(awardId){
       <div class="award-hd"><div class="award-title">${award.trophy} ${award.name}</div><div class="award-desc">${award.desc}</div></div>
       ${results.map((r,i)=>{
         const p=r.player;const isD=p._type==='D';const ac=isD?'#5b9cf6':'#2dd4a0';
-        const pid=nhlIdCache[p.name];
+        const pid=nhlIdCache[p.name]||nhlIdCache[p.name+' G'];
+        const hsUrl=nhlHeadshotCache[p.name]||(pid?`https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`:'');
         return `<div class="award-row" data-name="${p.name}">
           <div class="award-rank ${rc(i)}">${rl(i)}</div>
-          ${pid?`<img src="https://assets.nhle.com/mugs/nhl/20252026/${pid}.png" onerror="this.style.display='none'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">`:
-                `<div style="width:32px;height:32px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text3);flex-shrink:0;">${initials(p.name)}</div>`}
+          ${hsUrl?`<img src="${hsUrl}" onerror="this.style.display='none'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">`:
+                  `<div style="width:32px;height:32px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text3);flex-shrink:0;">${initials(p.name)}</div>`}
           <div class="award-player-info">
             <div class="award-player-name">${p.name}</div>
             <div class="award-player-meta">${p.current_team||p.team||''} · <span style="color:${ac};">${p.pos||p._type}</span> · ${p.gp} GP${p.age?' · Age '+Math.floor(p.age):''}</div>
           </div>
           <div class="award-score-bar"><div class="award-score-fill" style="width:${Math.round(r.score/maxScore*100)}%;"></div></div>
-          <div class="award-score-num" style="font-size:.72rem;">${r.display||r.score}</div>
+          <div class="award-score-num" style="font-size:.72rem;">${r.display!=null?r.display:r.score}</div>
         </div>`;
       }).join('')}
-     ${award.weights ? `
-  <div class="award-weight-bar">
-    <span style="font-size:.68rem;color:var(--text3);margin-right:4px;">Formula:</span>
-    ${award.weights.map(([g,n,w]) => `
-      <div class="award-weight-item">
-        <div class="award-weight-dot" style="opacity:${0.4 + w * 2.5};"></div>
-        ${n} (${Math.round(w * 100)}%)
-      </div>
-    `).join('')}
-  </div>
-` : ''}
-`;
+      ${award.weights ? `<div class="award-weight-bar">
+        <span style="font-size:.68rem;color:var(--text3);margin-right:4px;">Formula:</span>
+        ${award.weights.map(([g,n,w])=>`<div class="award-weight-item"><div class="award-weight-dot" style="opacity:${0.4+w*2.5};"></div>${n} (${Math.round(w*100)}%)</div>`).join('')}
+      </div>` : `<div class="award-weight-bar"><span style="font-size:.68rem;color:var(--text3);">Ranked by 2025-26 model value</span></div>`}
+    </div>`;
   document.querySelectorAll('.award-row').forEach(row=>{
     row.addEventListener('click',()=>{const p=ALL_PLAYERS.find(x=>x.name===row.dataset.name);if(p)showPlayer(p);});
   });
@@ -1285,6 +1303,98 @@ function renderAnalyticsStrip(p) {
     `<div class="stat-cell"><div class="stat-val" style="color:${clr(t.val)};font-size:.9rem;">${t.val??'–'}</div><div class="stat-lbl">${t.lbl}</div></div>`
   ).join('');
 }
+
+// ── GOALIES ───────────────────────────────────────────────────────────────────
+let goalieApiCache = {};  // name -> {svPct, gaa, wins, gsAbove900}
+
+async function fetchGoalieStats(name) {
+  if (goalieApiCache[name] !== undefined) return goalieApiCache[name];
+  if (window.location.protocol === 'file:') { goalieApiCache[name] = null; return null; }
+  const pid = nhlIdCache[name];
+  if (!pid) { goalieApiCache[name] = null; return null; }
+  try {
+    const r = await fetch(`/nhl-api?path=/v1/player/${pid}/landing`);
+    if (!r.ok) { goalieApiCache[name] = null; return null; }
+    const d = await r.json();
+    const ss = d.featuredStats?.regularSeason?.subSeason;
+    if (!ss) { goalieApiCache[name] = null; return null; }
+    const stats = {
+      svPct: ss.savePctg != null ? (ss.savePctg * 100).toFixed(1) + '%' : null,
+      gaa: ss.goalsAgainstAvg != null ? ss.goalsAgainstAvg.toFixed(2) : null,
+      wins: ss.wins ?? null,
+      gs900: ss.gamesStarted != null && ss.savePctg != null ? null : null,  // not in landing
+    };
+    goalieApiCache[name] = stats;
+    return stats;
+  } catch(e) { goalieApiCache[name] = null; return null; }
+}
+
+function fmtCap(v) { return v ? '$' + (v/1000000).toFixed(2) + 'M' : '–'; }
+function fmtVal(v) { return v ? '$' + Math.round(v/1000) + 'K' : '–'; }
+function fmtSurplus(v) {
+  if (v == null) return '–';
+  const s = '$' + Math.abs(Math.round(v/1000)) + 'K';
+  return (v >= 0 ? '+' : '-') + s;
+}
+
+function renderGoalieGrid() {
+  const q = (document.getElementById('goalie-search')?.value || '').toLowerCase();
+  const sortKey = document.getElementById('goalie-sort')?.value || 'value_2526';
+  let gs = ALL_GOALIES.filter(g => !q || g.name.toLowerCase().includes(q) || (g.team||'').toLowerCase().includes(q));
+  gs = [...gs].sort((a,b) => (b[sortKey]||0) - (a[sortKey]||0));
+  const grid = document.getElementById('goalie-grid');
+  if (!grid) return;
+
+  grid.innerHTML = gs.map(g => {
+    const pid = nhlIdCache[g.name];
+    const hsUrl = nhlHeadshotCache[g.name] || (pid ? `https://assets.nhle.com/mugs/nhl/20252026/${pid}.png` : '');
+    const sv = g.surplus || 0;
+    const svClr = sv >= 0 ? 'var(--teal)' : 'var(--coral)';
+    return `<div class="goalie-card" data-name="${g.name}">
+      <div class="goalie-card-header">
+        ${hsUrl
+          ? `<img class="goalie-hs" src="${hsUrl}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" alt=""><div class="goalie-hs-init" style="display:none;">${initials(g.name)}</div>`
+          : `<div class="goalie-hs-init">${initials(g.name)}</div>`}
+        <div>
+          <div class="goalie-info-name">${g.name}</div>
+          <div class="goalie-info-meta">${g.current_team||g.team||'–'} · G · ${g.age ? Math.floor(g.age) + ' yrs' : '–'} · ${g.gp || '–'} GP</div>
+        </div>
+      </div>
+      <div class="goalie-stats" id="gstats-${g.name.replace(/\s/g,'_')}">
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${fmtVal(g.value_2526)}</div><div class="goalie-stat-lbl">25-26 value</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val">${fmtVal(g.value)}</div><div class="goalie-stat-lbl">Avg value</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:${svClr};">${fmtSurplus(g.surplus)}</div><div class="goalie-stat-lbl">Surplus</div></div>
+      </div>
+      <div class="goalie-contract">
+        <span>Cap:</span> ${fmtCap(g.cap)} &nbsp;
+        <span>Exp:</span> ${g.exp_year||'–'} ${g.expiry_type||''} &nbsp;
+        ${g.height ? `<span>Ht:</span> ${g.height}` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Attach click handlers
+  grid.querySelectorAll('.goalie-card').forEach(card => {
+    card.addEventListener('click', () => {
+      // No full card view yet - just show a toast or do nothing
+    });
+  });
+
+  // Async: populate box stats after render
+  gs.forEach(async g => {
+    await fetchNHLPlayerData(g.name, async (_, pid) => {
+      const stats = await fetchGoalieStats(g.name);
+      if (!stats) return;
+      const el = document.getElementById('gstats-' + g.name.replace(/\s/g,'_'));
+      if (!el) return;
+      el.innerHTML = `
+        <div class="goalie-stat"><div class="goalie-stat-val">${stats.svPct||'–'}</div><div class="goalie-stat-lbl">SV%</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val">${stats.gaa||'–'}</div><div class="goalie-stat-lbl">GAA</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val">${stats.wins!=null?stats.wins:'–'}</div><div class="goalie-stat-lbl">Wins</div></div>`;
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   if (window.location.protocol === 'file:') {
@@ -1348,6 +1458,21 @@ document.addEventListener('DOMContentLoaded', () => {
     ['nav-awards','nav-awards-aw','nav-awards-lb'].forEach(id=>document.getElementById(id)?.classList.add('active'));
     initAwards();
   };
+  const goGoalies = () => {
+    showView('goaliesview');
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    ['nav-goalies','nav-goalies-lb','nav-goalies-go'].forEach(id=>document.getElementById(id)?.classList.add('active'));
+    renderGoalieGrid();
+  };
+  ['nav-goalies','nav-goalies-lb','nav-goalies-go'].forEach(id=>document.getElementById(id)?.addEventListener('click', goGoalies));
+  ['nav-logo-go'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>showView('landing')));
+  ['nav-players-go'].forEach(id=>document.getElementById(id)?.addEventListener('click', goPlayers));
+  ['nav-lb-go'].forEach(id=>document.getElementById(id)?.addEventListener('click', goLeaderboard));
+  ['nav-teams-go'].forEach(id=>document.getElementById(id)?.addEventListener('click', goTeams));
+  ['nav-awards-go'].forEach(id=>document.getElementById(id)?.addEventListener('click', goAwards));
+  document.getElementById('goalie-search')?.addEventListener('input', renderGoalieGrid);
+  document.getElementById('goalie-sort')?.addEventListener('change', renderGoalieGrid);
+
   document.getElementById('landing-aw-link')?.addEventListener('click', goAwards);
   ['nav-awards','nav-awards-lb','nav-awards-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click', goAwards));
   ['nav-logo-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>showView('landing')));
@@ -1389,6 +1514,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+
+<div id="goaliesview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-go">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-go">Players</div>
+      <div class="nav-link" id="nav-lb-go">Leaderboard</div>
+      <div class="nav-link" id="nav-teams-go">Teams</div>
+      <div class="nav-link active" id="nav-goalies-go">Goalies</div>
+      <div class="nav-link" id="nav-awards-go">Awards</div>
+    </div>
+  </nav>
+  <div class="lb-content">
+    <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+      <input type="text" id="goalie-search" placeholder="Search goalies..." style="flex:1;min-width:180px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.45rem .75rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.85rem;outline:none;">
+      <select class="lb-select" id="goalie-sort">
+        <option value="value_2526">2025-26 value</option>
+        <option value="value">Avg value</option>
+        <option value="surplus">Surplus</option>
+        <option value="gp">Games played</option>
+        <option value="cap">Cap hit</option>
+      </select>
+    </div>
+    <div class="goalie-grid" id="goalie-grid"></div>
+    <div class="lb-footer">Billy Puck Grades · Goalies · 2025–26 · Data: NST · Evolving-Hockey · CapFriendly</div>
+  </div>
+</div>
 <div id="awardsview" class="view">
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-aw">Billy Puck<span> Grades</span></div>
@@ -1409,39 +1561,4 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 </body>
-</html>const ELITE_ROLES = new Set(['Elite','Top Line','Top Pair']);
-function getPenaltyDiffPct(p) {
-  return (p.categories?.['Special teams']||[]).find(c=>c.name==='Penalty differential')?.pct ?? null;
-}
-function computeAward(award) {
-  let pool = ALL_PLAYERS;
-  if (award.pool==='F') pool=pool.filter(p=>p._type==='F');
-  if (award.pool==='D') pool=pool.filter(p=>p._type==='D');
-  pool = pool.filter(p => {
-    if (!p.gp || p.gp < award.minGp) return false;
-    if (award.ageMax && (!p.age || p.age > award.ageMax)) return false;
-    if (award.eliteOnly && !ELITE_ROLES.has(p.role)) return false;
-    if (award.rookieOnly && p.prior_season) return false;  // in 24-25 model = not a rookie
-    return true;
-  });
-  let results;
-  if (award.sortBy === 'value') {
-    results = pool.filter(p=>p.value!=null)
-      .map(p=>({score:p.value, display:'$'+Math.round(p.value/1000)+'K', player:p}))
-      .sort((a,b)=>b.score-a.score);
-  } else if (award.sortBy === 'pim') {
-    // Lower PIM = better; sort ascending
-    results = pool.filter(p=>p.pim!=null)
-      .map(p=>({score:-p.pim, display:p.pim+" PIM", player:p}))
-      .sort((a,b)=>b.score-a.score);
-  } else if (award.sortBy === 'penaltydiff') {
-    results = pool.filter(p=>getPenaltyDiffPct(p)!=null)
-      .map(p=>({score:getPenaltyDiffPct(p), player:p}))
-      .sort((a,b)=>b.score-a.score);
-  } else {
-    results = pool.map(p=>({score:awardScore(p,award.weights||[]),player:p}))
-      .filter(r=>r.score!=null).sort((a,b)=>b.score-a.score);
-  }
-  return results.slice(0,10);
-}
-
+</html>
