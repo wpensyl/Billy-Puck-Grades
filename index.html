@@ -1166,27 +1166,28 @@ async function renderTeamView(teamCode) {
 
   // Goalies for this team
   const teamGoalies = ALL_GOALIES.filter(g => g.current_team === teamCode || g.team === teamCode);
-  const goalieHtml = teamGoalies.length ? `
-    <div style="margin-top:1.25rem;">
-      <div style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;">Goalies</div>
-      <div class="lb-table-wrap">
-        <table class="lb-table">
-          <thead><tr><th>Player</th><th>Overall</th><th> </th><th>GP</th><th>Cap hit</th><th>Surplus</th></tr></thead>
-          <tbody>${teamGoalies.map(g=>{
-            const ov=g.comp_value_norm??0; const sv=g.surplus??0;
-            const clr=ov>=70?'var(--teal)':ov<=30?'var(--coral)':'var(--mid)';
-            return \`<tr>
-              <td><span class="lb-player-name">\${g.name}</span></td>
-              <td class="lb-overall" style="color:\${clr};">\${ov||'–'}</td>
-              <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:\${ov}%;background:\${barColor(ov)};"></div></div></td>
-              <td style="font-family:'DM Mono',monospace;font-size:.82rem;">\${g.gp||'–'}</td>
-              <td class="lb-money">\${fmt$(g.cap)}</td>
-              <td class="lb-money" style="color:\${sv>=0?'var(--teal)':'var(--coral)'};">\${fmtSurplus(sv)}</td>
-            </tr>\`;
-          }).join('')}</tbody>
-        </table>
-      </div>
-    </div>` : '';
+  let goalieHtml = '';
+  if (teamGoalies.length) {
+    const goalieRows = teamGoalies.map(g => {
+      const ov = g.comp_value_norm ?? 0;
+      const sv = g.surplus ?? 0;
+      const clr = ov >= 70 ? 'var(--teal)' : ov <= 30 ? 'var(--coral)' : 'var(--mid)';
+      const svClr = sv >= 0 ? 'var(--teal)' : 'var(--coral)';
+      return '<tr>' +
+        '<td><span class="lb-player-name">' + g.name + '</span></td>' +
+        '<td class="lb-overall" style="color:' + clr + ';">' + (ov || '–') + '</td>' +
+        '<td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:' + ov + '%;background:' + barColor(ov) + ';"></div></div></td>' +
+        '<td style="font-family:'DM Mono',monospace;font-size:.82rem;">' + (g.gp || '–') + '</td>' +
+        '<td class="lb-money">' + fmt$(g.cap) + '</td>' +
+        '<td class="lb-money" style="color:' + svClr + ';">' + fmtSurplus(sv) + '</td>' +
+        '</tr>';
+    }).join('');
+    goalieHtml = '<div style="margin-top:1.25rem;">' +
+      '<div style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;">Goalies</div>' +
+      '<div class="lb-table-wrap"><table class="lb-table">' +
+      '<thead><tr><th>Player</th><th>Overall</th><th> </th><th>GP</th><th>Cap hit</th><th>Surplus</th></tr></thead>' +
+      '<tbody>' + goalieRows + '</tbody></table></div></div>';
+  }
 
   document.getElementById('tm-roster').innerHTML = catHtml + rosterHtml + goalieHtml;
   document.querySelectorAll('#tm-roster tbody tr').forEach(row => {
