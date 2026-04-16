@@ -370,6 +370,7 @@ let compNorms = {fwd:{}, dman:{}};
 let nhlRosterCache = {};
 let nhlIdCache = {};
 let nhlHeadshotCache = {};
+let nhlJerseyCache = {};
 let activeCompTab = 'individual';
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
@@ -540,6 +541,12 @@ async function prefetchAllRosters() {
   await chunk(teams.slice(24));
   // Reconcile current_team for multi-team players using live roster as truth
   reconcileCurrentTeams();
+  // Update jersey number display if a player card is open
+  if (currentPlayer) {
+    const num = nhlJerseyCache[currentPlayer.name];
+    const el = document.getElementById('ph-jersey');
+    if (el && num) el.textContent = ' #' + num;
+  }
 }
 
 function reconcileCurrentTeams() {
@@ -572,6 +579,7 @@ async function fetchRosterIds(teamAbbrev) {
         if (name && p.id) {
           nhlIdCache[name] = p.id;
           if (p.headshot) nhlHeadshotCache[name] = p.headshot;
+          if (p.sweaterNumber) nhlJerseyCache[name] = p.sweaterNumber;
         }
       }
     }
@@ -682,6 +690,12 @@ async function showPlayer(p) {
   document.getElementById('comp-list').innerHTML = '<div class="comp-loading"><span class="pulse">Loading comparables...</span></div>';
   renderContract(p);
   // Async: NHL API
+  // Jersey number - show immediately if cached, else after prefetch updates
+  const jerseyEl = document.getElementById('ph-jersey');
+  if (jerseyEl) {
+    const num = nhlJerseyCache[p.name];
+    jerseyEl.textContent = num ? ' #' + num : '';
+  }
   fetchNHLPlayerData(p.name, (match, pid) => {
     const imgEl = document.getElementById('ph-img');
     const fallEl = document.getElementById('ph-init');
@@ -706,7 +720,7 @@ function renderHeader(p) {
     <div style="flex:1;min-width:0;">
       <div class="player-name" style="color:var(--text);">${p.name}</div>
       <div class="player-sub">
-        <span>${p.team||'–'}</span><span class="sep">·</span>
+        <span>${p.current_team||p.team||'–'}</span><span id="ph-jersey" style="color:var(--text3);font-size:.82rem;"></span><span class="sep">·</span>
         <span>Age ${p.age ? Math.floor(p.age) : '–'}</span><span class="sep">·</span>
         <span>${p.height||'–'} · ${p.weight ? p.weight+' lbs' : '–'}</span>
       </div>
