@@ -935,7 +935,8 @@ function renderContract(p) {
       <div class="c-item"><div class="c-lbl">25–26 value</div><div class="c-val">${fmt$(p.value)}</div></div>
       <div class="c-item"><div class="c-lbl">25–26 surplus*</div><div class="c-val ${(s25v||0)>=0?'pos':'neg'}">${fmtSurplus(s25v)}</div></div>
       <div class="c-item"><div class="c-lbl">Proj. value</div><div class="c-val" style="color:var(--blue);">${fmt$(cc.sum_value && cc.years ? Math.round(cc.sum_value / (cc.years.filter(y=>y.on_contract).length||1)) : null)}</div></div>
-      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
+      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type
+      ${(()=>{if(!p.age||!p.overall_pct||!cc.years)return'';const onYrs=cc.years.filter(y=>y.on_contract).length;if(onYrs<2)return'';const proj=projectOverall(p.overall_pct,p.age,onYrs);const endPct=proj[proj.length-1];const clr=endPct>=70?'var(--teal)':endPct>=40?'var(--text2)':'var(--coral)';return'<div class="c-item"><div class="c-lbl">Proj. at expiry</div><div class="c-val" style="color:'+clr+';">'+endPct+'th</div></div>';})()}||''}</div></div>
       <div class="c-item"><div class="c-lbl">Avg. surplus</div><div class="c-val ${(cc.avg_aav_excess||0)>=0?'pos':'neg'}">${fmtSurplus(cc.avg_aav_excess)}</div></div>
     </div>
     <div class="contract-chart-wrap">
@@ -954,7 +955,13 @@ function renderContract(p) {
     type:'bar',
     data:{labels:cy.map(y=>(y.year-1)+'–'+String(y.year).slice(2)),datasets:[
       {label:'Implied value',data:cy.map(y=>y.implied_value),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-      {label:'Cap hit',data:cy.map(y=>y.cap_hit),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
+      {label:'Cap hit',data:cy.map(y=>y.cap_hit),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4},
+      ...(p.age&&p.overall_pct&&cy.length>=2?(()=>{
+        const proj=projectOverall(p.overall_pct,p.age,cy.length);
+        const base=cy[0]&&p.overall_pct>0?cy[0].implied_value/(p.overall_pct/100):null;
+        if(!base)return[];
+        return[{label:'Projected (aging)',data:proj.map(pct=>Math.round(base*(pct/100))),type:'line',borderColor:'rgba(251,191,36,0.85)',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:4,pointBackgroundColor:'rgba(251,191,36,0.85)',tension:0.3}];
+      })():[])
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
@@ -970,6 +977,36 @@ function renderContract(p) {
   note.style.cssText = 'font-size:.68rem;color:var(--text3);margin-top:.5rem;line-height:1.5;padding:0 .25rem;';
   note.innerHTML = '* Surplus based on implied value using player’s multi-year average rating, not current-season value alone.<br>Implied value in chart is held constant at that multi-year average; growth across future years reflects projected salary cap increases.';
   document.getElementById('contract-panel').appendChild(note);
+}
+
+// ── WINS PROJECTION MODEL ──────────────────────────────────────────────────────
+// Derived from 4 seasons of data (2022-23 through 2025-26), 125 team-seasons
+// pts = PTS_COEF_SKATER × skater_pct + PTS_COEF_GOALIE × goalie_score_pct + PTS_INTERCEPT
+// skater_pct: TOI-weighted team composite (0-100); goalie_score_pct: GP-weighted Score% × 100
+// R² = 0.457; MAE = ±9 pts; 90th pct error = ±18 pts
+const PTS_COEF_SKATER = 1.1772;
+const PTS_COEF_GOALIE = 10.2102;
+const PTS_INTERCEPT   = 8.6338;
+const PTS_MAE         = 9.0;
+
+// ── AGING CURVE PROJECTION ────────────────────────────────────────────────────
+// Derived from 2022-23 through 2025-26 forward data (1997 player-seasons)
+// Δoverall = age_curve(age) + regression_to_mean * (current - 0.5)
+const AGE_CURVE_COEFFS = [-0.00010377, 0.01004135, -0.32467617, 3.46167452];
+const REGRESSION_SLOPE = -0.2196;
+
+function projectOverall(currentPct, currentAge, yearsForward) {
+  let ov = currentPct / 100;
+  const results = [];
+  for (let yr = 0; yr < yearsForward; yr++) {
+    const age = currentAge + yr;
+    const [a, b, c, d] = AGE_CURVE_COEFFS;
+    const age_delta = a*age**3 + b*age**2 + c*age + d;
+    const reg_delta = REGRESSION_SLOPE * (ov - 0.5);
+    ov = Math.min(1.0, Math.max(0.01, ov + age_delta + reg_delta));
+    results.push(Math.round(ov * 100));
+  }
+  return results;
 }
 
 // ── LEADERBOARD ───────────────────────────────────────────────────────────────
@@ -1170,6 +1207,21 @@ async function renderTeamView(teamCode) {
     return wTotal > 0 ? Math.round(wSum / wTotal) : 0;
   })();
 
+  // GP-weighted goalie Score% for pts projection
+  const teamGoaliesEarly = ALL_GOALIES.filter(g => g.current_team === teamCode || g.team === teamCode);
+  const totalGP = teamGoaliesEarly.reduce((s,g) => s + (g.gp||0), 0);
+  const goalieScorePct = totalGP > 0
+    ? teamGoaliesEarly.reduce((s,g) => s + (g.comp_value_norm||50) * (g.gp||0), 0) / totalGP
+    : 50;
+
+  const projPts = Math.round(PTS_COEF_SKATER * avgOverall + PTS_COEF_GOALIE * (goalieScorePct/100) * 100 + PTS_INTERCEPT);
+  // note: goalie_score in model is 0-1 scale; comp_value_norm is 0-100; so /100 then *100 cancels
+  // actual formula: PTS_COEF_GOALIE * (goalieScorePct/100) where PTS_COEF_GOALIE already in pts units
+  const projPtsFinal = Math.round(PTS_COEF_SKATER * avgOverall + PTS_COEF_GOALIE * (goalieScorePct/100) + PTS_INTERCEPT);
+  const projLo = Math.max(60, projPtsFinal - Math.round(PTS_MAE));
+  const projHi = Math.min(140, projPtsFinal + Math.round(PTS_MAE));
+  const projClr = projPtsFinal >= 100 ? 'var(--teal)' : projPtsFinal >= 88 ? 'var(--text2)' : 'var(--coral)';
+
   const ac = '#2dd4a0';
 
   document.getElementById('tm-summary').innerHTML = `
@@ -1178,6 +1230,7 @@ async function renderTeamView(teamCode) {
       <div class="tm-stat"><div class="tm-stat-val">${players.length}</div><div class="tm-stat-lbl">Players tracked</div></div>
       <div class="tm-stat"><div class="tm-stat-val">${'$'+(totalCap/1e6).toFixed(1)+'M'}</div><div class="tm-stat-lbl">Total cap</div></div>
       <div class="tm-stat"><div class="tm-stat-val" style="color:${totalSurplus>=0?'var(--teal)':'var(--coral)'};">${totalSurplus>=0?'+':''}$${(Math.abs(totalSurplus)/1e6).toFixed(1)}M</div><div class="tm-stat-lbl">Total surplus</div></div>
+      <div class="tm-stat" title="Model projection: ${projLo}–${projHi} pts range (±${Math.round(PTS_MAE)} pts MAE)"><div class="tm-stat-val" style="color:${projClr};">${projPtsFinal}</div><div class="tm-stat-lbl">Proj. pts (±${Math.round(PTS_MAE)})</div></div>
     </div>`;
 
   const ST_FLOOR = 4;
