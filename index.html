@@ -157,7 +157,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .tm-cat-bar{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:3px;}
 .tm-cat-fill{height:100%;border-radius:3px;}
 .tm-cat-pct{font-family:'DM Mono',monospace;font-size:.78rem;font-weight:500;}
-.tm-summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
+.tm-summary-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
 .tm-stat{background:var(--surface);padding:.7rem 1rem;}
 .tm-stat-val{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:500;}
 .tm-stat-lbl{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
@@ -1214,9 +1214,7 @@ async function renderTeamView(teamCode) {
     ? teamGoaliesEarly.reduce((s,g) => s + (g.comp_value_norm||50) * (g.gp||0), 0) / totalGP
     : 50;
 
-  const projPts = Math.round(PTS_COEF_SKATER * avgOverall + PTS_COEF_GOALIE * (goalieScorePct/100) * 100 + PTS_INTERCEPT);
-  // note: goalie_score in model is 0-1 scale; comp_value_norm is 0-100; so /100 then *100 cancels
-  // actual formula: PTS_COEF_GOALIE * (goalieScorePct/100) where PTS_COEF_GOALIE already in pts units
+  // Projected pts: skater composite (0-100) + GP-weighted goalie Score% (0-100 → 0-1)
   const projPtsFinal = Math.round(PTS_COEF_SKATER * avgOverall + PTS_COEF_GOALIE * (goalieScorePct/100) + PTS_INTERCEPT);
   const projLo = Math.max(60, projPtsFinal - Math.round(PTS_MAE));
   const projHi = Math.min(140, projPtsFinal + Math.round(PTS_MAE));
@@ -1227,10 +1225,10 @@ async function renderTeamView(teamCode) {
   document.getElementById('tm-summary').innerHTML = `
     <div class="tm-summary-strip">
       <div class="tm-stat"><div class="tm-stat-val" style="color:${ac};">${avgOverall}</div><div class="tm-stat-lbl">Avg overall pct</div></div>
-      <div class="tm-stat"><div class="tm-stat-val">${players.length}</div><div class="tm-stat-lbl">Players tracked</div></div>
-      <div class="tm-stat"><div class="tm-stat-val">${'$'+(totalCap/1e6).toFixed(1)+'M'}</div><div class="tm-stat-lbl">Total cap</div></div>
+      <div class="tm-stat" title="Model projection based on skater composite + goalie rating. 4-season regression, R²=0.46, ±${Math.round(PTS_MAE)} pts MAE."><div class="tm-stat-val" style="color:${projClr};">${projPtsFinal}</div><div class="tm-stat-lbl">Proj. pts (±${Math.round(PTS_MAE)})</div></div>
       <div class="tm-stat"><div class="tm-stat-val" style="color:${totalSurplus>=0?'var(--teal)':'var(--coral)'};">${totalSurplus>=0?'+':''}$${(Math.abs(totalSurplus)/1e6).toFixed(1)}M</div><div class="tm-stat-lbl">Total surplus</div></div>
-      <div class="tm-stat" title="Model projection: ${projLo}–${projHi} pts range (±${Math.round(PTS_MAE)} pts MAE)"><div class="tm-stat-val" style="color:${projClr};">${projPtsFinal}</div><div class="tm-stat-lbl">Proj. pts (±${Math.round(PTS_MAE)})</div></div>
+      <div class="tm-stat"><div class="tm-stat-val">${'$'+(totalCap/1e6).toFixed(1)+'M'}</div><div class="tm-stat-lbl">Total cap</div></div>
+      <div class="tm-stat"><div class="tm-stat-val">${players.length}</div><div class="tm-stat-lbl">Players tracked</div></div>
     </div>`;
 
   const ST_FLOOR = 4;
