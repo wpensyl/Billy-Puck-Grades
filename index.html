@@ -935,8 +935,8 @@ function renderContract(p) {
       <div class="c-item"><div class="c-lbl">25–26 value</div><div class="c-val">${fmt$(p.value)}</div></div>
       <div class="c-item"><div class="c-lbl">25–26 surplus*</div><div class="c-val ${(s25v||0)>=0?'pos':'neg'}">${fmtSurplus(s25v)}</div></div>
       <div class="c-item"><div class="c-lbl">Proj. value</div><div class="c-val" style="color:var(--blue);">${fmt$(cc.sum_value && cc.years ? Math.round(cc.sum_value / (cc.years.filter(y=>y.on_contract).length||1)) : null)}</div></div>
-      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type
-      ${(()=>{if(!p.age||!p.overall_pct||!cc.years)return'';const onYrs=cc.years.filter(y=>y.on_contract).length;if(onYrs<2)return'';const proj=projectOverall(p.overall_pct,p.age,onYrs);const endPct=proj[proj.length-1];const clr=endPct>=70?'var(--teal)':endPct>=40?'var(--text2)':'var(--coral)';return'<div class="c-item"><div class="c-lbl">Proj. at expiry</div><div class="c-val" style="color:'+clr+';">'+endPct+'th</div></div>';})()}||''}</div></div>
+      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
+      ${(()=>{if(!p.age||!p.overall_pct||!cc.years)return'';const onYrs=cc.years.filter(y=>y.on_contract).length;if(onYrs<2)return'';const proj=projectOverall(p.overall_pct,p.age,onYrs);const endPct=proj[proj.length-1];const clr=endPct>=70?'var(--teal)':endPct>=40?'var(--text2)':'var(--coral)';return'<div class="c-item"><div class="c-lbl">Proj. at expiry</div><div class="c-val" style="color:'+clr+';">'+endPct+'th</div></div>';})()}
       <div class="c-item"><div class="c-lbl">Avg. surplus</div><div class="c-val ${(cc.avg_aav_excess||0)>=0?'pos':'neg'}">${fmtSurplus(cc.avg_aav_excess)}</div></div>
     </div>
     <div class="contract-chart-wrap">
