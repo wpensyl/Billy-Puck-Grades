@@ -196,7 +196,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .goalie-hs-init{width:48px;height:48px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:600;color:var(--text3);flex-shrink:0;}
 .goalie-info-name{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--text);}
 .goalie-info-meta{font-size:.75rem;color:var(--text3);}
-.goalie-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);}
+.goalie-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);}
 .goalie-stat{background:var(--surface);padding:.5rem .4rem;text-align:center;}
 .goalie-stat-val{font-family:'DM Mono',monospace;font-size:.95rem;font-weight:500;color:var(--text);}
 .goalie-stat-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-top:1px;}
@@ -936,7 +936,6 @@ function renderContract(p) {
       <div class="c-item"><div class="c-lbl">25–26 surplus*</div><div class="c-val ${(s25v||0)>=0?'pos':'neg'}">${fmtSurplus(s25v)}</div></div>
       <div class="c-item"><div class="c-lbl">Proj. value</div><div class="c-val" style="color:var(--blue);">${fmt$(cc.sum_value && cc.years ? Math.round(cc.sum_value / (cc.years.filter(y=>y.on_contract).length||1)) : null)}</div></div>
       <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
-      ${(()=>{if(!p.age||!p.overall_pct||!cc.years)return'';const onYrs=cc.years.filter(y=>y.on_contract).length;if(onYrs<2)return'';const proj=projectOverall(p.overall_pct,p.age,onYrs);const endPct=proj[proj.length-1];const clr=endPct>=70?'var(--teal)':endPct>=40?'var(--text2)':'var(--coral)';return'<div class="c-item"><div class="c-lbl">Proj. at expiry</div><div class="c-val" style="color:'+clr+';">'+endPct+'th</div></div>';})()}
       <div class="c-item"><div class="c-lbl">Avg. surplus</div><div class="c-val ${(cc.avg_aav_excess||0)>=0?'pos':'neg'}">${fmtSurplus(cc.avg_aav_excess)}</div></div>
     </div>
     <div class="contract-chart-wrap">
@@ -955,13 +954,7 @@ function renderContract(p) {
     type:'bar',
     data:{labels:cy.map(y=>(y.year-1)+'–'+String(y.year).slice(2)),datasets:[
       {label:'Implied value',data:cy.map(y=>y.implied_value),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-      {label:'Cap hit',data:cy.map(y=>y.cap_hit),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4},
-      ...(p.age&&p.overall_pct&&cy.length>=2?(()=>{
-        const proj=projectOverall(p.overall_pct,p.age,cy.length);
-        const base=cy[0]&&p.overall_pct>0?cy[0].implied_value/(p.overall_pct/100):null;
-        if(!base)return[];
-        return[{label:'Projected (aging)',data:proj.map(pct=>Math.round(base*(pct/100))),type:'line',borderColor:'rgba(251,191,36,0.85)',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:4,pointBackgroundColor:'rgba(251,191,36,0.85)',tension:0.3}];
-      })():[])
+      {label:'Cap hit',data:cy.map(y=>y.cap_hit),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
@@ -1522,12 +1515,14 @@ function renderGoalieGrid() {
         </div>
       </div>
       <div class="goalie-stats" id="gstats-${g.name.replace(/\s/g,'_')}">
-        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.comp_value_norm!=null?g.comp_value_norm:'–'}</div><div class="goalie-stat-lbl">Overall</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.overall_2526!=null?g.overall_2526:'–'}</div><div class="goalie-stat-lbl">25-26 overall</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);opacity:.7;">${g.comp_value_norm!=null?g.comp_value_norm:'–'}</div><div class="goalie-stat-lbl">Hist. overall</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${fmtVal(g.value_2526)}</div><div class="goalie-stat-lbl">25-26 value</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val" style="color:${svClr};">${fmtSurplus(g.surplus)}</div><div class="goalie-stat-lbl">Surplus</div></div>
       </div>
       <div class="goalie-contract">
         <span>Cap:</span> ${fmtCap(g.cap)} &nbsp;
+        <span>Value:</span> ${fmtVal(g.value_2526)} &nbsp;
         <span>Exp:</span> ${g.exp_year||'–'} ${g.expiry_type||''} &nbsp;
         ${g.height ? `<span>Ht:</span> ${g.height}` : ''}
       </div>
@@ -1550,11 +1545,12 @@ function renderGoalieGrid() {
       if (!el) return;
       // Keep Overall (comp_value_norm), replace value tiles with live box stats
       el.innerHTML = `
-        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.comp_value_norm!=null?g.comp_value_norm:'–'}</div><div class="goalie-stat-lbl">Overall</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.overall_2526!=null?g.overall_2526:'–'}</div><div class="goalie-stat-lbl">25-26 overall</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);opacity:.7;">${g.comp_value_norm!=null?g.comp_value_norm:'–'}</div><div class="goalie-stat-lbl">Hist. overall</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.svPct||'–'}</div><div class="goalie-stat-lbl">SV%</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.gaa||'–'}</div><div class="goalie-stat-lbl">GAA</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.wins!=null?stats.wins:'–'}</div><div class="goalie-stat-lbl">Wins</div></div>`;
-      el.style.gridTemplateColumns = 'repeat(4,1fr)';
+      el.style.gridTemplateColumns = 'repeat(5,1fr)';
     });
   });
 }
