@@ -755,17 +755,7 @@ function renderHeader(p) {
         <div class="overall-lbl" style="color:${ac};">25–26</div>
       </div>
       <div class="overall-tile" style="background:${ac}0d;">
-        <div class="overall-num" style="color:${ac};opacity:.75;">${(()=>{
-          const ov=p.progression&&p.progression.overall;
-          if(!ov)return p.overall_pct??'–';
-          // Moderate-tier weights: 55/27/13/5 for Overall Norm (r=0.728)
-          const W=[0.55,0.27,0.13,0.05];
-          const vals=ov.filter(s=>s.pct!=null).slice(-4).reverse();
-          if(vals.length===0)return p.overall_pct??'–';
-          let num=0,den=0;
-          vals.forEach((s,i)=>{if(i<W.length){num+=s.pct*W[i];den+=W[i];}});
-          return den>0?Math.round(num/den):'–';
-        })()}</div>
+        <div class="overall-num" style="color:${ac};opacity:.75;">${p.t1_composite!=null?Math.round(p.t1_composite):'–'}</div>
         <div class="overall-lbl" style="color:${ac};opacity:.75;">Projected</div>
       </div>
     </div>`;
@@ -961,65 +951,72 @@ function renderContract(p) {
   if (!cc) { el.innerHTML = ''; return; }
   const s25 = cc.years.find(y => y.year === 2026);
   const s25v = s25 ? s25.surplus : null;
+  const avgAnnSurplus = cc.avg_aav_excess;
+  const avgProjVal    = p.avg_proj_value || null;
+  const fvM = v => v!=null ? '$'+(v/1e6).toFixed(2)+'M' : '\u2013';
+  const fs  = v => v!=null ? (v>=0?'+':'')+fvM(v) : '\u2013';
+  const fpct= v => v!=null ? Math.round(v)+'th' : '\u2013';
+  const posneg = v => (v||0)>=0 ? 'pos' : 'neg';
   el.innerHTML = `
     <div class="panel-hd"><span class="panel-title">Contract calculator</span><span class="panel-note">Implied value vs. cap hit</span></div>
     <div class="contract-strip">
       <div class="c-item"><div class="c-lbl">Cap hit</div><div class="c-val">${fmt$(p.cap)}</div></div>
-      <div class="c-item"><div class="c-lbl">25–26 value</div><div class="c-val">${fmt$(p.value)}</div></div>
-      <div class="c-item"><div class="c-lbl">25–26 surplus*</div><div class="c-val ${(s25v||0)>=0?'pos':'neg'}">${fmtSurplus(s25v)}</div></div>
-      <div class="c-item"><div class="c-lbl">Proj. value</div><div class="c-val" style="color:var(--blue);">${fmt$(cc.sum_value && cc.years ? Math.round(cc.sum_value / (cc.years.filter(y=>y.on_contract).length||1)) : null)}</div></div>
-      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
-      <div class="c-item"><div class="c-lbl">Avg. surplus</div><div class="c-val ${(cc.avg_aav_excess||0)>=0?'pos':'neg'}">${fmtSurplus(cc.avg_aav_excess)}</div></div>
+      <div class="c-item"><div class="c-lbl">25\u201326 value</div><div class="c-val">${fmt$(p.value)}</div></div>
+      <div class="c-item"><div class="c-lbl">25\u201326 surplus*</div><div class="c-val ${posneg(s25v)}">${fmtSurplus(s25v)}</div></div>
+      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'\u2013'} ${p.expiry_type||''}</div></div>
+      <div class="c-item"><div class="c-lbl">Avg. proj. value</div><div class="c-val" style="color:var(--blue);">${fmt$(avgProjVal)}</div></div>
+      <div class="c-item"><div class="c-lbl">Avg. annual surplus</div><div class="c-val ${posneg(avgAnnSurplus)}">${fmtSurplus(avgAnnSurplus)}</div></div>
     </div>
     <div class="contract-chart-wrap">
-      <div class="contract-chart-title">Implied value vs. cap hit — contract years</div>
+      <div class="contract-chart-title">Projected value vs. cap hit \u2014 2025\u201326 through 2032\u201333</div>
       <div style="position:relative;height:160px;"><canvas id="contract-chart"></canvas></div>
       <div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">
-        <div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Implied value</span></div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Proj. value</span></div>
         <div class="leg-item"><div class="leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="font-size:.72rem;color:var(--text3);">Cap hit</span></div>
       </div>
     </div>`;
   if (contractChart) { contractChart.destroy(); contractChart = null; }
-  const cy = cc.years.filter(y => y.on_contract);
-  if (!cy.length) return;
+  const SEASON_LABELS    = ['25\u201326','26\u201327','27\u201328','28\u201329','29\u201330','30\u201331','31\u201332','32\u201333'];
+  const SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033];
+  const expYear  = parseInt(p.exp_year) || 0;
+  const projVals = p.proj_years || [];
+  const capHits  = SEASON_END_YEARS.map(yr => yr <= expYear ? (p.cap || null) : null);
   const ctx2 = document.getElementById('contract-chart').getContext('2d');
   contractChart = new Chart(ctx2, {
     type:'bar',
-    data:{labels:cy.map(y=>(y.year-1)+'–'+String(y.year).slice(2)),datasets:[
-      {label:'Implied value',data:cy.map(y=>y.implied_value),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-      {label:'Cap hit',data:cy.map(y=>y.cap_hit),backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
+    data:{labels:SEASON_LABELS,datasets:[
+      {label:'Proj. value',data:projVals,backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
+      {label:'Cap hit',   data:capHits, backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
-        callbacks:{label:ctx=>`${ctx.dataset.label}: $${Math.round(ctx.raw).toLocaleString()}`}}},
+        callbacks:{label:ctx=>`${ctx.dataset.label}: $${Math.round(ctx.raw||0).toLocaleString()}`}}},
       scales:{
         x:{grid:{display:false},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
         y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10},callback:v=>'$'+(v/1e6).toFixed(1)+'M'}}
       }
     }
   });
-  // Add footnotes below chart
   const note = document.createElement('div');
   note.style.cssText = 'font-size:.68rem;color:var(--text3);margin-top:.5rem;line-height:1.5;padding:0 .25rem;';
-  note.innerHTML = '* Surplus based on implied value using player’s multi-year average rating, not current-season value alone.<br>Implied value in chart is held constant at that multi-year average; growth across future years reflects projected salary cap increases.';
-  document.getElementById('contract-panel').appendChild(note);
+  note.innerHTML = '* Surplus based on implied value using player\u2019s multi-year average rating, not current-season value alone.<br>'
+    + 'Projected values reflect an empirical aging curve tested on 2022\u201326 NHL data.<br>'
+    + 'Avg. Proj. Value reflects the average over the life of the current active contract.';
+  el.appendChild(note);
+  const btm = document.createElement('div');
+  btm.className = 'contract-strip';
+  btm.style.marginTop = '.75rem';
+  btm.innerHTML = [
+    {lbl:'Proj. value at expiry',  val:fvM(p.value_at_expiry)},
+    {lbl:'Proj. rating at expiry', val:fpct(p.norm_at_expiry)},
+    {lbl:'Peak proj. value',       val:fvM(p.peak_value)},
+    {lbl:'Fair value \u2014 1-yr deal', val:fvM(p.aav_1yr)},
+    {lbl:'Fair value \u2014 3-yr deal', val:fvM(p.aav_3yr)},
+    {lbl:'Fair value \u2014 7-yr deal', val:fvM(p.aav_7yr)},
+  ].map(it=>`<div class="c-item"><div class="c-lbl">${it.lbl}</div><div class="c-val" style="color:var(--blue);">${it.val}</div></div>`).join('');
+  el.appendChild(btm);
 }
 
-// ── WINS PROJECTION MODEL ──────────────────────────────────────────────────────
-// Derived from 4 seasons of data (2022-23 through 2025-26), 125 team-seasons
-// pts = PTS_COEF_SKATER × skater_pct + PTS_COEF_GOALIE × goalie_score_pct + PTS_INTERCEPT
-// skater_pct: TOI-weighted team composite (0-100); goalie_score_pct: GP-weighted Score% × 100
-// R² = 0.457; MAE = ±9 pts; 90th pct error = ±18 pts
-const PTS_COEF_SKATER = 1.1772;
-const PTS_COEF_GOALIE = 10.2102;
-const PTS_INTERCEPT   = 8.6338;
-const PTS_MAE         = 9.0;
-
-// ── AGING CURVE PROJECTION ────────────────────────────────────────────────────
-// Derived from 2022-23 through 2025-26 forward data (1997 player-seasons)
-// Δoverall = age_curve(age) + regression_to_mean * (current - 0.5)
-const AGE_CURVE_COEFFS = [-0.00010377, 0.01004135, -0.32467617, 3.46167452];
-const REGRESSION_SLOPE = -0.2196;
 
 function projectOverall(currentPct, currentAge, yearsForward) {
   let ov = currentPct / 100;
