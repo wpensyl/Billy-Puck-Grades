@@ -3,7 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Billy Puck Grades</title>
+<title>Billy Puck Grades | NHL Player Analytics & Rankings</title>
+<meta name="description" content="Billy Puck Grades: advanced NHL player analytics with composite ratings, contract value analysis, team breakdowns, and breakout predictions. Data-driven grades for every NHL skater and goalie.">
+<meta name="keywords" content="NHL analytics, hockey player ratings, NHL player grades, hockey statistics, NHL contract value, hockey analytics, Billy Puck Grades, NHL rankings, hockey composite scores">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://billy-puck-grades.pages.dev/">
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Billy Puck Grades | NHL Player Analytics">
+<meta property="og:description" content="Advanced NHL player analytics with composite ratings, contract value analysis, team projections, and breakout predictions for every NHL skater and goalie.">
+<meta property="og:url" content="https://billy-puck-grades.pages.dev/">
+<meta property="og:site_name" content="Billy Puck Grades">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Billy Puck Grades | NHL Player Analytics">
+<meta name="twitter:description" content="Advanced NHL player analytics: composite ratings, contract value, team projections, and breakout predictions.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Karla:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -73,7 +87,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .tag{font-size:.72rem;font-weight:600;letter-spacing:.05em;padding:3px 9px;border-radius:4px;text-transform:uppercase;}
 .tag-contract{background:var(--surface3);color:var(--text2);}
 .tag-style{background:var(--blue-dim);color:var(--blue);}
-.overall-badge{flex-shrink:0;display:flex;flex-direction:column;align-items:center;background:var(--teal-dim);border:1px solid rgba(45,212,160,.25);border-radius:var(--radius-sm);padding:.75rem 1rem;min-width:72px;}
+.overall-badge{flex-shrink:0;display:flex;flex-direction:row;gap:1px;background:var(--border);border:1px solid rgba(45,212,160,.25);border-radius:var(--radius-sm);overflow:hidden;}
+.overall-tile{display:flex;flex-direction:column;align-items:center;padding:.6rem .85rem;background:var(--teal-dim);min-width:66px;}
 .overall-num{font-family:'DM Mono',monospace;font-size:2rem;font-weight:500;color:var(--teal);line-height:1;}
 .overall-lbl{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);opacity:.7;margin-top:4px;}
 .stat-strip{display:flex;flex-wrap:nowrap;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
@@ -285,7 +300,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       </div>
     </div>
     <div class="panel" id="contract-panel"></div>
-    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2025–26 NHL Season<br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
+    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2025–26 NHL Season · Updated June 2026<br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
   </div>
 </div>
 
@@ -305,7 +320,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     </div>
   </nav>
   <div class="lb-content">
-    <div class="lb-controls">
+    <div class="lb-controls"><span style="font-size:.8rem;font-weight:500;color:var(--text2);padding:.3rem .5rem;white-space:nowrap;">2025–26 season</span>
       <select class="lb-select" id="lb-pos"><option value="all">All positions</option><option value="F">Forwards</option><option value="D">Defensemen</option></select>
       <select class="lb-select" id="lb-team"><option value="all">All teams</option></select>
       <select class="lb-select" id="lb-role"><option value="all">All roles</option><option value="Elite">Elite</option><option value="Top Line">Top line</option><option value="T6">Top 6</option><option value="M6">Mid 6</option><option value="4th Line">4th line</option><option value="Top Pair">Top pair</option><option value="2nd Pair">2nd pair</option><option value="3rd Pair">3rd pair</option></select>
@@ -732,10 +747,26 @@ function renderHeader(p) {
         ${p.playstyle ? `<span class="tag tag-style">${p.playstyle}</span>` : ''}
       </div>
     </div>
-    <div class="overall-badge" style="background:${ac}18;border-color:${ac}33;">
-      <div class="overall-num" style="color:${ac};">${p.overall_pct??'–'}</div>
-      <div class="overall-lbl" style="color:${ac};">Overall</div>
-    </div>`;
+    <div class="overall-badge" style="border-color:${ac}33;">
+      <div class="overall-tile" style="background:${ac}18;">
+        <div class="overall-num" style="color:${ac};">${p.overall_pct??'–'}</div>
+        <div class="overall-lbl" style="color:${ac};">25–26</div>
+      </div>
+      <div class="overall-tile" style="background:${ac}0d;">
+        <div class="overall-num" style="color:${ac};opacity:.75;">${(()=>{
+          const ov=p.progression&&p.progression.overall;
+          if(!ov)return p.overall_pct??'–';
+          // Moderate-tier weights: 55/27/13/5 for Overall Norm (r=0.728)
+          const W=[0.55,0.27,0.13,0.05];
+          const vals=ov.filter(s=>s.pct!=null).slice(-4).reverse();
+          if(vals.length===0)return p.overall_pct??'–';
+          let num=0,den=0;
+          vals.forEach((s,i)=>{if(i<W.length){num+=s.pct*W[i];den+=W[i];}});
+          return den>0?Math.round(num/den):'–';
+        })()}</div>
+        <div class="overall-lbl" style="color:${ac};opacity:.75;">Projected</div>
+      </div>
+    </div>\`;
 }
 
 function renderStatStrip(p) {
@@ -1061,7 +1092,7 @@ function renderLeaderboard() {
     const ov = p.overall_pct??0; const sv = p.surplus??0;
     return `<tr data-name="${p.name}">
       <td class="lb-rank">${i+1}</td>
-      <td><span class="lb-player-name">${p.name}</span></td>
+      <td><span class="lb-player-name">${p.name}</span>${nhlJerseyCache[p.name]?` <span style="font-size:.72rem;color:var(--text3);font-family:'DM Mono',monospace;">(#${nhlJerseyCache[p.name]})</span>`:''}</td>
       <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
       <td style="color:var(--text2);">${p.team||'–'}</td>
       <td style="font-size:.82rem;color:var(--text2);">${p.role||'–'}</td>
@@ -1204,7 +1235,7 @@ async function renderTeamView(teamCode) {
   const teamGoaliesEarly = ALL_GOALIES.filter(g => g.current_team === teamCode || g.team === teamCode);
   const totalGP = teamGoaliesEarly.reduce((s,g) => s + (g.gp||0), 0);
   const goalieScorePct = totalGP > 0
-    ? teamGoaliesEarly.reduce((s,g) => s + (g.comp_value_norm||50) * (g.gp||0), 0) / totalGP
+    ? teamGoaliesEarly.reduce((s,g) => s + (g.overall_2526 ?? g.comp_value_norm ?? 50) * (g.gp||0), 0) / totalGP
     : 50;
 
   // Projected pts: skater composite (0-100) + GP-weighted goalie Score% (0-100 → 0-1)
