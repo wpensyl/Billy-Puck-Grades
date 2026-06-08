@@ -1094,7 +1094,7 @@ function renderLeaderboard() {
     const ov = p.overall_pct??0; const sv = p.surplus??0;
     return `<tr data-name="${p.name}">
       <td class="lb-rank">${i+1}</td>
-      <td><span class="lb-player-name">${p.name}</span>${nhlJerseyCache[p.name]?` <span style="font-size:.72rem;color:var(--text3);font-family:'DM Mono',monospace;">(#${nhlJerseyCache[p.name]})</span>`:''}</td>
+      <td><span class="lb-player-name">${p.name}</span></td>
       <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
       <td style="color:var(--text2);">${p.team||'–'}</td>
       <td style="font-size:.82rem;color:var(--text2);">${p.role||'–'}</td>
@@ -1313,7 +1313,7 @@ async function renderTeamView(teamCode) {
           const isD=p._type==='D'; const pac=isD?'#5b9cf6':'#2dd4a0'; const ov=p.overall_pct??0; const sv=p.surplus??0;
           return `<tr data-name="${p.name}">
             <td class="lb-rank">${i+1}</td>
-            <td><span class="lb-player-name">${p.name}</span></td>
+            <td><span class="lb-player-name">${p.name}</span>${nhlJerseyCache[p.name]?' <span style="font-size:.72rem;color:var(--text3);font-family:\'DM Mono\',monospace;">(#'+nhlJerseyCache[p.name]+')</span>':''}</td>
             <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
             <td style="font-size:.78rem;color:${pac};font-weight:500;">${p.role||'–'}</td>
             <td style="font-size:.78rem;color:var(--text3);">${p.actual_role||'–'}</td>
