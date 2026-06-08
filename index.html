@@ -1017,6 +1017,18 @@ function renderContract(p) {
   el.appendChild(btm);
 }
 
+// ── WINS PROJECTION MODEL ──────────────────────────────────────────────────────
+// Derived from 4 seasons (2022-23 through 2025-26), 125 team-seasons
+// pts = PTS_COEF_SKATER × skater_pct + PTS_COEF_GOALIE × goalie_score_pct + PTS_INTERCEPT
+// R² = 0.457; MAE = ±9 pts
+const PTS_COEF_SKATER = 1.1772;
+const PTS_COEF_GOALIE = 10.2102;
+const PTS_INTERCEPT   = 8.6338;
+const PTS_MAE         = 9.0;
+
+// ── AGING CURVE PROJECTION ─────────────────────────────────────────────────────
+const AGE_CURVE_COEFFS = [-0.00010377, 0.01004135, -0.32467617, 3.46167452];
+const REGRESSION_SLOPE = -0.2196;
 
 function projectOverall(currentPct, currentAge, yearsForward) {
   let ov = currentPct / 100;
