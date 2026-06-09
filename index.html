@@ -1754,46 +1754,16 @@ function renderSeasonPanel(p) {
 
 function buildSeasonContent(p, season, acHex) {
   const prog = p.progression || {};
-  const tracks = [
-    {key:'overall',       label:'Overall'},
-    {key:'off_prod',      label:'Off production'},
-    {key:'def_prod',      label:'Def production'},
-    {key:'off_analytics', label:'Off analytics'},
-    {key:'def_analytics', label:'Def analytics'},
-  ];
-
-  // Get percentile for this season from each progression track
-  const seasonPcts = {};
-  for (const {key} of tracks) {
-    const entry = (prog[key]||[]).find(e => e.season === season);
-    seasonPcts[key] = entry?.pct ?? null;
-  }
-
-  // Also get raw category values for this season if it's the current season
   const isCurrent = season === '2025-26';
-  const cats = isCurrent ? (p.categories || {}) : null;
 
-  let rowsHtml = '';
-
-  // Progression track bars
-  rowsHtml += `<div style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.35rem;">Performance tracks</div>`;
-  for (const {key, label} of tracks) {
-    const val = seasonPcts[key];
-    if (val == null) continue;
-    const clr = val >= 70 ? '#2dd4a0' : val <= 30 ? '#f4624a' : '#6b7280';
-    const cls = val >= 70 ? 'strong' : val <= 30 ? 'weak' : 'mid';
-    rowsHtml += `<div class="smooth-track">
-      <div class="smooth-lbl">${label}</div>
-      <div class="smooth-bar-wrap"><div class="smooth-bar-fill" style="width:${val}%;background:${clr};"></div></div>
-      <div class="smooth-val cat-pct ${cls}">${val}</div>
-    </div>`;
-  }
-
-  // Category breakdown for current season
-  if (isCurrent && cats && Object.keys(cats).length) {
-    rowsHtml += `<div style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin:.75rem 0 .35rem;">Category breakdown (25–26)</div>`;
+  // For the current season: show the full category breakdown from p.categories
+  // (same data / same layout as the permanent Category Breakdown panel above,
+  //  but here it's inside the collapsible season selector)
+  if (isCurrent) {
+    const cats = p.categories || {};
+    let rowsHtml = '';
     for (const [grp, items] of Object.entries(cats)) {
-      rowsHtml += `<div style="font-size:.62rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin:.3rem 0 .15rem;padding-left:140px;">${grp}</div>`;
+      rowsHtml += `<div class="grp-hd" style="padding:.5rem 0 .2rem;"><span class="grp-label">${grp}</span><div class="grp-line"></div></div>`;
       for (const cat of items) {
         if (cat.pct == null) continue;
         const clr = cat.pct >= 70 ? '#2dd4a0' : cat.pct <= 30 ? '#f4624a' : '#6b7280';
@@ -1805,10 +1775,35 @@ function buildSeasonContent(p, season, acHex) {
         </div>`;
       }
     }
-  } else if (!isCurrent) {
-    rowsHtml += `<div style="font-size:.72rem;color:var(--text3);padding-top:.5rem;">Full category breakdown only available for the current season (2025–26).</div>`;
+    return `<div style="padding:.5rem 1.25rem 1rem;">${rowsHtml}</div>`;
   }
 
+  // For past seasons: show the 5 progression track percentiles for that season.
+  // These are the composite summary scores — the only per-season data we have
+  // for historical seasons. Full category-level breakdowns are 2025-26 only.
+  const tracks = [
+    {key:'overall',       label:'Overall composite'},
+    {key:'off_prod',      label:'Off production'},
+    {key:'def_prod',      label:'Def production'},
+    {key:'off_analytics', label:'Off analytics'},
+    {key:'def_analytics', label:'Def analytics'},
+  ];
+  let rowsHtml = `<div style="font-size:.72rem;color:var(--text3);margin-bottom:.5rem;">Historical data shows composite track percentiles only. Full category breakdown is available for 2025\u201326.</div>`;
+  let hasAny = false;
+  for (const {key, label} of tracks) {
+    const entry = (prog[key]||[]).find(e => e.season === season);
+    const val = entry?.pct ?? null;
+    if (val == null) continue;
+    hasAny = true;
+    const clr = val >= 70 ? '#2dd4a0' : val <= 30 ? '#f4624a' : '#6b7280';
+    const cls = val >= 70 ? 'strong' : val <= 30 ? 'weak' : 'mid';
+    rowsHtml += `<div class="smooth-track">
+      <div class="smooth-lbl">${label}</div>
+      <div class="smooth-bar-wrap"><div class="smooth-bar-fill" style="width:${val}%;background:${clr};"></div></div>
+      <div class="smooth-val cat-pct ${cls}">${val}</div>
+    </div>`;
+  }
+  if (!hasAny) rowsHtml += `<div style="font-size:.72rem;color:var(--text3);">No data available for this season.</div>`;
   return `<div style="padding:.6rem 1.25rem 1rem;">${rowsHtml}</div>`;
 }
 
@@ -1932,7 +1927,7 @@ function renderCatBoard() {
       <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
       <td style="color:var(--text2);font-size:.82rem;">${p.current_team||p.team||'\u2013'}</td>
       <td style="font-size:.78rem;color:var(--text2);">${p.role||'\u2013'}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${ac};">${ov}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:500;color:${barColor(ov)};">${ov}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:${clr};">${val}</td>
       <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${val}%;background:${clr};"></div></div></td>
     </tr>`;
@@ -2017,6 +2012,7 @@ function renderGoalieCard(g) {
   const sv = g.surplus ?? 0;
   const svClr = sv >= 0 ? 'var(--teal)' : 'var(--coral)';
   const ov = g.overall_2526 ?? g.comp_value_norm ?? 0;
+  const fmtRaw = v => v ? '$' + Math.round(v).toLocaleString() : '\u2013';
 
   el.innerHTML = `
     <div class="gc-header">
@@ -2056,58 +2052,67 @@ function renderGoalieCard(g) {
     </div>
     <div class="panel" style="margin-bottom:1rem;">
       <div class="panel-hd"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
-      <div style="display:flex;flex-wrap:wrap;border-bottom:1px solid var(--border);">
-        <div class="c-item" style="flex:1;min-width:100px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Cap hit</div><div class="c-val">${fmtCap(g.cap)}</div></div>
-        <div class="c-item" style="flex:1;min-width:100px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">25\u201326 value</div><div class="c-val" style="color:var(--blue);">${fmtVal(g.value_2526)}</div></div>
-        <div class="c-item" style="flex:1;min-width:100px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Avg value</div><div class="c-val">${fmtVal(g.value)}</div></div>
-        <div class="c-item" style="flex:1;min-width:100px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Surplus</div><div class="c-val ${sv>=0?'pos':'neg'}">${fmtSurplus(sv)}</div></div>
-        <div class="c-item" style="flex:1;min-width:100px;padding:.75rem 1rem;"><div class="c-lbl">Expiry</div><div class="c-val">${g.exp_year||'\u2013'} ${g.expiry_type||''}</div></div>
-      </div>
-      <div style="padding:1rem 1.25rem;">
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.75rem;">Value vs cap hit</div>
-        <div style="position:relative;height:120px;"><canvas id="goalie-value-chart"></canvas></div>
-        <div style="display:flex;gap:1rem;margin-top:.5rem;flex-wrap:wrap;">
-          <div class="leg-item"><div class="leg-dot" style="background:rgba(91,156,246,0.4);border:1px solid var(--blue);"></div><span style="font-size:.72rem;color:var(--text3);">Model value</span></div>
-          <div class="leg-item"><div class="leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="font-size:.72rem;color:var(--text3);">Cap hit</span></div>
-        </div>
+      <div style="display:flex;flex-wrap:wrap;">
+        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Cap hit</div><div class="c-val">${fmtCap(g.cap)}</div></div>
+        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">25\u201326 value</div><div class="c-val" style="color:var(--blue);">${fmtRaw(g.value_2526)}</div></div>
+        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Avg value</div><div class="c-val">${fmtRaw(g.value)}</div></div>
+        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Surplus</div><div class="c-val ${sv>=0?'pos':'neg'}">${fmtSurplus(sv)}</div></div>
+        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;"><div class="c-lbl">Expiry</div><div class="c-val">${g.exp_year||'\u2013'} ${g.expiry_type||''}</div></div>
       </div>
     </div>
     <div class="panel" style="margin-bottom:1rem;">
-      <div class="panel-hd"><span class="panel-title">Historical ranking</span><span class="panel-note">Comp Value Norm percentile</span></div>
-      <div style="padding:1rem 1.25rem;">
-        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.5rem;">
-          <div style="font-size:.85rem;color:var(--text2);">Historical composite percentile:</div>
-          <div style="font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:500;color:var(--blue);">${g.comp_value_norm??'\u2013'}</div>
+      <div class="panel-hd"><span class="panel-title">Progression</span><span class="panel-note">Overall \u00b7 model value percentile by season</span></div>
+      <div class="prog-wrap">
+        <div style="position:relative;height:160px;"><canvas id="goalie-prog-chart"></canvas></div>
+        <div class="prog-legend" style="margin-top:.6rem;">
+          <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--blue);border-radius:1px;"></div><span style="color:var(--blue);">Overall (25\u201326 pct)</span></div>
+          <div class="prog-leg-item"><div style="width:18px;height:2px;background:rgba(91,156,246,0.4);border-radius:1px;"></div><span style="color:var(--text3);">Historical avg</span></div>
         </div>
-        <div style="background:var(--surface3);border-radius:4px;height:8px;overflow:hidden;margin-bottom:.5rem;">
-          <div style="height:100%;border-radius:4px;background:var(--blue);width:${g.comp_value_norm||0}%;"></div>
-        </div>
-        <div style="font-size:.72rem;color:var(--text3);">Percentile vs all goalie seasons in model history (2020\u201321 to 2025\u201326).</div>
       </div>
     </div>
     <div class="card-footer" style="line-height:1.8;">Billy Puck Grades \u00b7 Goalie Card \u00b7 2025\u201326<br><span style="font-size:.65rem;opacity:.7;">Data: Evolving-Hockey \u00b7 NHL EDGE \u00b7 CapFriendly</span></div>`;
 
+  // Build progression chart using available season data
+  // overall_2526 = current season percentile; comp_value_norm = historical average
   if (goalieValueChart) { goalieValueChart.destroy(); goalieValueChart = null; }
-  const ctx = document.getElementById('goalie-value-chart')?.getContext('2d');
+  const ctx = document.getElementById('goalie-prog-chart')?.getContext('2d');
   if (ctx) {
+    const seasons = ['20\u201321','21\u201322','22\u201323','23\u201324','24\u201325','25\u201326'];
+    // Build an array: only current season has real data; fill others with null
+    // so the chart shows the single known point clearly
+    const currentIdx = 5;
+    const dataPoints = seasons.map((s, i) => i === currentIdx ? (g.overall_2526 ?? null) : null);
+    const histLine = seasons.map(() => g.comp_value_norm ?? null);
     goalieValueChart = new Chart(ctx, {
-      type:'bar',
-      data:{labels:['25\u201326 Value','Avg Value','Cap Hit'],datasets:[{
-        data:[g.value_2526||0, g.value||0, g.cap||0],
-        backgroundColor:['rgba(91,156,246,.35)','rgba(91,156,246,.18)','rgba(255,255,255,.06)'],
-        borderColor:['#5b9cf6','rgba(91,156,246,.5)','rgba(255,255,255,.15)'],
-        borderWidth:1.5, borderRadius:4,
-      }]},
+      type: 'line',
+      data: {
+        labels: seasons,
+        datasets: [
+          {label:'Overall (25\u201326)',data:dataPoints,borderColor:'#5b9cf6',borderWidth:2,pointBackgroundColor:'#5b9cf6',pointRadius:5,tension:0.3,spanGaps:false},
+          {label:'Historical avg',data:histLine,borderColor:'rgba(91,156,246,0.35)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:0,spanGaps:true},
+        ]
+      },
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,callbacks:{label:c=>`$${Math.round(c.raw||0).toLocaleString()}`}}},
-        scales:{x:{grid:{display:false},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10},callback:v=>'$'+(v/1e6).toFixed(1)+'M'}}}
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,callbacks:{label:c=>c.raw!=null?`${c.dataset.label}: ${c.raw}th pct`:'No data'}}},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
+          y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10}}}
+        }
       }
     });
   }
 
+  // Headshot: use cached URL from goalie grid prefetch if available, else wait for API
+  const cachedUrl = nhlHeadshotCache[g.name];
+  const imgEl = document.getElementById('gc-img');
+  const initEl = document.getElementById('gc-init');
+  if (cachedUrl && imgEl && initEl) {
+    imgEl.src = cachedUrl;
+    imgEl.style.display = 'block';
+    initEl.style.display = 'none';
+  }
+  // Also try API for live stats
   fetchNHLPlayerData(g.name, async (_, pid) => {
-    const imgEl = document.getElementById('gc-img');
-    const initEl = document.getElementById('gc-init');
     if (imgEl && initEl) tryHeadshot(pid, imgEl, initEl, g.name);
     const stats = await fetchGoalieStats(g.name);
     if (!stats) return;
@@ -2136,12 +2141,15 @@ function getTeamCategoryProfile(teamCode) {
   players.forEach(p => { const t=parseTOI(p.toi_per_gp); toiMap[p.name]=(t&&p.gp)?t*p.gp:0; });
   const totalTOI = Object.values(toiMap).reduce((s,t)=>s+(t||0),0);
   const CMP_CATS = [
+    ['Usage','Time on ice'],['Usage','Quality of comp.'],
     ['Athletic & Compete','Speed'],['Athletic & Compete','Endurance'],['Athletic & Compete','Physicality'],
-    ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot volume'],['Scoring','Shot quality'],
-    ['Offense','Passing'],['Offense','Playdriving'],
-    ['Defense','Shot suppression'],['Defense','Takeaways'],['Defense','Entry defense'],
-    ['Special teams','Power play'],['Special teams','Penalty kill'],
-    ['Analytics','On-ice offense'],['Analytics','On-ice defense'],['Analytics','Relative offense'],['Analytics','Relative defense'],
+    ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot volume'],['Scoring','Shot quality'],['Scoring','Shot speed'],
+    ['Offense','Passing'],['Offense','Playdriving'],['Offense','Rush offense'],['Offense','Forecheck offense'],['Offense','Cycle offense'],['Offense','Net-front presence'],['Offense','Faceoffs'],
+    ['Offense','Transition offense'],['Offense','Off. Zone Involvement'],
+    ['Defense','Entry defense'],['Defense','Exits'],['Defense','Shot suppression'],['Defense','Takeaways'],
+    ['Defense','D zone exits'],['Defense','Giveaways'],
+    ['Special teams','Power play'],['Special teams','Penalty kill'],['Special teams','Penalty differential'],
+    ['Analytics','On-ice offense'],['Analytics','On-ice defense'],
   ];
   const result = {};
   for (const [grp, name] of CMP_CATS) {
@@ -2157,7 +2165,14 @@ function getTeamCategoryProfile(teamCode) {
   }
   let ws=0,wt=0;
   for (const p of players){const w=toiMap[p.name]||0;ws+=(p.overall_pct||0)*w;wt+=w;}
-  return {result, avgOverall:wt>0?Math.round(ws/wt):0, totalCap:players.reduce((s,p)=>s+(p.cap||0),0), totalSurplus:players.reduce((s,p)=>s+(p.surplus||0),0), playerCount:players.length};
+  const avgOverall = wt>0?Math.round(ws/wt):0;
+  // Goalie rating for this team (GP-weighted overall_2526)
+  const teamGoalies = ALL_GOALIES.filter(g => g.current_team===teamCode||g.team===teamCode);
+  const totalGPg = teamGoalies.reduce((s,g)=>s+(g.gp||0),0);
+  const goalieScore = totalGPg>0 ? teamGoalies.reduce((s,g)=>s+(g.overall_2526??g.comp_value_norm??50)*(g.gp||0),0)/totalGPg : 50;
+  const projPts = Math.round(PTS_COEF_SKATER*avgOverall + PTS_COEF_GOALIE*(goalieScore/100) + PTS_INTERCEPT);
+  const projClr = projPts>=100?'var(--teal)':projPts>=88?'var(--text2)':'var(--coral)';
+  return {result, avgOverall, projPts, projClr, goalieScore:Math.round(goalieScore), playerCount:players.length};
 }
 
 async function renderTeamCompare() {
@@ -2173,18 +2188,20 @@ async function renderTeamCompare() {
   const profA=getTeamCategoryProfile(teamA);
   const profB=getTeamCategoryProfile(teamB);
   if (!profA||!profB){out.innerHTML='<div style="color:var(--coral);padding:2rem;text-align:center;">Could not load roster data for one or both teams.</div>';return;}
-  const fmtM=v=>v?'$'+(v/1e6).toFixed(1)+'M':'\u2013';
-  const fmtSurp2=v=>{if(v==null)return'\u2013';return(v>=0?'+$':'-$')+(Math.abs(v)/1e6).toFixed(1)+'M';};
   let html=`
-    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;margin-bottom:1.5rem;padding:.75rem 0;">
-      <div style="text-align:center;"><div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--teal);">${teamA}</div><div style="font-size:.75rem;color:var(--text3);">${profA.playerCount} players \u00b7 avg ${profA.avgOverall}th</div></div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;margin-bottom:1.25rem;padding:.75rem 0;">
+      <div style="text-align:center;"><div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--teal);">${teamA}</div><div style="font-size:.75rem;color:var(--text3);">${profA.playerCount} skaters tracked</div></div>
       <div style="text-align:center;font-size:1.2rem;color:var(--text3);">vs</div>
-      <div style="text-align:center;"><div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--blue);">${teamB}</div><div style="font-size:.75rem;color:var(--text3);">${profB.playerCount} players \u00b7 avg ${profB.avgOverall}th</div></div>
+      <div style="text-align:center;"><div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--blue);">${teamB}</div><div style="font-size:.75rem;color:var(--text3);">${profB.playerCount} skaters tracked</div></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1.5rem;">
-      ${[{lbl:'Overall',vA:profA.avgOverall,vB:profB.avgOverall},{lbl:'Total cap',vA:fmtM(profA.totalCap),vB:fmtM(profB.totalCap)},{lbl:'Surplus',vA:fmtSurp2(profA.totalSurplus),vB:fmtSurp2(profB.totalSurplus)}].map(r=>`
-        <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamA} ${r.lbl}</div><div style="font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;color:var(--teal);">${r.vA}</div></div>
-        <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamB} ${r.lbl}</div><div style="font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;color:var(--blue);">${r.vB}</div></div>`).join('')}
+      ${[
+        {lbl:'Skater avg overall', vA:profA.avgOverall, vB:profB.avgOverall, clrA:profA.avgOverall>=60?'var(--teal)':profA.avgOverall>=50?'var(--mid)':'var(--coral)', clrB:profB.avgOverall>=60?'var(--teal)':profB.avgOverall>=50?'var(--mid)':'var(--coral)'},
+        {lbl:'Goalie score',       vA:profA.goalieScore,vB:profB.goalieScore,clrA:profA.goalieScore>=60?'var(--teal)':profA.goalieScore>=50?'var(--mid)':'var(--coral)',clrB:profB.goalieScore>=60?'var(--teal)':profB.goalieScore>=50?'var(--mid)':'var(--coral)'},
+        {lbl:'Proj. pts (\u00b1'+Math.round(PTS_MAE)+')', vA:profA.projPts, vB:profB.projPts, clrA:profA.projClr, clrB:profB.projClr},
+      ].map(r=>`
+        <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamA} ${r.lbl}</div><div style="font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;color:${r.clrA};">${r.vA}</div></div>
+        <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamB} ${r.lbl}</div><div style="font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;color:${r.clrB};">${r.vB}</div></div>`).join('')}
     </div>
     <div class="panel">
       <div class="panel-hd"><span class="panel-title">Category matchup</span><span class="panel-note">TOI-weighted team averages</span></div>
@@ -2213,6 +2230,21 @@ async function renderTeamCompare() {
       </div>`;
     }
   }
+  // Goaltending section
+  const gA = profA.goalieScore, gB = profB.goalieScore;
+  const gWinner = gA>gB?'A':gB>gA?'B':null;
+  html+=`<div class="cmp-section-hd">Goaltending</div>
+    <div class="cmp-bar-row">
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+        <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:${gWinner==='A'?'var(--teal)':'var(--text3)'};">${gA}</span>
+        <div style="width:${Math.round(gA*1.4)}px;max-width:130px;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${gWinner==='A'?1:.45};"></div>
+      </div>
+      <div class="cmp-cat-name">Goalie score</div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <div style="width:${Math.round(gB*1.4)}px;max-width:130px;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${gWinner==='B'?1:.45};"></div>
+        <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${gB}</span>
+      </div>
+    </div>`;
   html+=`</div></div>`;
   out.innerHTML=html;
 }
@@ -2279,7 +2311,7 @@ function renderFATracker() {
         <div class="fa-contract-cell"><div class="fa-contract-lbl">Fair AAV 1yr</div><div class="fa-contract-val" style="color:${ac};">${p.aav_1yr?fmtCap(p.aav_1yr):'\u2013'}</div></div>
         <div class="fa-contract-cell"><div class="fa-contract-lbl">Fair AAV 3yr</div><div class="fa-contract-val" style="color:${ac};">${p.aav_3yr?fmtCap(p.aav_3yr):'\u2013'}</div></div>
         <div class="fa-contract-cell"><div class="fa-contract-lbl">Fair AAV 7yr</div><div class="fa-contract-val" style="color:${ac};">${p.aav_7yr?fmtCap(p.aav_7yr):'\u2013'}</div></div>
-        <div class="fa-contract-cell"><div class="fa-contract-lbl">25\u201326 value</div><div class="fa-contract-val">${fmtVal(p.value)}</div></div>
+        <div class="fa-contract-cell"><div class="fa-contract-lbl">25\u201326 value</div><div class="fa-contract-val">${p.value?'$'+Math.round(p.value).toLocaleString():'\u2013'}</div></div>
         <div class="fa-contract-cell"><div class="fa-contract-lbl">Surplus</div><div class="fa-contract-val" style="color:${sv>=0?'var(--teal)':'var(--coral)'};">${fmtSurplus(sv)}</div></div>
       </div>
     </div>`;
