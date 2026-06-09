@@ -102,6 +102,18 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .nhl-stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
 @media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+@media(max-width:600px){
+  .player-header{padding:1rem .75rem;flex-wrap:wrap;gap:.5rem;}
+  .overall-badge{width:100%;justify-content:center;margin-top:.25rem;border-radius:var(--radius-sm);}
+  .overall-tile{min-width:70px;padding:.45rem .65rem;}
+  .overall-num{font-size:1.5rem;}
+  .player-name{font-size:1.3rem;}
+  .player-sub{font-size:.78rem;}
+  .player-photo,.player-initials{width:52px;height:52px;font-size:1.1rem;}
+  .stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;}
+  .nhl-stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;}
+  .contract-strip{display:grid;grid-template-columns:repeat(2,1fr);}
+}
 .cat-section{padding:.5rem 1.25rem 1rem;}
 .grp-hd{display:flex;align-items:center;gap:.75rem;padding:.6rem 0 .25rem;}
 .grp-label{font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
@@ -153,8 +165,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .lb-content{max-width:1100px;margin:0 auto;padding:1.5rem;}
 .lb-controls{display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
 .lb-select{padding:.4rem .75rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Karla',sans-serif;font-size:.85rem;outline:none;cursor:pointer;}
-.lb-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.lb-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+.lb-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.lb-table{width:100%;border-collapse:collapse;font-size:.85rem;min-width:520px;}
 .lb-table th{padding:.6rem 1rem;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);background:var(--surface2);cursor:pointer;white-space:nowrap;user-select:none;}
 .lb-table th:hover{color:var(--text2);}
 .lb-table th.sorted{color:var(--teal);}
