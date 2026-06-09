@@ -251,7 +251,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .gc-stat-val{font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;white-space:nowrap;}
 .gc-stat-lbl{font-size:.56rem;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;white-space:nowrap;}
 
-/* ── PHASE 2: Team Comparison ────────────────────────────────────────────── */
+/* ── PHASE 2: Matchup Tool ────────────────────────────────────────────── */
 #teamcompare.active{display:block;min-height:100vh;}
 .cmp-bar-row{display:grid;grid-template-columns:1fr 100px 1fr;gap:4px;align-items:center;margin:3px 0;}
 .cmp-cat-name{font-size:.72rem;color:var(--text2);text-align:center;line-height:1.2;}
@@ -300,8 +300,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       <div class="nav-link" id="nav-teams">Teams</div>
       <div class="nav-link" id="nav-goalies">Goalies</div>
       <div class="nav-link" id="nav-awards">Awards</div>
-      <div class="nav-link" id="nav-stats">Cat. Stats</div>
-      <div class="nav-link" id="nav-compare">Compare</div>
+      <div class="nav-link" id="nav-stats">Stat Leaders</div>
+      <div class="nav-link" id="nav-compare">Matchup Tool</div>
       <div class="nav-link" id="nav-fa">Free Agents</div>
     </div>
     <div class="nav-search">
@@ -363,8 +363,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       <div class="nav-link" id="nav-teams-lb">Teams</div>
       <div class="nav-link" id="nav-goalies-lb">Goalies</div>
       <div class="nav-link" id="nav-awards-lb">Awards</div>
-      <div class="nav-link" id="nav-stats-lb">Cat. Stats</div>
-      <div class="nav-link" id="nav-compare-lb">Compare</div>
+      <div class="nav-link" id="nav-stats-lb">Stat Leaders</div>
+      <div class="nav-link" id="nav-compare-lb">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-lb">Free Agents</div>
     </div>
     <div class="nav-search">
@@ -406,8 +406,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       <div class="nav-link active" id="nav-teams-tm">Teams</div>
       <div class="nav-link" id="nav-goalies-tm">Goalies</div>
       <div class="nav-link" id="nav-awards-tm">Awards</div>
-      <div class="nav-link" id="nav-stats-tm">Cat. Stats</div>
-      <div class="nav-link" id="nav-compare-tm">Compare</div>
+      <div class="nav-link" id="nav-stats-tm">Stat Leaders</div>
+      <div class="nav-link" id="nav-compare-tm">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-tm">Free Agents</div>
     </div>
   </nav>
@@ -2187,7 +2187,7 @@ async function renderTeamCompare() {
         <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamB} ${r.lbl}</div><div style="font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;color:var(--blue);">${r.vB}</div></div>`).join('')}
     </div>
     <div class="panel">
-      <div class="panel-hd"><span class="panel-title">Category comparison</span><span class="panel-note">TOI-weighted team averages</span></div>
+      <div class="panel-hd"><span class="panel-title">Category matchup</span><span class="panel-note">TOI-weighted team averages</span></div>
       <div style="padding:.75rem 1.25rem 1rem;">
         <div style="display:flex;gap:1.5rem;margin-bottom:.75rem;font-size:.72rem;">
           <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:16px;height:6px;border-radius:3px;background:var(--teal);"></div><span style="color:var(--teal);">${teamA}</span></div>
@@ -2395,9 +2395,6 @@ document.addEventListener('DOMContentLoaded', () => {
   ['nav-teams-cs','nav-teams-cmp','nav-teams-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goTeams));
   ['nav-goalies-cs','nav-goalies-cmp','nav-goalies-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goGoalies));
   ['nav-awards-cs','nav-awards-cmp','nav-awards-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goAwards));
-  ['nav-stats-cmp','nav-stats-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goStats));
-  ['nav-compare-cs','nav-compare-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goCompare));
-  ['nav-fa-cs','nav-fa-cmp'].forEach(id=>document.getElementById(id)?.addEventListener('click',goFA));
 
   document.getElementById('comp-tabs').addEventListener('click', e => {
     const tab = e.target.closest('.tab');
@@ -2495,8 +2492,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-link" id="nav-teams-go">Teams</div>
       <div class="nav-link active" id="nav-goalies-go">Goalies</div>
       <div class="nav-link" id="nav-awards-go">Awards</div>
-      <div class="nav-link" id="nav-stats-go">Cat. Stats</div>
-      <div class="nav-link" id="nav-compare-go">Compare</div>
+      <div class="nav-link" id="nav-stats-go">Stat Leaders</div>
+      <div class="nav-link" id="nav-compare-go">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-go">Free Agents</div>
     </div>
   </nav>
@@ -2523,8 +2520,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-link" id="nav-lb-aw">Leaderboard</div>
       <div class="nav-link" id="nav-teams-aw">Teams</div>
       <div class="nav-link active" id="nav-awards-aw">Awards</div>
-      <div class="nav-link" id="nav-stats-aw">Cat. Stats</div>
-      <div class="nav-link" id="nav-compare-aw">Compare</div>
+      <div class="nav-link" id="nav-stats-aw">Stat Leaders</div>
+      <div class="nav-link" id="nav-compare-aw">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-aw">Free Agents</div>
     </div>
   </nav>
@@ -2548,8 +2545,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-link" id="nav-teams-gcv">Teams</div>
       <div class="nav-link active" id="nav-goalies-gcv">Goalies</div>
       <div class="nav-link" id="nav-awards-gcv">Awards</div>
-      <div class="nav-link" id="nav-stats-gcv">Cat. Stats</div>
-      <div class="nav-link" id="nav-compare-gcv">Compare</div>
+      <div class="nav-link" id="nav-stats-gcv">Stat Leaders</div>
+      <div class="nav-link" id="nav-compare-gcv">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-gcv">Free Agents</div>
     </div>
   </nav>
@@ -2566,8 +2563,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-link" id="nav-teams-cs">Teams</div>
       <div class="nav-link" id="nav-goalies-cs">Goalies</div>
       <div class="nav-link" id="nav-awards-cs">Awards</div>
-      <div class="nav-link active" id="nav-stats-cs">Cat. Stats</div>
-      <div class="nav-link" id="nav-compare-cs">Compare</div>
+      <div class="nav-link active" id="nav-stats-cs">Stat Leaders</div>
+      <div class="nav-link" id="nav-compare-cs">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-cs">Free Agents</div>
     </div>
   </nav>
@@ -2602,7 +2599,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </tbody>
       </table>
     </div>
-    <div class="lb-footer">Billy Puck Grades · Category Leaderboard · Data: NST · EH · ATZ · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
+    <div class="lb-footer">Billy Puck Grades · Stat Leaders · Data: NST · EH · ATZ · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
   </div>
 </div>
 
@@ -2613,10 +2610,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-links">
       <div class="nav-link" id="nav-players-cmp">Players</div>
       <div class="nav-link" id="nav-lb-cmp">Leaderboard</div>
-      <div class="nav-link active" id="nav-compare-cmp">Compare</div>
+      <div class="nav-link active" id="nav-compare-cmp">Matchup Tool</div>
       <div class="nav-link" id="nav-goalies-cmp">Goalies</div>
       <div class="nav-link" id="nav-awards-cmp">Awards</div>
-      <div class="nav-link" id="nav-stats-cmp">Cat. Stats</div>
+      <div class="nav-link" id="nav-stats-cmp">Stat Leaders</div>
       <div class="nav-link" id="nav-teams-cmp">Teams</div>
       <div class="nav-link" id="nav-fa-cmp">Free Agents</div>
     </div>
@@ -2629,7 +2626,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <button id="cmp-run" style="padding:.4rem 1rem;border-radius:var(--radius-sm);border:1px solid var(--teal);background:var(--teal-dim);color:var(--teal);font-family:'Karla',sans-serif;font-size:.85rem;cursor:pointer;transition:opacity .15s;">Compare →</button>
     </div>
     <div id="cmp-output"><div style="color:var(--text3);padding:2rem;text-align:center;">Select two teams and click Compare.</div></div>
-    <div class="lb-footer">Billy Puck Grades · Team Comparison · TOI-weighted category averages</div>
+    <div class="lb-footer">Billy Puck Grades · Matchup Tool · TOI-weighted category averages</div>
   </div>
 </div>
 
@@ -2643,8 +2640,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-link" id="nav-teams-fa">Teams</div>
       <div class="nav-link" id="nav-goalies-fa">Goalies</div>
       <div class="nav-link" id="nav-awards-fa">Awards</div>
-      <div class="nav-link" id="nav-stats-fa">Cat. Stats</div>
-      <div class="nav-link" id="nav-compare-fa">Compare</div>
+      <div class="nav-link" id="nav-stats-fa">Stat Leaders</div>
+      <div class="nav-link" id="nav-compare-fa">Matchup Tool</div>
       <div class="nav-link active" id="nav-fa-fa">Free Agents</div>
     </div>
   </nav>
