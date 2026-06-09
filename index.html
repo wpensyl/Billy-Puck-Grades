@@ -1887,8 +1887,6 @@ const DMAN_CAT_GROUPS = {
   'Analytics':         ['On-ice offense','On-ice defense','Relative offense','Relative defense'],
 };
 
-let catBoardCategory = null;  // {grp, cat}
-
 function getCatPct(p, grp, cat) {
   return ((p.categories || {})[grp] || []).find(c => c.name === cat)?.pct ?? null;
 }
