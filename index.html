@@ -102,6 +102,39 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .nhl-stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
 @media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+
+/* ── MOBILE: Portrait fixes (≤600px) ─────────────────────────────────────── */
+@media(max-width:600px){
+  /* Player header: badge drops below name instead of squeezing alongside */
+  .player-header{flex-wrap:wrap;}
+  .overall-badge{flex-direction:row;width:100%;justify-content:center;margin-top:.5rem;}
+  .overall-tile{padding:.4rem .75rem;}
+  .overall-num{font-size:1.5rem;}
+  .player-name{font-size:1.25rem;}
+  .player-sub{font-size:.78rem;}
+
+  /* All leaderboard/team tables scroll horizontally */
+  .lb-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .lb-table{min-width:520px;}
+
+  /* Stat strips scroll horizontally instead of wrapping */
+  .stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;}
+  .nhl-stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .gc-stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  /* Contract strip: 2-column grid on narrow screens */
+  .contract-strip{display:grid;grid-template-columns:1fr 1fr;}
+  .c-item{border-right:none;border-bottom:1px solid var(--border);}
+  .c-item:nth-child(odd){border-right:1px solid var(--border);}
+  .c-item:last-child{border-bottom:none;}
+  .c-item:nth-last-child(2):nth-child(odd){border-bottom:none;}
+
+  /* Season buttons wrap gracefully */
+  #catboard-cat-nav{flex-wrap:wrap;}
+
+  /* Matchup tool bars don't overflow */
+  .cmp-bar-row{grid-template-columns:1fr 80px 1fr;}
+}
 .cat-section{padding:.5rem 1.25rem 1rem;}
 .grp-hd{display:flex;align-items:center;gap:.75rem;padding:.6rem 0 .25rem;}
 .grp-label{font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);white-space:nowrap;}
@@ -153,7 +186,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .lb-content{max-width:1100px;margin:0 auto;padding:1.5rem;}
 .lb-controls{display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
 .lb-select{padding:.4rem .75rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Karla',sans-serif;font-size:.85rem;outline:none;cursor:pointer;}
-.lb-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.lb-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .lb-table{width:100%;border-collapse:collapse;font-size:.85rem;}
 .lb-table th{padding:.6rem 1rem;text-align:left;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);background:var(--surface2);cursor:pointer;white-space:nowrap;user-select:none;}
 .lb-table th:hover{color:var(--text2);}
@@ -456,17 +489,18 @@ let currentSeasonView = '2025-26';  // active season in season selector
 async function loadData() {
   const loading = document.getElementById('loading-msg');
   try {
-    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes] = await Promise.all([
+    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes] = await Promise.all([
       fetch("players_fwd.json"),
       fetch("players_dman.json"),
       fetch("players_goalie.json"),
       fetch("comp_fwd.json"),
       fetch("comp_dman.json"),
+      fetch("breakout.json"),
     ]);
     if (!fwdRes.ok || !dmanRes.ok) throw new Error('Failed to load player data');
-    const [fwds, dmans, goalies, cfwd, cdman] = await Promise.all([
+    const [fwds, dmans, goalies, cfwd, cdman, bkData] = await Promise.all([
       fwdRes.json(), dmanRes.json(), gRes.ok?gRes.json():Promise.resolve([]),
-      cfwdRes.json(), cdmanRes.json()
+      cfwdRes.json(), cdmanRes.json(), bkRes.ok?bkRes.json():Promise.resolve({})
     ]);
     fwds.forEach(p => p._type = 'F');
     dmans.forEach(p => p._type = 'D');
@@ -475,6 +509,7 @@ async function loadData() {
     ALL_GOALIES = goalies;
     COMP_FWD = cfwd;
     COMP_DMAN = cdman;
+    BREAKOUT_DATA = bkData || {};
     precomputeNorms('fwd', cfwd);
     precomputeNorms('dman', cdman);
     // Build rookie map for Calder (comp data now available)
@@ -873,46 +908,205 @@ function renderNHLStats(stats) {
 }
 
 function renderCategories(p) {
-  const el = document.getElementById('cat-list');
-  el.innerHTML = '';
-  tipVisible = null;
-  Object.entries(p.categories || {}).forEach(([grp, rows]) => {
-    const ghd = document.createElement('div');
-    ghd.className = 'grp-hd';
-    ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
-    el.appendChild(ghd);
-    rows.forEach(cat => {
-      const pc = cat.pct ?? 0;
-      const cls = barClass(pc);
-      const row = document.createElement('div');
-      row.className = 'cat-row';
-      const nw = document.createElement('div');
-      nw.className = 'cat-name-wrap';
-      nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
-      if (cat.tip) {
+  // Determine available seasons from progression data
+  const prog = p.progression || {};
+  const SEASON_KEYS = ['2020-21','2021-22','2022-23','2023-24','2024-25','2025-26'];
+  const SEA_SHORT = {'2020-21':'20\u201321','2021-22':'21\u201322','2022-23':'22\u201323','2023-24':'23\u201324','2024-25':'24\u201325','2025-26':'25\u201326'};
+  const isD = p._type === 'D';
+
+  const availableSeasons = SEASON_KEYS.filter(s =>
+    ['overall','off_prod','def_prod','off_analytics','def_analytics'].some(k =>
+      (prog[k]||[]).find(e => e.season === s)?.pct != null
+    )
+  );
+  if (!availableSeasons.includes('2025-26') && Object.keys(p.categories||{}).length) {
+    availableSeasons.push('2025-26');
+  }
+  if (!availableSeasons.includes(currentSeasonView)) currentSeasonView = '2025-26';
+
+  function buildCatContent(season) {
+    const catList = document.getElementById('cat-list');
+    catList.innerHTML = '';
+    tipVisible = null;
+
+    if (season === '4yr-avg') {
+      // Rolling 4-season average of progression tracks
+      const tracks = [
+        {key:'overall',label:'Overall composite'},
+        {key:'off_prod',label:'Off production'},
+        {key:'def_prod',label:'Def production'},
+        {key:'off_analytics',label:'Off analytics'},
+        {key:'def_analytics',label:'Def analytics'},
+      ];
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.4rem 0 .6rem;';
+      note.textContent = 'Rolling 4-season average of composite track percentiles.';
+      catList.appendChild(note);
+      const rollingAvg = arr => {
+        const valids = (arr||[]).map(s=>s?.pct??null).filter(v=>v!=null);
+        const last4 = valids.slice(-4);
+        return last4.length ? Math.round(last4.reduce((a,b)=>a+b,0)/last4.length) : null;
+      };
+      const priorAvg = arr => {
+        const valids = (arr||[]).map(s=>s?.pct??null).filter(v=>v!=null);
+        const prior = valids.slice(-5,-1);
+        return prior.length ? Math.round(prior.reduce((a,b)=>a+b,0)/prior.length) : null;
+      };
+      for (const {key,label} of tracks) {
+        const avg = rollingAvg(prog[key]);
+        const prev = priorAvg(prog[key]);
+        if (avg == null) continue;
+        const cls = barClass(avg);
+        const row = document.createElement('div'); row.className = 'cat-row';
+        const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+        nw.innerHTML = `<span class="cat-name">${label}</span>`;
+        const track = document.createElement('div'); track.className = 'cat-track';
+        track.innerHTML = `<div class="cat-fill ${cls}" style="width:${avg}%;"></div>`;
+        const pctEl = document.createElement('span');
+        pctEl.className = `cat-pct ${cls}`; pctEl.textContent = avg;
+        row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+        if (prev != null) {
+          const delta = avg - prev;
+          const dEl = document.createElement('span');
+          dEl.style.cssText = `font-family:'DM Mono',monospace;font-size:.68rem;width:36px;text-align:right;flex-shrink:0;color:${delta>0?'var(--teal)':delta<0?'var(--coral)':'var(--text3)'};`;
+          dEl.textContent = (delta>=0?'+':'')+delta;
+          row.appendChild(dEl);
+        }
+        catList.appendChild(row);
+      }
+      return;
+    }
+
+    if (season === '2025-26' && Object.keys(p.categories||{}).length) {
+      // Full per-category breakdown for current season
+      Object.entries(p.categories).forEach(([grp, rows]) => {
+        const ghd = document.createElement('div'); ghd.className = 'grp-hd';
+        ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
+        catList.appendChild(ghd);
+        rows.forEach(cat => {
+          const pc = cat.pct ?? 0; const cls = barClass(pc);
+          const row = document.createElement('div'); row.className = 'cat-row';
+          const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+          nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
+          if (cat.tip) {
+            const btn = document.createElement('button');
+            btn.className = 'info-btn'; btn.textContent = 'i';
+            const tipEl = document.createElement('div');
+            tipEl.className = 'tooltip-box'; tipEl.textContent = cat.tip;
+            btn.addEventListener('click', e => {
+              e.stopPropagation();
+              if (tipVisible && tipVisible !== tipEl) tipVisible.classList.remove('vis');
+              tipEl.classList.toggle('vis');
+              tipVisible = tipEl.classList.contains('vis') ? tipEl : null;
+            });
+            nw.appendChild(btn); row.appendChild(tipEl);
+          }
+          const track = document.createElement('div'); track.className = 'cat-track';
+          track.innerHTML = `<div class="cat-fill ${cls}" style="width:${pc}%;"></div>`;
+          const pctEl = document.createElement('span');
+          pctEl.className = `cat-pct ${cls}`; pctEl.textContent = cat.pct != null ? cat.pct : '\u2013';
+          row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+          catList.appendChild(row);
+        });
+      });
+    } else {
+      // Historical season: use p.cat_history for full per-category breakdown
+      const catHist = p.cat_history || {};
+      let hasAnyHist = false;
+
+      for (const [grp, cats] of Object.entries(catHist)) {
+        const catsForSeason = cats.filter(c => c.seasons && c.seasons[season] != null);
+        if (!catsForSeason.length) continue;
+        hasAnyHist = true;
+        const ghd = document.createElement('div'); ghd.className = 'grp-hd';
+        ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
+        catList.appendChild(ghd);
+        for (const cat of catsForSeason) {
+          const pc = cat.seasons[season];
+          const cls = barClass(pc);
+          const row = document.createElement('div'); row.className = 'cat-row';
+          const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+          nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
+          const track = document.createElement('div'); track.className = 'cat-track';
+          track.innerHTML = `<div class="cat-fill ${cls}" style="width:${pc}%;"></div>`;
+          const pctEl = document.createElement('span');
+          pctEl.className = `cat-pct ${cls}`; pctEl.textContent = pc;
+          row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+          catList.appendChild(row);
+        }
+      }
+
+      if (!hasAnyHist) {
+        // Fallback: composite progression tracks when no cat_history for this season
+        const tracks = [
+          {key:'overall',label:'Overall composite'},{key:'off_prod',label:'Off production'},
+          {key:'def_prod',label:'Def production'},{key:'off_analytics',label:'Off analytics'},
+          {key:'def_analytics',label:'Def analytics'},
+        ];
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.4rem 0 .6rem;';
+        note.textContent = 'Detailed category data not available for this season.';
+        catList.appendChild(note);
+        for (const {key,label} of tracks) {
+          const entry = (prog[key]||[]).find(e => e.season === season);
+          const val = entry?.pct ?? null;
+          if (val == null) continue;
+          const cls = barClass(val);
+          const row = document.createElement('div'); row.className = 'cat-row';
+          const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+          nw.innerHTML = `<span class="cat-name">${label}</span>`;
+          const track = document.createElement('div'); track.className = 'cat-track';
+          track.innerHTML = `<div class="cat-fill ${cls}" style="width:${val}%;"></div>`;
+          const pctEl = document.createElement('span');
+          pctEl.className = `cat-pct ${cls}`; pctEl.textContent = val;
+          row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+          catList.appendChild(row);
+        }
+      }
+    }
+    document.addEventListener('click', () => { if (tipVisible) { tipVisible.classList.remove('vis'); tipVisible = null; } });
+  }
+
+  // Inject season selector buttons into the panel-hd of cat-panel
+  const panelEl = document.getElementById('cat-panel');
+  if (panelEl) {
+    const hd = panelEl.querySelector('.panel-hd');
+    if (hd) {
+      hd.querySelectorAll('.season-sel-group').forEach(el=>el.remove());
+      const btnGroup = document.createElement('div');
+      btnGroup.className = 'season-sel-group';
+      btnGroup.style.cssText = 'display:flex;gap:.3rem;flex-wrap:wrap;align-items:center;';
+      [...availableSeasons].reverse().forEach(s => {
         const btn = document.createElement('button');
-        btn.className = 'info-btn'; btn.textContent = 'i';
-        const tipEl = document.createElement('div');
-        tipEl.className = 'tooltip-box'; tipEl.textContent = cat.tip;
+        btn.className = 'season-btn' + (s !== '2025-26' ? ' blue' : '') + (currentSeasonView === s ? ' active' : '');
+        btn.textContent = SEA_SHORT[s] || s;
         btn.addEventListener('click', e => {
           e.stopPropagation();
-          if (tipVisible && tipVisible !== tipEl) tipVisible.classList.remove('vis');
-          tipEl.classList.toggle('vis');
-          tipVisible = tipEl.classList.contains('vis') ? tipEl : null;
+          currentSeasonView = s;
+          hd.querySelectorAll('.season-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          buildCatContent(s);
         });
-        nw.appendChild(btn); row.appendChild(tipEl);
-      }
-      const track = document.createElement('div');
-      track.className = 'cat-track';
-      track.innerHTML = `<div class="cat-fill ${cls}" style="width:${pc}%;"></div>`;
-      const pctEl = document.createElement('span');
-      pctEl.className = `cat-pct ${cls}`;
-      pctEl.textContent = cat.pct != null ? cat.pct : '–';
-      row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
-      el.appendChild(row);
-    });
-  });
-  document.addEventListener('click', () => { if (tipVisible) { tipVisible.classList.remove('vis'); tipVisible = null; } });
+        btnGroup.appendChild(btn);
+      });
+      // 4-yr avg button
+      const avgBtn = document.createElement('button');
+      avgBtn.className = 'season-btn' + (currentSeasonView === '4yr-avg' ? ' active' : '');
+      avgBtn.textContent = '4-yr avg';
+      avgBtn.style.borderStyle = 'dashed';
+      avgBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        currentSeasonView = '4yr-avg';
+        hd.querySelectorAll('.season-btn').forEach(b=>b.classList.remove('active'));
+        avgBtn.classList.add('active');
+        buildCatContent('4yr-avg');
+      });
+      btnGroup.appendChild(avgBtn);
+      hd.appendChild(btnGroup);
+    }
+  }
+
+  buildCatContent(currentSeasonView);
 }
 
 function renderProgression(p) {
@@ -1926,7 +2120,8 @@ function renderCatBoard() {
       <td><span class="lb-player-name">${p.name}</span></td>
       <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
       <td style="color:var(--text2);font-size:.82rem;">${p.current_team||p.team||'\u2013'}</td>
-      <td style="font-size:.78rem;color:var(--text2);">${p.role||'\u2013'}</td>
+      <td style="font-size:.78rem;color:${p._type==='D'?'#5b9cf6':'#2dd4a0'};font-weight:500;">${p.role||'\u2013'}</td>
+      <td style="font-size:.78rem;color:var(--text3);">${p.actual_role||'\u2013'}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:500;color:${barColor(ov)};">${ov}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:${clr};">${val}</td>
       <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${val}%;background:${clr};"></div></div></td>
@@ -2072,31 +2267,42 @@ function renderGoalieCard(g) {
     </div>
     <div class="card-footer" style="line-height:1.8;">Billy Puck Grades \u00b7 Goalie Card \u00b7 2025\u201326<br><span style="font-size:.65rem;opacity:.7;">Data: Evolving-Hockey \u00b7 NHL EDGE \u00b7 CapFriendly</span></div>`;
 
-  // Build progression chart using available season data
-  // overall_2526 = current season percentile; comp_value_norm = historical average
+  // Build progression chart — per-season percentile dots from JSON fields
+  // pct_2122, pct_2223, pct_2324, pct_2425 added by update.py; overall_2526 already present
   if (goalieValueChart) { goalieValueChart.destroy(); goalieValueChart = null; }
   const ctx = document.getElementById('goalie-prog-chart')?.getContext('2d');
   if (ctx) {
     const seasons = ['20\u201321','21\u201322','22\u201323','23\u201324','24\u201325','25\u201326'];
-    // Build an array: only current season has real data; fill others with null
-    // so the chart shows the single known point clearly
-    const currentIdx = 5;
-    const dataPoints = seasons.map((s, i) => i === currentIdx ? (g.overall_2526 ?? null) : null);
-    const histLine = seasons.map(() => g.comp_value_norm ?? null);
+    const dataPoints = [
+      null,             // 2020-21: not in G 24 source
+      g.pct_2122 ?? null,
+      g.pct_2223 ?? null,
+      g.pct_2324 ?? null,
+      g.pct_2425 ?? null,
+      g.overall_2526 ?? null,
+    ];
     goalieValueChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: seasons,
-        datasets: [
-          {label:'Overall (25\u201326)',data:dataPoints,borderColor:'#5b9cf6',borderWidth:2,pointBackgroundColor:'#5b9cf6',pointRadius:5,tension:0.3,spanGaps:false},
-          {label:'Historical avg',data:histLine,borderColor:'rgba(91,156,246,0.35)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:0,spanGaps:true},
-        ]
+        datasets: [{
+          label: 'Score %ile',
+          data: dataPoints,
+          borderColor: '#5b9cf6',
+          borderWidth: 2,
+          pointBackgroundColor: dataPoints.map(v => v != null ? '#5b9cf6' : 'transparent'),
+          pointBorderColor:     dataPoints.map(v => v != null ? '#5b9cf6' : 'transparent'),
+          pointRadius:          dataPoints.map(v => v != null ? 5 : 0),
+          tension: 0.3,
+          spanGaps: false,
+        }]
       },
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,callbacks:{label:c=>c.raw!=null?`${c.dataset.label}: ${c.raw}th pct`:'No data'}}},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
+          callbacks:{label:c=>c.raw!=null?`Score %ile: ${c.raw}th`:'No data'}}},
         scales:{
           x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
-          y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10}}}
+          y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10},callback:v=>v+'th'}}
         }
       }
     });
@@ -2132,9 +2338,14 @@ function renderGoalieCard(g) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PHASE 2: TEAM COMPARISON
 // ══════════════════════════════════════════════════════════════════════════════
-function getTeamCategoryProfile(teamCode) {
+function getTeamCategoryProfile(teamCode, posFilter='all') {
   const liveRoster = nhlRosterCache[teamCode];
-  let players = ALL_PLAYERS.filter(p => liveRoster ? liveRoster.has(p.name) : p.current_team === teamCode);
+  let players = ALL_PLAYERS.filter(p => {
+    if (liveRoster ? !liveRoster.has(p.name) : p.current_team !== teamCode) return false;
+    if (posFilter === 'F' && p._type !== 'F') return false;
+    if (posFilter === 'D' && p._type !== 'D') return false;
+    return true;
+  });
   if (!players.length) return null;
   const parseTOI = s => { if(!s)return null; const pts=s.split(':'); return pts.length===2?parseInt(pts[0])+parseInt(pts[1])/60:null; };
   const toiMap = {};
@@ -2185,8 +2396,9 @@ async function renderTeamCompare() {
   out.innerHTML='<div class="comp-loading"><span class="pulse">Loading team data\u2026</span></div>';
   if (!nhlRosterCache[teamA]) await getTeamRoster(teamA);
   if (!nhlRosterCache[teamB]) await getTeamRoster(teamB);
-  const profA=getTeamCategoryProfile(teamA);
-  const profB=getTeamCategoryProfile(teamB);
+  const cmpPos = document.getElementById('cmp-pos')?.value || 'all';
+  const profA=getTeamCategoryProfile(teamA, cmpPos);
+  const profB=getTeamCategoryProfile(teamB, cmpPos);
   if (!profA||!profB){out.innerHTML='<div style="color:var(--coral);padding:2rem;text-align:center;">Could not load roster data for one or both teams.</div>';return;}
   let html=`
     <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:center;margin-bottom:1.25rem;padding:.75rem 0;">
@@ -2333,6 +2545,119 @@ function populateCmpTeams() {
   const selB=document.getElementById('cmp-team-b');
   if (!selA||!selB||selA.options.length>1) return;
   NHL_TEAMS.forEach(t=>{[selA,selB].forEach(s=>{const o=document.createElement('option');o.value=t;o.textContent=t;s.appendChild(o);});});
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 2: BREAKOUT STARS + PROJECTED SEASON LEADERS
+// ══════════════════════════════════════════════════════════════════════════════
+const PROJ_SEASONS_LABELS = ['2025\u201326','2026\u201327','2027\u201328','2028\u201329','2029\u201330','2030\u201331','2031\u201332','2032\u201333'];
+
+function renderBreakoutAward(type) {
+  const el = document.getElementById('award-panel');
+  if (!el) return;
+  const data = BREAKOUT_DATA[type === 'F' ? 'fwd' : 'dman'] || [];
+  if (!data.length) { el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">No breakout data available. Run update.py to generate.</div>'; return; }
+
+  const top = data.slice(0, 10);
+  const acFwd = 'var(--teal)', acD = 'var(--blue)';
+
+  el.innerHTML = `
+    <div style="font-size:.72rem;color:var(--text3);padding:.5rem 1rem 0;">
+      ${type==='F'
+        ? 'Score = TOI×33% + Physicality×25% + Shot speed×21% + Playdriving×21%'
+        : 'Score = Power play×30% + Shot suppression×28% + Physicality×26% + TOI×17%'}
+      &nbsp;&middot;&nbsp; Age &lt;25, Overall &lt;80th pct, min 20 GP
+    </div>
+    ${top.map((p, i) => {
+      const isD = type === 'D';
+      const ac = isD ? acD : acFwd;
+      // Component bars
+      const comps = type === 'F'
+        ? [{v:p.toi,w:33,c:'#2dd4a0',l:'TOI'},{v:p.phys,w:25,c:'#a78bfa',l:'Phys'},{v:p.spd,w:21,c:'#f472b6',l:'Spd'},{v:p.play,w:21,c:'#fb923c',l:'Play'}]
+        : [{v:p.pp,w:30,c:'#5b9cf6',l:'PP'},{v:p.supp,w:28,c:'#34d399',l:'Supp'},{v:p.phys,w:26,c:'#a78bfa',l:'Phys'},{v:p.toi,w:17,c:'#fb923c',l:'TOI'}];
+      const scoreBar = comps.map(c =>
+        `<div class="bk-seg" style="width:${c.w}%;background:${c.c};opacity:${(c.v||0)/100};" title="${c.l}: ${c.v||0}"></div>`
+      ).join('');
+      return `<div class="breakout-card" data-name="${p.name}" style="cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;">
+          <div style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--text3);width:20px;text-align:right;flex-shrink:0;">${i+1}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <span style="font-size:.88rem;font-weight:500;">${p.name}</span>
+              <span style="font-size:.7rem;color:var(--text3);">${p.team} &middot; Age ${Math.floor(p.age)}</span>
+            </div>
+            <div style="font-size:.7rem;color:var(--text3);">Overall: <span style="color:${barColor(p.overall)};font-family:'DM Mono',monospace;">${p.overall}</span> &nbsp;&middot;&nbsp; GP: ${p.gp}</div>
+            <div class="breakout-score-bar">${scoreBar}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'DM Mono',monospace;font-size:1.15rem;font-weight:500;color:${ac};">${p.score}</div>
+            <div style="font-size:.62rem;color:var(--text3);">score</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(${type==='F'?4:4},1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);">
+          ${comps.map(c => `<div style="background:var(--surface2);padding:.25rem .4rem;text-align:center;">
+            <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">${c.l}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:.75rem;font-weight:500;color:${c.c};">${c.v||0}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }).join('')}`;
+
+  el.querySelectorAll('.breakout-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const found = ALL_PLAYERS.find(x => x.name === card.dataset.name);
+      if (found) showPlayer(found);
+    });
+  });
+}
+
+function renderProjLeaders() {
+  const el = document.getElementById('award-panel');
+  if (!el) return;
+  const proj = BREAKOUT_DATA.proj_leaders || {};
+  if (!Object.keys(proj).length) { el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">No projection data available. Run update.py to generate.</div>'; return; }
+
+  const selSeason = document.getElementById('proj-season-sel')?.value || PROJ_SEASONS_LABELS[0];
+  const selType   = document.getElementById('proj-type-sel')?.value || 'fwd';
+
+  // Map display label back to JSON key
+  const seasonKey = Object.keys(proj).find(k => {
+    const display = k.replace('-','\u2013');
+    return display === selSeason || k === selSeason.replace('\u2013','-');
+  }) || Object.keys(proj)[0];
+
+  const players = (proj[seasonKey] || {})[selType] || [];
+  if (!players.length) { el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">No data for this season.</div>'; return; }
+
+  const ac = selType === 'fwd' ? 'var(--teal)' : 'var(--blue)';
+
+  el.innerHTML = players.map((p, i) => {
+    const pct = p.proj_norm ?? 0;
+    const clr = barColor(pct);
+    return `<div class="award-card" data-name="${p.name}" style="cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;margin-bottom:.4rem;">
+      <div class="proj-rank">${i+1}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.88rem;font-weight:500;">${p.name}</div>
+        <div style="font-size:.72rem;color:var(--text3);">${p.team} &middot; ${p.pos} &middot; Age ${Math.floor(p.age||0)} in ${seasonKey}</div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.25rem;">
+          <div class="proj-norm-bar"><div class="proj-norm-fill" style="width:${pct}%;background:${clr};"></div></div>
+          <div class="proj-norm-val" style="color:${clr};">${pct}</div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:.68rem;color:var(--text3);">Now</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.82rem;color:${barColor(p.current_overall||0)};">${p.current_overall??'\u2013'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.award-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const found = ALL_PLAYERS.find(x => x.name === card.dataset.name);
+      if (found) showPlayer(found);
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2504,8 +2829,46 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nav-compare-gcv')?.addEventListener('click',goCompare);
   document.getElementById('nav-fa-gcv')?.addEventListener('click',goFA);
 
-  // Cat Stats filters
-  ['catboard-pos','catboard-team','catboard-mingp'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCatBoard));
+  // Wire awards button bar — add breakout + proj leaders alongside existing awards
+  const origGoAwards = goAwards;
+  const goAwards2 = () => {
+    origGoAwards();
+    // Build award buttons if not already done
+    const bar = document.getElementById('award-btn-bar');
+    if (bar && !bar.dataset.built) {
+      bar.dataset.built = '1';
+      const awardDefs = [
+        ...(window.AWARD_BUTTONS_EXTRA || []),
+        {id:'breakout-fwd', label:'Breakout Stars — FWD', fn:()=>{hideProjControls();renderBreakoutAward('F');}},
+        {id:'breakout-dman',label:'Breakout Stars — DMAN',fn:()=>{hideProjControls();renderBreakoutAward('D');}},
+        {id:'proj-leaders', label:'Projected Leaders',   fn:()=>{showProjControls();renderProjLeaders();}},
+      ];
+      awardDefs.forEach(({id,label,fn})=>{
+        const btn = document.createElement('button');
+        btn.className='award-tab-btn'; btn.textContent=label; btn.id=id;
+        btn.addEventListener('click',()=>{
+          bar.querySelectorAll('.award-tab-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active'); fn();
+        });
+        bar.appendChild(btn);
+      });
+    }
+  };
+
+  function hideProjControls(){ const c=document.getElementById('proj-controls'); if(c) c.style.display='none'; }
+  function showProjControls(){ const c=document.getElementById('proj-controls'); if(c) c.style.display='flex'; }
+
+  document.getElementById('proj-season-sel')?.addEventListener('change', renderProjLeaders);
+  document.getElementById('proj-type-sel')?.addEventListener('change', renderProjLeaders);
+
+  // Re-wire all award nav links to use the extended version
+  document.querySelectorAll('[id^="nav-awards"]').forEach(el => {
+    // Remove old listener by cloning — simpler than tracking references
+    const newEl = el.cloneNode(true);
+    el.parentNode?.replaceChild(newEl, el);
+    newEl.addEventListener('click', goAwards2);
+  });
+  document.getElementById('landing-aw-link')?.addEventListener('click', goAwards2);
   // Team Compare run button
   document.getElementById('cmp-run')?.addEventListener('click',renderTeamCompare);
   // FA Tracker filters
@@ -2561,6 +2924,23 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="margin-bottom:1.25rem;">
       <div style="font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;">Select award</div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;" id="award-btn-bar"></div>
+      <!-- Projected leaders season/type selectors (shown only for proj leaders) -->
+      <div id="proj-controls" style="display:none;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+        <select class="lb-select" id="proj-season-sel" style="font-size:.78rem;">
+          <option value="2025–26">2025–26</option>
+          <option value="2026–27">2026–27</option>
+          <option value="2027–28">2027–28</option>
+          <option value="2028–29">2028–29</option>
+          <option value="2029–30">2029–30</option>
+          <option value="2030–31">2030–31</option>
+          <option value="2031–32">2031–32</option>
+          <option value="2032–33">2032–33</option>
+        </select>
+        <select class="lb-select" id="proj-type-sel" style="font-size:.78rem;">
+          <option value="fwd">Forwards</option>
+          <option value="dman">Defensemen</option>
+        </select>
+      </div>
     </div>
     <div id="award-panel"></div>
     <div class="lb-footer">Billy Puck Grades · Award rankings based on model category scores · Data: NST · EH · ATZ · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
@@ -2623,11 +3003,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <table class="lb-table">
         <thead><tr>
           <th class="lb-rank">#</th>
-          <th>Player</th><th>Pos</th><th>Team</th><th>Role</th><th>Overall</th>
+          <th>Player</th><th>Pos</th><th>Team</th><th>Tier</th><th>Line/Pair</th><th>Overall</th>
           <th id="catboard-cat-hdr" style="color:var(--teal);">Category</th><th> </th>
         </tr></thead>
         <tbody id="catboard-table-body">
-          <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text3);">Select a category above to rank players.</td></tr>
+          <tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text3);">Select a category above to rank players.</td></tr>
         </tbody>
       </table>
     </div>
@@ -2655,6 +3035,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <select class="lb-select" id="cmp-team-a"><option value="">Team A…</option></select>
       <span style="font-size:.85rem;color:var(--text3);">vs</span>
       <select class="lb-select" id="cmp-team-b"><option value="">Team B…</option></select>
+      <select class="lb-select" id="cmp-pos">
+        <option value="all">All skaters</option>
+        <option value="F">Forwards only</option>
+        <option value="D">Defensemen only</option>
+      </select>
       <button id="cmp-run" style="padding:.4rem 1rem;border-radius:var(--radius-sm);border:1px solid var(--teal);background:var(--teal-dim);color:var(--teal);font-family:'Karla',sans-serif;font-size:.85rem;cursor:pointer;transition:opacity .15s;">Compare →</button>
     </div>
     <div id="cmp-output"><div style="color:var(--text3);padding:2rem;text-align:center;">Select two teams and click Compare.</div></div>
