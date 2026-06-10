@@ -2742,25 +2742,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('[id^="nav-stats"]').forEach(el=>el.addEventListener('click', goStats));
   document.querySelectorAll('[id^="nav-compare"]').forEach(el=>el.addEventListener('click', goCompare));
-  document.querySelectorAll('[id^="nav-fa-"]').forEach(el=>el.addEventListener('click', goFA));
+  document.querySelectorAll('[id^="nav-fa"]').forEach(el=>el.addEventListener('click', goFA));
   document.querySelectorAll('[id^="nav-breakout"]').forEach(el=>el.addEventListener('click', ()=>goBreakout('awards')));
 
-  // Patch extra nav links on goals/awards/teamview for cross-view navigation
-  ['nav-goalies-tm','nav-goalies-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click',goGoalies));
-  ['nav-awards-go','nav-awards-tm'].forEach(id=>document.getElementById(id)?.addEventListener('click',goAwards));
+  // Complete prefix-based wiring for ALL nav destinations across ALL views
+  document.querySelectorAll('[id^="nav-players"]').forEach(el=>el.addEventListener('click', goPlayers));
+  document.querySelectorAll('[id^="nav-leaderboard"]').forEach(el=>el.addEventListener('click', goLeaderboard));
+  document.querySelectorAll('[id^="nav-goalies"]').forEach(el=>el.addEventListener('click', goGoalies));
+  document.querySelectorAll('[id^="nav-teams"]').forEach(el=>el.addEventListener('click', goTeams));
+  document.querySelectorAll('[id^="nav-awards"]').forEach(el=>el.addEventListener('click', goAwards));
+  document.querySelectorAll('[id^="nav-logo"]').forEach(el=>el.addEventListener('click', ()=>showView('landing')));
+  document.querySelectorAll('[id^="nav-lb-"]').forEach(el=>el.addEventListener('click', goLeaderboard));
 
-  // Goalie-card-view nav wiring (view added to HTML below)
-  document.getElementById('nav-logo-gcv')?.addEventListener('click',()=>showView('landing'));
-  document.getElementById('nav-players-gcv')?.addEventListener('click',goPlayers);
-  document.getElementById('nav-lb-gcv')?.addEventListener('click',goLeaderboard);
-  document.getElementById('nav-teams-gcv')?.addEventListener('click',goTeams);
-  document.getElementById('nav-goalies-gcv')?.addEventListener('click',goGoalies);
-  document.getElementById('nav-awards-gcv')?.addEventListener('click',goAwards);
-  document.getElementById('nav-stats-gcv')?.addEventListener('click',goStats);
-  document.getElementById('nav-compare-gcv')?.addEventListener('click',goCompare);
-  document.getElementById('nav-fa-gcv')?.addEventListener('click',goFA);
-
-  // Awards nav links still go to awardsview
+  // Awards nav links
   document.getElementById('landing-aw-link')?.addEventListener('click', goAwards);
   // Team Compare run button
   document.getElementById('cmp-run')?.addEventListener('click',renderTeamCompare);
