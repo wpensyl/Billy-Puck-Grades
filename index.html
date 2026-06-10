@@ -328,14 +328,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link active" id="nav-players">Players</div>
+      <div class="nav-link active"       <div class="nav-link active" id="nav-players">Players</div>
       <div class="nav-link" id="nav-leaderboard">Leaderboard</div>
-      <div class="nav-link" id="nav-teams">Teams</div>
-      <div class="nav-link" id="nav-goalies">Goalies</div>
-      <div class="nav-link" id="nav-awards">Awards</div>
       <div class="nav-link" id="nav-stats">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies">Goalies</div>
+      <div class="nav-link" id="nav-teams">Teams</div>
       <div class="nav-link" id="nav-compare">Matchup Tool</div>
       <div class="nav-link" id="nav-fa">Free Agents</div>
+      <div class="nav-link" id="nav-breakout">Breakout Stars</div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
@@ -391,14 +391,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-lb">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-lb">Players</div>
+      <div class="nav-link"       <div class="nav-link" id="nav-players-lb">Players</div>
       <div class="nav-link active" id="nav-leaderboard-lb">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-lb">Teams</div>
-      <div class="nav-link" id="nav-goalies-lb">Goalies</div>
-      <div class="nav-link" id="nav-awards-lb">Awards</div>
       <div class="nav-link" id="nav-stats-lb">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-lb">Goalies</div>
+      <div class="nav-link" id="nav-teams-lb">Teams</div>
       <div class="nav-link" id="nav-compare-lb">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-lb">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-lb">Breakout Stars</div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
@@ -434,14 +434,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-tm">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-tm">Players</div>
-      <div class="nav-link" id="nav-lb-tm">Leaderboard</div>
-      <div class="nav-link active" id="nav-teams-tm">Teams</div>
-      <div class="nav-link" id="nav-goalies-tm">Goalies</div>
-      <div class="nav-link" id="nav-awards-tm">Awards</div>
+      <div class="nav-link"       <div class="nav-link" id="nav-players-tm">Players</div>
+      <div class="nav-link" id="nav-leaderboard-tm">Leaderboard</div>
       <div class="nav-link" id="nav-stats-tm">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-tm">Goalies</div>
+      <div class="nav-link active" id="nav-teams-tm">Teams</div>
       <div class="nav-link" id="nav-compare-tm">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-tm">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-tm">Breakout Stars</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -929,50 +929,72 @@ function renderCategories(p) {
     catList.innerHTML = '';
     tipVisible = null;
 
+    // Show team badge for historical seasons if we have team history
+    const teamHist = p.team_history || {};
+    if (season !== '4yr-avg' && Object.keys(teamHist).length) {
+      const teamForSeason = teamHist[season];
+      if (teamForSeason && teamForSeason !== '#N/A') {
+        const teamBadge = document.createElement('div');
+        teamBadge.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.25rem 0 .5rem;display:flex;align-items:center;gap:.4rem;';
+        const currentTeam = p.current_team || p.team || '';
+        const changed = teamForSeason !== currentTeam;
+        teamBadge.innerHTML = `<span style="color:var(--text3);">Team in ${season}:</span> `+
+          `<span style="font-weight:600;color:${changed?'var(--blue)':'var(--text2)'};">${teamForSeason}</span>`+
+          (changed ? `<span style="font-size:.65rem;color:var(--blue);"> (now ${currentTeam})</span>` : '');
+        catList.appendChild(teamBadge);
+      }
+    }
+
     if (season === '4yr-avg') {
-      // Rolling 4-season average of progression tracks
-      const tracks = [
-        {key:'overall',label:'Overall composite'},
-        {key:'off_prod',label:'Off production'},
-        {key:'def_prod',label:'Def production'},
-        {key:'off_analytics',label:'Off analytics'},
-        {key:'def_analytics',label:'Def analytics'},
-      ];
-      const note = document.createElement('div');
-      note.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.4rem 0 .6rem;';
-      note.textContent = 'Rolling 4-season average of composite track percentiles.';
-      catList.appendChild(note);
-      const rollingAvg = arr => {
-        const valids = (arr||[]).map(s=>s?.pct??null).filter(v=>v!=null);
-        const last4 = valids.slice(-4);
-        return last4.length ? Math.round(last4.reduce((a,b)=>a+b,0)/last4.length) : null;
-      };
-      const priorAvg = arr => {
-        const valids = (arr||[]).map(s=>s?.pct??null).filter(v=>v!=null);
-        const prior = valids.slice(-5,-1);
-        return prior.length ? Math.round(prior.reduce((a,b)=>a+b,0)/prior.length) : null;
-      };
-      for (const {key,label} of tracks) {
-        const avg = rollingAvg(prog[key]);
-        const prev = priorAvg(prog[key]);
-        if (avg == null) continue;
-        const cls = barClass(avg);
-        const row = document.createElement('div'); row.className = 'cat-row';
-        const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
-        nw.innerHTML = `<span class="cat-name">${label}</span>`;
-        const track = document.createElement('div'); track.className = 'cat-track';
-        track.innerHTML = `<div class="cat-fill ${cls}" style="width:${avg}%;"></div>`;
-        const pctEl = document.createElement('span');
-        pctEl.className = `cat-pct ${cls}`; pctEl.textContent = avg;
-        row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
-        if (prev != null) {
-          const delta = avg - prev;
-          const dEl = document.createElement('span');
-          dEl.style.cssText = `font-family:'DM Mono',monospace;font-size:.68rem;width:36px;text-align:right;flex-shrink:0;color:${delta>0?'var(--teal)':delta<0?'var(--coral)':'var(--text3)'};`;
-          dEl.textContent = (delta>=0?'+':'')+delta;
-          row.appendChild(dEl);
+      // 4-year composite norm — per category, from p.cat_norms_4yr
+      // cat_norms_4yr: {group: [{name, pct}]} using the Norm col from FWD 25 / DMAN 24
+      const norms4 = p.cat_norms_4yr || {};
+      let hasNorms = Object.keys(norms4).length > 0;
+
+      if (hasNorms) {
+        for (const [grp, cats] of Object.entries(norms4)) {
+          if (!cats.length) continue;
+          const ghd = document.createElement('div'); ghd.className = 'grp-hd';
+          ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
+          catList.appendChild(ghd);
+          for (const cat of cats) {
+            if (cat.pct == null) continue;
+            const cls = barClass(cat.pct);
+            const row = document.createElement('div'); row.className = 'cat-row';
+            const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+            nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
+            const track = document.createElement('div'); track.className = 'cat-track';
+            track.innerHTML = `<div class="cat-fill ${cls}" style="width:${cat.pct}%;"></div>`;
+            const pctEl = document.createElement('span');
+            pctEl.className = `cat-pct ${cls}`; pctEl.textContent = cat.pct;
+            row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+            catList.appendChild(row);
+          }
         }
-        catList.appendChild(row);
+      } else {
+        // Fallback: composite progression tracks if no cat_norms_4yr
+        const tracks = [
+          {key:'overall',label:'Overall composite'},{key:'off_prod',label:'Off production'},
+          {key:'def_prod',label:'Def production'},{key:'off_analytics',label:'Off analytics'},
+          {key:'def_analytics',label:'Def analytics'},
+        ];
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.4rem 0 .6rem;';
+        note.textContent = '4-yr composite track averages (run update.py to get full per-category 4-yr data).';
+        catList.appendChild(note);
+        const rollingAvg = arr => { const v=(arr||[]).map(s=>s?.pct??null).filter(v=>v!=null); const l=v.slice(-4); return l.length?Math.round(l.reduce((a,b)=>a+b,0)/l.length):null; };
+        for (const {key,label} of tracks) {
+          const avg = rollingAvg(prog[key]); if (avg==null) continue;
+          const cls=barClass(avg);
+          const row=document.createElement('div'); row.className='cat-row';
+          const nw=document.createElement('div'); nw.className='cat-name-wrap';
+          nw.innerHTML=`<span class="cat-name">${label}</span>`;
+          const tr=document.createElement('div'); tr.className='cat-track';
+          tr.innerHTML=`<div class="cat-fill ${cls}" style="width:${avg}%;"></div>`;
+          const pe=document.createElement('span'); pe.className=`cat-pct ${cls}`; pe.textContent=avg;
+          row.appendChild(nw); row.appendChild(tr); row.appendChild(pe);
+          catList.appendChild(row);
+        }
       }
       return;
     }
@@ -1860,197 +1882,6 @@ function renderGoalieGrid() {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PHASE 2: SEASON SELECTOR + HISTORICAL SEASON VIEW + SMOOTHED AVERAGES
-// Replaces the static 4-season panel — now a click-to-open dropdown on the
-// player card that lets you browse any season (2020-21 to 2025-26) and see
-// that season's percentiles, plus a "4-yr avg" summary view.
-// ══════════════════════════════════════════════════════════════════════════════
-
-const SEASONS_LIST = ['2020-21','2021-22','2022-23','2023-24','2024-25','2025-26'];
-const SEASON_LABELS_SHORT = {'2020-21':'20–21','2021-22':'21–22','2022-23':'22–23','2023-24':'23–24','2024-25':'24–25','2025-26':'25–26'};
-
-function renderSeasonPanel(p) {
-  const el = document.getElementById('season-panel');
-  if (!el) return;
-  const prog = p.progression;
-  if (!prog || !prog.overall) { el.innerHTML = ''; return; }
-  const isD = p._type === 'D';
-  const ac = isD ? 'var(--blue)' : 'var(--teal)';
-  const acHex = isD ? '#5b9cf6' : '#2dd4a0';
-
-  // Which seasons have any data?
-  const availableSeasons = SEASONS_LIST.filter(s =>
-    ['overall','off_prod','def_prod','off_analytics','def_analytics'].some(k => {
-      const entry = (prog[k]||[]).find(e => e.season === s);
-      return entry && entry.pct != null;
-    })
-  );
-  if (!availableSeasons.length) { el.innerHTML = ''; return; }
-
-  // Ensure currentSeasonView is valid
-  if (!availableSeasons.includes(currentSeasonView)) {
-    currentSeasonView = availableSeasons[availableSeasons.length - 1];
-  }
-
-  function buildContent(season) {
-    if (season === '4yr-avg') return buildSmoothedContent(p, acHex);
-    return buildSeasonContent(p, season, acHex);
-  }
-
-  function render() {
-    const headerHtml = `
-      <div class="panel-hd" style="cursor:pointer;user-select:none;" id="season-panel-hd">
-        <span class="panel-title">Season view</span>
-        <div style="display:flex;align-items:center;gap:.5rem;">
-          <span style="font-size:.75rem;color:${ac};font-family:'DM Mono',monospace;" id="season-panel-current-label">
-            ${currentSeasonView === '4yr-avg' ? '4-yr avg' : SEASON_LABELS_SHORT[currentSeasonView] || currentSeasonView}
-          </span>
-          <span style="font-size:.65rem;color:var(--text3);" id="season-panel-toggle-icon">▼</span>
-        </div>
-      </div>
-      <div id="season-selector-dropdown" style="display:none;border-bottom:1px solid var(--border);padding:.5rem .75rem;background:var(--surface2);">
-        <div style="font-size:.65rem;color:var(--text3);margin-bottom:.4rem;letter-spacing:.06em;text-transform:uppercase;">Select season</div>
-        <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-          ${availableSeasons.map(s =>
-            `<button class="season-btn${s === '2025-26' ? '' : ' blue'}${currentSeasonView === s ? ' active' : ''}" data-season="${s}">
-              ${SEASON_LABELS_SHORT[s] || s}
-            </button>`
-          ).join('')}
-          <button class="season-btn${currentSeasonView === '4yr-avg' ? ' active' : ''}" data-season="4yr-avg" style="border-style:dashed;">4-yr avg</button>
-        </div>
-      </div>
-      <div id="season-panel-content">${buildContent(currentSeasonView)}</div>`;
-
-    el.innerHTML = headerHtml;
-
-    // Toggle dropdown
-    const hd = document.getElementById('season-panel-hd');
-    const dd = document.getElementById('season-selector-dropdown');
-    const icon = document.getElementById('season-panel-toggle-icon');
-    hd.addEventListener('click', () => {
-      const open = dd.style.display === 'block';
-      dd.style.display = open ? 'none' : 'block';
-      icon.textContent = open ? '▼' : '▲';
-    });
-
-    // Season buttons
-    el.querySelectorAll('.season-btn[data-season]').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        currentSeasonView = btn.dataset.season;
-        render();  // re-render whole panel
-      });
-    });
-  }
-
-  render();
-}
-
-function buildSeasonContent(p, season, acHex) {
-  const prog = p.progression || {};
-  const isCurrent = season === '2025-26';
-
-  // For the current season: show the full category breakdown from p.categories
-  // (same data / same layout as the permanent Category Breakdown panel above,
-  //  but here it's inside the collapsible season selector)
-  if (isCurrent) {
-    const cats = p.categories || {};
-    let rowsHtml = '';
-    for (const [grp, items] of Object.entries(cats)) {
-      rowsHtml += `<div class="grp-hd" style="padding:.5rem 0 .2rem;"><span class="grp-label">${grp}</span><div class="grp-line"></div></div>`;
-      for (const cat of items) {
-        if (cat.pct == null) continue;
-        const clr = cat.pct >= 70 ? '#2dd4a0' : cat.pct <= 30 ? '#f4624a' : '#6b7280';
-        const cls = cat.pct >= 70 ? 'strong' : cat.pct <= 30 ? 'weak' : 'mid';
-        rowsHtml += `<div class="smooth-track">
-          <div class="smooth-lbl" style="font-size:.72rem;">${cat.name}</div>
-          <div class="smooth-bar-wrap"><div class="smooth-bar-fill" style="width:${cat.pct}%;background:${clr};"></div></div>
-          <div class="smooth-val cat-pct ${cls}">${cat.pct}</div>
-        </div>`;
-      }
-    }
-    return `<div style="padding:.5rem 1.25rem 1rem;">${rowsHtml}</div>`;
-  }
-
-  // For past seasons: show the 5 progression track percentiles for that season.
-  // These are the composite summary scores — the only per-season data we have
-  // for historical seasons. Full category-level breakdowns are 2025-26 only.
-  const tracks = [
-    {key:'overall',       label:'Overall composite'},
-    {key:'off_prod',      label:'Off production'},
-    {key:'def_prod',      label:'Def production'},
-    {key:'off_analytics', label:'Off analytics'},
-    {key:'def_analytics', label:'Def analytics'},
-  ];
-  let rowsHtml = `<div style="font-size:.72rem;color:var(--text3);margin-bottom:.5rem;">Historical data shows composite track percentiles only. Full category breakdown is available for 2025\u201326.</div>`;
-  let hasAny = false;
-  for (const {key, label} of tracks) {
-    const entry = (prog[key]||[]).find(e => e.season === season);
-    const val = entry?.pct ?? null;
-    if (val == null) continue;
-    hasAny = true;
-    const clr = val >= 70 ? '#2dd4a0' : val <= 30 ? '#f4624a' : '#6b7280';
-    const cls = val >= 70 ? 'strong' : val <= 30 ? 'weak' : 'mid';
-    rowsHtml += `<div class="smooth-track">
-      <div class="smooth-lbl">${label}</div>
-      <div class="smooth-bar-wrap"><div class="smooth-bar-fill" style="width:${val}%;background:${clr};"></div></div>
-      <div class="smooth-val cat-pct ${cls}">${val}</div>
-    </div>`;
-  }
-  if (!hasAny) rowsHtml += `<div style="font-size:.72rem;color:var(--text3);">No data available for this season.</div>`;
-  return `<div style="padding:.6rem 1.25rem 1rem;">${rowsHtml}</div>`;
-}
-
-function buildSmoothedContent(p, acHex) {
-  const prog = p.progression || {};
-  const tracks = [
-    {key:'overall',       label:'Overall'},
-    {key:'off_prod',      label:'Off production'},
-    {key:'def_prod',      label:'Def production'},
-    {key:'off_analytics', label:'Off analytics'},
-    {key:'def_analytics', label:'Def analytics'},
-  ];
-
-  const rollingAvg = (arr, window=4) => {
-    if (!arr) return null;
-    const valids = arr.map(s=>s?.pct??null).filter(v=>v!=null);
-    if (!valids.length) return null;
-    const last4 = valids.slice(-window);
-    return last4.length ? Math.round(last4.reduce((a,b)=>a+b,0)/last4.length) : null;
-  };
-  const priorAvg = (arr, window=4) => {
-    if (!arr) return null;
-    const valids = arr.map(s=>s?.pct??null).filter(v=>v!=null);
-    if (valids.length < 2) return null;
-    const prior = valids.slice(-window-1, -1);
-    if (!prior.length) return null;
-    return Math.round(prior.reduce((a,b)=>a+b,0)/prior.length);
-  };
-
-  let rowsHtml = `<div style="font-size:.7rem;color:var(--text3);margin-bottom:.5rem;">Rolling 4-season average. \u0394 shows change vs prior 4-season window.</div>`;
-  for (const {key, label} of tracks) {
-    const avg = rollingAvg(prog[key]);
-    const prev = priorAvg(prog[key]);
-    if (avg == null) continue;
-    const clr = avg >= 70 ? '#2dd4a0' : avg <= 30 ? '#f4624a' : '#6b7280';
-    const cls = avg >= 70 ? 'strong' : avg <= 30 ? 'weak' : 'mid';
-    let changeStr = '\u2013', changeClr = 'var(--text3)';
-    if (prev != null) {
-      const delta = avg - prev;
-      changeStr = (delta >= 0 ? '+' : '') + delta;
-      changeClr = delta > 0 ? 'var(--teal)' : delta < 0 ? 'var(--coral)' : 'var(--text3)';
-    }
-    rowsHtml += `<div class="smooth-track">
-      <div class="smooth-lbl">${label}</div>
-      <div class="smooth-bar-wrap"><div class="smooth-bar-fill" style="width:${avg}%;background:${clr};"></div></div>
-      <div class="smooth-val cat-pct ${cls}">${avg}</div>
-      <div class="smooth-change" style="color:${changeClr};">${changeStr}</div>
-    </div>`;
-  }
-  return `<div style="padding:.6rem 1.25rem 1rem;">${rowsHtml}</div>`;
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 // PHASE 2: CATEGORY STATS LEADERBOARD
 // Same categories as player card, ranked by percentile, filterable by position.
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2352,7 +2183,6 @@ function getTeamCategoryProfile(teamCode, posFilter='all') {
   players.forEach(p => { const t=parseTOI(p.toi_per_gp); toiMap[p.name]=(t&&p.gp)?t*p.gp:0; });
   const totalTOI = Object.values(toiMap).reduce((s,t)=>s+(t||0),0);
   const CMP_CATS = [
-    ['Usage','Time on ice'],['Usage','Quality of comp.'],
     ['Athletic & Compete','Speed'],['Athletic & Compete','Endurance'],['Athletic & Compete','Physicality'],
     ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot volume'],['Scoring','Shot quality'],['Scoring','Shot speed'],
     ['Offense','Passing'],['Offense','Playdriving'],['Offense','Rush offense'],['Offense','Forecheck offense'],['Offense','Cycle offense'],['Offense','Net-front presence'],['Offense','Faceoffs'],
@@ -2554,7 +2384,7 @@ function populateCmpTeams() {
 const PROJ_SEASONS_LABELS = ['2025\u201326','2026\u201327','2027\u201328','2028\u201329','2029\u201330','2030\u201331','2031\u201332','2032\u201333'];
 
 function renderBreakoutAward(type) {
-  const el = document.getElementById('award-panel');
+  const el = getBkPanel();
   if (!el) return;
   const data = BREAKOUT_DATA[type === 'F' ? 'fwd' : 'dman'] || [];
   if (!data.length) { el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">No breakout data available. Run update.py to generate.</div>'; return; }
@@ -2610,10 +2440,14 @@ function renderBreakoutAward(type) {
       if (found) showPlayer(found);
     });
   });
+  // Append methodology footnote
+  const footnoteDiv = document.createElement('div');
+  footnoteDiv.innerHTML = type === 'F' ? BREAKOUT_FOOTNOTE_FWD : BREAKOUT_FOOTNOTE_DMAN;
+  el.appendChild(footnoteDiv.firstElementChild);
 }
 
 function renderProjLeaders() {
-  const el = document.getElementById('award-panel');
+  const el = getBkPanel();
   if (!el) return;
   const proj = BREAKOUT_DATA.proj_leaders || {};
   if (!Object.keys(proj).length) { el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">No projection data available. Run update.py to generate.</div>'; return; }
@@ -2658,6 +2492,68 @@ function renderProjLeaders() {
       if (found) showPlayer(found);
     });
   });
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BREAKOUT STARS VIEW — sub-tab controller
+// ══════════════════════════════════════════════════════════════════════════════
+let bkAwardBtnBarBuilt = false;
+
+function initBreakoutView(subTab) {
+  // Set active sub-tab button
+  ['awards','breakout-fwd','breakout-dman','proj'].forEach(t => {
+    const btn = document.getElementById('bk-tab-' + t);
+    if (btn) btn.classList.toggle('active', t === subTab);
+  });
+
+  const projCtrl = document.getElementById('proj-controls-bk');
+  const awardsBar = document.getElementById('bk-awards-bar');
+  if (projCtrl) projCtrl.style.display = subTab === 'proj' ? 'flex' : 'none';
+  if (awardsBar) awardsBar.style.display = subTab === 'awards' ? 'flex' : 'none';
+
+  if (subTab === 'awards') {
+    // Build awards buttons if first time
+    if (!bkAwardBtnBarBuilt && awardsBar) {
+      bkAwardBtnBarBuilt = true;
+      awardsBar.innerHTML = '';
+      // Trigger existing award button bar build by calling goAwards logic on our panel
+      buildAwardButtonsIntoBk(awardsBar);
+    }
+  } else if (subTab === 'breakout-fwd') {
+    renderBreakoutAward('F');
+  } else if (subTab === 'breakout-dman') {
+    renderBreakoutAward('D');
+  } else if (subTab === 'proj') {
+    renderProjLeaders();
+  }
+}
+
+function getBkPanel() {
+  return document.getElementById('bk-content-panel');
+}
+
+function buildAwardButtonsIntoBk(bar) {
+  // Mirror the existing award button bar but targeting bk-content-panel
+  const awards = window._AWARD_DEFS || [];
+  if (!awards.length) {
+    // Fallback: just show a note
+    getBkPanel().innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">Navigate to the Awards tab to see trophies.</div>';
+    return;
+  }
+  awards.forEach(({label, fn}) => {
+    const btn = document.createElement('button');
+    btn.className = 'award-tab-btn';
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      bar.querySelectorAll('.award-tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      fn(getBkPanel());
+    });
+    bar.appendChild(btn);
+  });
+  // Click first button to show content immediately
+  bar.querySelector('.award-tab-btn')?.click();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2753,6 +2649,24 @@ document.addEventListener('DOMContentLoaded', () => {
   ['nav-goalies-cs','nav-goalies-cmp','nav-goalies-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goGoalies));
   ['nav-awards-cs','nav-awards-cmp','nav-awards-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goAwards));
 
+  // Breakout Stars view internal nav
+  ['nav-logo-bk'].forEach(id=>document.getElementById(id)?.addEventListener('click',()=>showView('landing')));
+  ['nav-players-bk'].forEach(id=>document.getElementById(id)?.addEventListener('click',goPlayers));
+  ['nav-leaderboard-bk'].forEach(id=>document.getElementById(id)?.addEventListener('click',goLeaderboard));
+  ['nav-stats-bk'].forEach(id=>document.getElementById(id)?.addEventListener('click',goStats));
+  ['nav-goalies-bk'].forEach(id=>document.getElementById(id)?.addEventListener('click',goGoalies));
+  ['nav-teams-bk'].forEach(id=>document.getElementById(id)?.addEventListener('click',goTeams));
+  ['nav-compare-bk'].forEach(id=>document.getElementById(id)?.addEventListener('click',goCompare));
+  ['nav-fa-bk'].forEach(id=>document.getElementById(id)?.addEventListener('click',goFA));
+
+  // Sub-tab wiring inside Breakout Stars
+  document.getElementById('bk-tab-awards')?.addEventListener('click', ()=>initBreakoutView('awards'));
+  document.getElementById('bk-tab-fwd')?.addEventListener('click',   ()=>initBreakoutView('breakout-fwd'));
+  document.getElementById('bk-tab-dman')?.addEventListener('click',  ()=>initBreakoutView('breakout-dman'));
+  document.getElementById('bk-tab-proj')?.addEventListener('click',  ()=>initBreakoutView('proj'));
+  document.getElementById('proj-season-sel')?.addEventListener('change', renderProjLeaders);
+  document.getElementById('proj-type-sel')?.addEventListener('change',   renderProjLeaders);
+
   document.getElementById('comp-tabs').addEventListener('click', e => {
     const tab = e.target.closest('.tab');
     if (tab && currentPlayer) {
@@ -2786,6 +2700,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── PHASE 2 NAV ────────────────────────────────────────────────────────────
+  const goBreakout = (subTab) => {
+    showView('breakoutview');
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-breakout"]').forEach(el=>el.classList.add('active'));
+    // Init sub-tabs if first visit
+    initBreakoutView(subTab);
+  };
+
   const goStats = () => {
     showView('catstatsview');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
@@ -2793,6 +2715,14 @@ document.addEventListener('DOMContentLoaded', () => {
     buildCatBoardNav();
     populateCatBoardTeams();
     renderCatBoard();
+    // Wire filter dropdowns each time goStats is called (idempotent — ok to re-add)
+    ['catboard-pos','catboard-team','catboard-mingp'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.dataset.wired) {
+        el.dataset.wired = '1';
+        el.addEventListener('change', renderCatBoard);
+      }
+    });
   };
   const goCompare = () => {
     showView('teamcompare');
@@ -2813,6 +2743,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[id^="nav-stats"]').forEach(el=>el.addEventListener('click', goStats));
   document.querySelectorAll('[id^="nav-compare"]').forEach(el=>el.addEventListener('click', goCompare));
   document.querySelectorAll('[id^="nav-fa-"]').forEach(el=>el.addEventListener('click', goFA));
+  document.querySelectorAll('[id^="nav-breakout"]').forEach(el=>el.addEventListener('click', ()=>goBreakout('awards')));
 
   // Patch extra nav links on goals/awards/teamview for cross-view navigation
   ['nav-goalies-tm','nav-goalies-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click',goGoalies));
@@ -2829,46 +2760,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nav-compare-gcv')?.addEventListener('click',goCompare);
   document.getElementById('nav-fa-gcv')?.addEventListener('click',goFA);
 
-  // Wire awards button bar — add breakout + proj leaders alongside existing awards
-  const origGoAwards = goAwards;
-  const goAwards2 = () => {
-    origGoAwards();
-    // Build award buttons if not already done
-    const bar = document.getElementById('award-btn-bar');
-    if (bar && !bar.dataset.built) {
-      bar.dataset.built = '1';
-      const awardDefs = [
-        ...(window.AWARD_BUTTONS_EXTRA || []),
-        {id:'breakout-fwd', label:'Breakout Stars — FWD', fn:()=>{hideProjControls();renderBreakoutAward('F');}},
-        {id:'breakout-dman',label:'Breakout Stars — DMAN',fn:()=>{hideProjControls();renderBreakoutAward('D');}},
-        {id:'proj-leaders', label:'Projected Leaders',   fn:()=>{showProjControls();renderProjLeaders();}},
-      ];
-      awardDefs.forEach(({id,label,fn})=>{
-        const btn = document.createElement('button');
-        btn.className='award-tab-btn'; btn.textContent=label; btn.id=id;
-        btn.addEventListener('click',()=>{
-          bar.querySelectorAll('.award-tab-btn').forEach(b=>b.classList.remove('active'));
-          btn.classList.add('active'); fn();
-        });
-        bar.appendChild(btn);
-      });
-    }
-  };
-
-  function hideProjControls(){ const c=document.getElementById('proj-controls'); if(c) c.style.display='none'; }
-  function showProjControls(){ const c=document.getElementById('proj-controls'); if(c) c.style.display='flex'; }
-
-  document.getElementById('proj-season-sel')?.addEventListener('change', renderProjLeaders);
-  document.getElementById('proj-type-sel')?.addEventListener('change', renderProjLeaders);
-
-  // Re-wire all award nav links to use the extended version
-  document.querySelectorAll('[id^="nav-awards"]').forEach(el => {
-    // Remove old listener by cloning — simpler than tracking references
-    const newEl = el.cloneNode(true);
-    el.parentNode?.replaceChild(newEl, el);
-    newEl.addEventListener('click', goAwards2);
-  });
-  document.getElementById('landing-aw-link')?.addEventListener('click', goAwards2);
+  // Awards nav links still go to awardsview
+  document.getElementById('landing-aw-link')?.addEventListener('click', goAwards);
   // Team Compare run button
   document.getElementById('cmp-run')?.addEventListener('click',renderTeamCompare);
   // FA Tracker filters
@@ -2882,14 +2775,14 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-go">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-go">Players</div>
-      <div class="nav-link" id="nav-lb-go">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-go">Teams</div>
-      <div class="nav-link active" id="nav-goalies-go">Goalies</div>
-      <div class="nav-link" id="nav-awards-go">Awards</div>
+      <div class="nav-link"       <div class="nav-link" id="nav-players-go">Players</div>
+      <div class="nav-link" id="nav-leaderboard-go">Leaderboard</div>
       <div class="nav-link" id="nav-stats-go">Stat Leaders</div>
+      <div class="nav-link active" id="nav-goalies-go">Goalies</div>
+      <div class="nav-link" id="nav-teams-go">Teams</div>
       <div class="nav-link" id="nav-compare-go">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-go">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-go">Breakout Stars</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -2911,13 +2804,14 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-aw">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-aw">Players</div>
-      <div class="nav-link" id="nav-lb-aw">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-aw">Teams</div>
-      <div class="nav-link active" id="nav-awards-aw">Awards</div>
+      <div class="nav-link"       <div class="nav-link" id="nav-players-aw">Players</div>
+      <div class="nav-link" id="nav-leaderboard-aw">Leaderboard</div>
       <div class="nav-link" id="nav-stats-aw">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-aw">Goalies</div>
+      <div class="nav-link" id="nav-teams-aw">Teams</div>
       <div class="nav-link" id="nav-compare-aw">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-aw">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-aw">Breakout Stars</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -2952,14 +2846,14 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-gcv">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-gcv">Players</div>
-      <div class="nav-link" id="nav-lb-gcv">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-gcv">Teams</div>
-      <div class="nav-link active" id="nav-goalies-gcv">Goalies</div>
-      <div class="nav-link" id="nav-awards-gcv">Awards</div>
+      <div class="nav-link"       <div class="nav-link" id="nav-players-gcv">Players</div>
+      <div class="nav-link" id="nav-leaderboard-gcv">Leaderboard</div>
       <div class="nav-link" id="nav-stats-gcv">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-gcv">Goalies</div>
+      <div class="nav-link" id="nav-teams-gcv">Teams</div>
       <div class="nav-link" id="nav-compare-gcv">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-gcv">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-gcv">Breakout Stars</div>
     </div>
   </nav>
   <div class="goalie-card-detail" id="goalie-card-detail" style="max-width:900px;margin:0 auto;padding:1.5rem;"></div>
@@ -2970,14 +2864,14 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-cs">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-cs">Players</div>
-      <div class="nav-link" id="nav-lb-cs">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-cs">Teams</div>
-      <div class="nav-link" id="nav-goalies-cs">Goalies</div>
-      <div class="nav-link" id="nav-awards-cs">Awards</div>
+      <div class="nav-link"       <div class="nav-link" id="nav-players-cs">Players</div>
+      <div class="nav-link" id="nav-leaderboard-cs">Leaderboard</div>
       <div class="nav-link active" id="nav-stats-cs">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-cs">Goalies</div>
+      <div class="nav-link" id="nav-teams-cs">Teams</div>
       <div class="nav-link" id="nav-compare-cs">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-cs">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-cs">Breakout Stars</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3020,14 +2914,14 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-cmp">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-cmp">Players</div>
-      <div class="nav-link" id="nav-lb-cmp">Leaderboard</div>
-      <div class="nav-link active" id="nav-compare-cmp">Matchup Tool</div>
-      <div class="nav-link" id="nav-goalies-cmp">Goalies</div>
-      <div class="nav-link" id="nav-awards-cmp">Awards</div>
+      <div class="nav-link"       <div class="nav-link" id="nav-players-cmp">Players</div>
+      <div class="nav-link" id="nav-leaderboard-cmp">Leaderboard</div>
       <div class="nav-link" id="nav-stats-cmp">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-cmp">Goalies</div>
       <div class="nav-link" id="nav-teams-cmp">Teams</div>
+      <div class="nav-link active" id="nav-compare-cmp">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-cmp">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-cmp">Breakout Stars</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3052,14 +2946,14 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-fa">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-fa">Players</div>
-      <div class="nav-link" id="nav-lb-fa">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-fa">Teams</div>
-      <div class="nav-link" id="nav-goalies-fa">Goalies</div>
-      <div class="nav-link" id="nav-awards-fa">Awards</div>
+      <div class="nav-link"       <div class="nav-link" id="nav-players-fa">Players</div>
+      <div class="nav-link" id="nav-leaderboard-fa">Leaderboard</div>
       <div class="nav-link" id="nav-stats-fa">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-fa">Goalies</div>
+      <div class="nav-link" id="nav-teams-fa">Teams</div>
       <div class="nav-link" id="nav-compare-fa">Matchup Tool</div>
       <div class="nav-link active" id="nav-fa-fa">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-fa">Breakout Stars</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3090,6 +2984,57 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div id="fa-list"></div>
     <div class="lb-footer">Billy Puck Grades · Free Agent Tracker · 2025–26 UFA/RFA · Data: NST · EH · CapFriendly · MoneyPuck</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════ BREAKOUT STARS VIEW ════════════════════════════════ -->
+<div id="breakoutview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-bk">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-bk">Players</div>
+      <div class="nav-link" id="nav-leaderboard-bk">Leaderboard</div>
+      <div class="nav-link" id="nav-stats-bk">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-bk">Goalies</div>
+      <div class="nav-link" id="nav-teams-bk">Teams</div>
+      <div class="nav-link" id="nav-compare-bk">Matchup Tool</div>
+      <div class="nav-link" id="nav-fa-bk">Free Agents</div>
+      <div class="nav-link active" id="nav-breakout-bk">Breakout Stars</div>
+    </div>
+  </nav>
+  <div class="lb-content">
+    <!-- Sub-tab bar -->
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid var(--border);">
+      <button class="season-btn active" id="bk-tab-awards" style="font-size:.8rem;">🏆 Awards</button>
+      <button class="season-btn" id="bk-tab-fwd" style="font-size:.8rem;">Breakout Stars — FWD</button>
+      <button class="season-btn" id="bk-tab-dman" style="font-size:.8rem;">Breakout Stars — DMAN</button>
+      <button class="season-btn blue" id="bk-tab-proj" style="font-size:.8rem;">Projected Leaders</button>
+    </div>
+    <!-- Projected leaders controls (hidden unless proj tab active) -->
+    <div id="proj-controls-bk" style="display:none;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;">
+      <select class="lb-select" id="proj-season-sel">
+        <option value="2025–26">2025–26</option>
+        <option value="2026–27">2026–27</option>
+        <option value="2027–28">2027–28</option>
+        <option value="2028–29">2028–29</option>
+        <option value="2029–30">2029–30</option>
+        <option value="2030–31">2030–31</option>
+        <option value="2031–32">2031–32</option>
+        <option value="2032–33">2032–33</option>
+      </select>
+      <select class="lb-select" id="proj-type-sel">
+        <option value="fwd">Forwards</option>
+        <option value="dman">Defensemen</option>
+      </select>
+    </div>
+    <!-- Awards sub-nav (shown when awards tab active) -->
+    <div id="bk-awards-bar" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem;" id="award-btn-bar"></div>
+    <!-- Content panel -->
+    <div id="bk-content-panel">
+      <div style="padding:2rem;text-align:center;color:var(--text3);">Loading…</div>
+    </div>
+    <div class="lb-footer">Billy Puck Grades · Breakout Stars &amp; Awards · 2025–026</div>
   </div>
 </div>
 
