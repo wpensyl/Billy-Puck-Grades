@@ -251,7 +251,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .nav-dd-btn{padding:.35rem .8rem;font-size:.8rem;font-family:'Karla',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;background:transparent;border:none;color:var(--text2);display:flex;align-items:center;gap:.3rem;transition:color .15s;white-space:nowrap;}
 .nav-dd-btn:hover,.nav-dd-btn.active{color:var(--teal);}
 .nav-dd-btn .dd-arrow{font-size:.55rem;margin-top:1px;}
-.nav-dd-menu{position:absolute;top:calc(100% + 4px);left:0;min-width:160px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:200;display:none;flex-direction:column;padding:4px 0;}
+.nav-dd-menu{position:fixed;min-width:160px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:9999;display:none;flex-direction:column;padding:4px 0;}
 .nav-dd-menu.open{display:flex;}
 .nav-dd-item{padding:.45rem 1rem;font-size:.82rem;color:var(--text2);cursor:pointer;white-space:nowrap;transition:background .1s,color .1s;}
 .nav-dd-item:hover{background:var(--surface2);color:var(--teal);}
@@ -308,17 +308,13 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 <div id="landing" class="view">
   <div class="wordmark">Billy Puck<span> Grades</span></div>
   <div class="tagline">NHL Player Analytics</div>
-  <div class="tagline" style="font-size:1.1rem;opacity:.7;margin-top:-.5rem;">Search any player!</div>
+  <div class="tagline" style="font-size:.85rem;opacity:.6;margin-top:-.5rem;letter-spacing:.06em;">Search any player!</div>
   <div class="search-wrap">
     <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
     <input type="text" class="search-input" id="landing-search" placeholder="Search any NHL player..." autocomplete="off" spellcheck="false">
     <div id="landing-dd" class="dropdown"></div>
   </div>
-  <div class="search-pos-filter">
-    <button class="pos-btn active" data-pos="all">All</button>
-    <button class="pos-btn" data-pos="F">Forwards</button>
-    <button class="pos-btn" data-pos="D">Defensemen</button>
-  </div>
+
   <div id="file-notice" style="display:none;background:rgba(244,98,74,.08);border:1px solid rgba(244,98,74,.25);border-radius:8px;padding:.5rem 1rem;margin-bottom:1rem;font-size:.78rem;color:#f4624a;text-align:center;max-width:540px;">
     Headshots &amp; live stats require a web server — run <code style="background:rgba(0,0,0,.3);padding:0 5px;border-radius:3px;">python3 -m http.server 8000</code> in this folder
   </div>
@@ -2966,7 +2962,7 @@ function wireAllNavs() {
     document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
   }
 
-  // Wire dropdown toggle buttons
+  // Wire dropdown toggle buttons — use fixed positioning to avoid clipping
   document.querySelectorAll('.nav-dd-btn').forEach(btn => {
     btn.addEventListener('click', function(e) {
       e.stopPropagation();
@@ -2975,7 +2971,12 @@ function wireAllNavs() {
       if (!menu) return;
       const wasOpen = menu.classList.contains('open');
       closeAll();
-      if (!wasOpen) menu.classList.add('open');
+      if (!wasOpen) {
+        const rect = this.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.classList.add('open');
+      }
     });
   });
 
