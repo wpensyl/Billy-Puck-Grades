@@ -64,10 +64,10 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .dd-pos-badge{font-size:.7rem;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:4px;flex-shrink:0;}
 .dd-pos-badge.F{background:var(--teal-dim);color:var(--teal);}
 .dd-pos-badge.D{background:var(--blue-dim);color:var(--blue);}
-.app-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1.5rem;}
+.app-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1.5rem;overflow:visible;position:relative;z-index:100;}
 .nav-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text);cursor:pointer;}
 .nav-logo span{color:var(--teal);}
-.nav-links{display:flex;gap:0;}
+.nav-links{display:flex;gap:0;overflow:visible;align-items:center;}
 .nav-link{padding:.4rem .85rem;font-size:.8rem;font-weight:500;letter-spacing:.04em;color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);transition:all .15s;text-transform:uppercase;}
 .nav-link:hover{color:var(--text2);background:var(--surface2);}
 .nav-link.active{color:var(--teal);background:var(--teal-dim);}
@@ -308,6 +308,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 <div id="landing" class="view">
   <div class="wordmark">Billy Puck<span> Grades</span></div>
   <div class="tagline">NHL Player Analytics</div>
+  <div class="tagline" style="font-size:1.1rem;opacity:.7;margin-top:-.5rem;">Search any player!</div>
   <div class="search-wrap">
     <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
     <input type="text" class="search-input" id="landing-search" placeholder="Search any NHL player..." autocomplete="off" spellcheck="false">
@@ -639,14 +640,24 @@ function showView(name) {
 function searchPlayers(q, pos = 'all') {
   if (!q || q.length < 2) return [];
   const ql = q.toLowerCase();
-  return ALL_PLAYERS
+  // Search skaters
+  const skaters = ALL_PLAYERS
     .filter(p => {
       if (pos === 'F' && p._type !== 'F') return false;
       if (pos === 'D' && p._type !== 'D') return false;
       return p.name.toLowerCase().includes(ql);
     })
     .sort((a, b) => (b.overall_pct || 0) - (a.overall_pct || 0))
-    .slice(0, 10);
+    .slice(0, 8);
+  // Search goalies (only when not filtering for F or D)
+  const goalies = (pos === 'all' || pos === 'G')
+    ? (ALL_GOALIES || [])
+        .filter(g => g.name.toLowerCase().includes(ql))
+        .map(g => ({...g, _type: 'G'}))
+        .sort((a, b) => (b.overall_2526 || 0) - (a.overall_2526 || 0))
+        .slice(0, 4)
+    : [];
+  return [...skaters, ...goalies].slice(0, 10);
 }
 
 function renderDropdown(results, ddEl) {
@@ -655,11 +666,15 @@ function renderDropdown(results, ddEl) {
   ddEl.innerHTML = results.map((p, i) => `
     <div class="dd-item" data-idx="${i}">
       <span class="dd-pos-badge ${p._type}">${p.pos || p._type}</span>
-      <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.team||''} · ${p.actual_role||p.role||''}</div></div>
-      <div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--teal);">${p.overall_pct??'–'}</div>
+      <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.team||''} · ${p._type==='G'?'Goalie':(p.actual_role||p.role||'')}</div></div>
+      <div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--teal);">${p._type==='G'?(p.overall_2526??'–'):(p.overall_pct??'–')}</div>
     </div>`).join('');
   ddEl.querySelectorAll('.dd-item').forEach((el, i) => {
-    el.addEventListener('mousedown', e => { e.preventDefault(); showPlayer(results[i]); });
+    el.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const p = results[i];
+      if (p) { p._type === 'G' ? showGoalieCard(p) : showPlayer(p); }
+    });
   });
 }
 
@@ -2947,16 +2962,16 @@ function wireAllNavs() {
     'fa':          goFA,
   };
 
-  // Close all open menus
   function closeAll() {
     document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
   }
 
-  // Wire every dropdown button
+  // Wire dropdown toggle buttons
   document.querySelectorAll('.nav-dd-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
+    btn.addEventListener('click', function(e) {
       e.stopPropagation();
-      const menu = btn.parentElement.querySelector('.nav-dd-menu');
+      const dropdown = this.closest('.nav-dropdown');
+      const menu = dropdown && dropdown.querySelector('.nav-dd-menu');
       if (!menu) return;
       const wasOpen = menu.classList.contains('open');
       closeAll();
@@ -2964,27 +2979,27 @@ function wireAllNavs() {
     });
   });
 
-  // Wire every dropdown item
+  // Wire dropdown items
   document.querySelectorAll('.nav-dd-item').forEach(item => {
-    item.addEventListener('click', e => {
+    item.addEventListener('click', function(e) {
       e.stopPropagation();
       closeAll();
-      const view = item.dataset.view;
+      const view = this.dataset.view;
       if (view && VIEW_MAP[view]) VIEW_MAP[view]();
     });
   });
 
-  // Wire Player Cards and Goalies direct links
-  document.querySelectorAll('.nav-link[id^="nav-players"]').forEach(el =>
+  // Wire Player Cards and Goalies direct nav-links
+  document.querySelectorAll('[id^="nav-players"]').forEach(el =>
     el.addEventListener('click', goPlayers));
-  document.querySelectorAll('.nav-link[id^="nav-goalies"]').forEach(el =>
+  document.querySelectorAll('[id^="nav-goalies"].nav-link').forEach(el =>
     el.addEventListener('click', goGoalies));
 
-  // Wire nav logos
+  // Wire nav logos to landing
   document.querySelectorAll('.nav-logo').forEach(el =>
     el.addEventListener('click', () => showView('landing')));
 
-  // Close on outside click
+  // Close on outside click (bubble phase, after stopPropagation from btn/item)
   document.addEventListener('click', closeAll);
 }
 
@@ -3002,7 +3017,12 @@ document.addEventListener('DOMContentLoaded', () => {
   wireSearch(lSearch, lDD, () => posFilter);
   lDD.addEventListener('mousedown', e => {
     const item = e.target.closest('.dd-item');
-    if (item) { e.preventDefault(); showPlayer(searchPlayers(lSearch.value, posFilter)[+item.dataset.idx]); }
+    if (item) {
+      e.preventDefault();
+      const results = searchPlayers(lSearch.value, posFilter);
+      const p = results[+item.dataset.idx];
+      if (p) { p._type === 'G' ? showGoalieCard(p) : showPlayer(p); }
+    }
   });
 
   const cSearch = document.getElementById('card-search');
@@ -3010,16 +3030,15 @@ document.addEventListener('DOMContentLoaded', () => {
   wireSearch(cSearch, cDD, () => 'all');
   cDD.addEventListener('mousedown', e => {
     const item = e.target.closest('.dd-item');
-    if (item) { e.preventDefault(); const r = searchPlayers(cSearch.value, 'all'); if (r[+item.dataset.idx]) showPlayer(r[+item.dataset.idx]); }
+    if (item) {
+      e.preventDefault();
+      const r = searchPlayers(cSearch.value, 'all');
+      const p = r[+item.dataset.idx];
+      if (p) { p._type === 'G' ? showGoalieCard(p) : showPlayer(p); }
+    }
   });
 
-  document.querySelectorAll('.pos-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      posFilter = btn.dataset.pos;
-    });
-  });
+  // posFilter stays 'all' since position filter buttons removed from landing page
 
   const goPlayers = () => {
     if (currentPlayer) showView('card-view'); else showView('landing');
