@@ -244,6 +244,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
 .comp-loading{padding:1.5rem;text-align:center;font-size:.8rem;color:var(--text3);}
+.landing-nav-btn{padding:.4rem 1rem;border-radius:999px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Karla',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s;}
+.landing-nav-btn:hover{border-color:var(--teal);color:var(--teal);}
 
 /* ── PHASE 2: Season Selector panel ─────────────────────────────────────── */
 .season-sel-wrap{padding:.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
@@ -309,6 +311,16 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   <div id="file-notice" style="display:none;background:rgba(244,98,74,.08);border:1px solid rgba(244,98,74,.25);border-radius:8px;padding:.5rem 1rem;margin-bottom:1rem;font-size:.78rem;color:#f4624a;text-align:center;max-width:540px;">
     Headshots &amp; live stats require a web server — run <code style="background:rgba(0,0,0,.3);padding:0 5px;border-radius:3px;">python3 -m http.server 8000</code> in this folder
   </div>
+  <div class="landing-nav" style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-bottom:1.5rem;">
+    <button class="landing-nav-btn" id="lnav-lb">Leaderboard</button>
+    <button class="landing-nav-btn" id="lnav-stats">Stat Leaders</button>
+    <button class="landing-nav-btn" id="lnav-goalies">Goalies</button>
+    <button class="landing-nav-btn" id="lnav-teams">Teams</button>
+    <button class="landing-nav-btn" id="lnav-compare">Matchup Tool</button>
+    <button class="landing-nav-btn" id="lnav-fa">Free Agents</button>
+    <button class="landing-nav-btn" id="lnav-breakout">Breakout Stars</button>
+    <button class="landing-nav-btn" id="lnav-rankings">Team Rankings</button>
+  </div>
   <div class="landing-hint">2025–26 Season &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-lb-link">Browse leaderboard →</span> &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-tm-link">Teams →</span> &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-aw-link">Awards →</span></div>
 </div>
 
@@ -318,12 +330,13 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <div class="nav-links">
       <div class="nav-link active" id="nav-players">Players</div>
       <div class="nav-link" id="nav-leaderboard">Leaderboard</div>
-      <div class="nav-link" id="nav-teams">Teams</div>
-      <div class="nav-link" id="nav-goalies">Goalies</div>
-      <div class="nav-link" id="nav-awards">Awards</div>
       <div class="nav-link" id="nav-stats">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies">Goalies</div>
+      <div class="nav-link" id="nav-teams">Teams</div>
       <div class="nav-link" id="nav-compare">Matchup Tool</div>
       <div class="nav-link" id="nav-fa">Free Agents</div>
+      <div class="nav-link" id="nav-breakout">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings">Team Rankings</div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
@@ -369,7 +382,6 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <div id="comp-list"><div class="comp-loading">Loading comparables...</div></div>
       </div>
     </div>
-    <div class="panel" id="season-panel"></div>
     <div class="panel" id="contract-panel"></div>
     <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2025–26 NHL Season · Updated June 2026<br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
   </div>
@@ -381,12 +393,13 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <div class="nav-links">
       <div class="nav-link" id="nav-players-lb">Players</div>
       <div class="nav-link active" id="nav-leaderboard-lb">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-lb">Teams</div>
-      <div class="nav-link" id="nav-goalies-lb">Goalies</div>
-      <div class="nav-link" id="nav-awards-lb">Awards</div>
       <div class="nav-link" id="nav-stats-lb">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-lb">Goalies</div>
+      <div class="nav-link" id="nav-teams-lb">Teams</div>
       <div class="nav-link" id="nav-compare-lb">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-lb">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-lb">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-lb">Team Rankings</div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
@@ -423,13 +436,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <div class="nav-logo" id="nav-logo-tm">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
       <div class="nav-link" id="nav-players-tm">Players</div>
-      <div class="nav-link" id="nav-lb-tm">Leaderboard</div>
-      <div class="nav-link active" id="nav-teams-tm">Teams</div>
-      <div class="nav-link" id="nav-goalies-tm">Goalies</div>
-      <div class="nav-link" id="nav-awards-tm">Awards</div>
+      <div class="nav-link" id="nav-leaderboard-tm">Leaderboard</div>
       <div class="nav-link" id="nav-stats-tm">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-tm">Goalies</div>
+      <div class="nav-link active" id="nav-teams-tm">Teams</div>
       <div class="nav-link" id="nav-compare-tm">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-tm">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-tm">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-tm">Team Rankings</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -793,7 +807,6 @@ async function showPlayer(p) {
   renderAnalyticsStrip(p);
   renderCategories(p);
   renderProgression(p);
-  renderSeasonPanel(p);
   document.getElementById('comp-list').innerHTML = '<div class="comp-loading"><span class="pulse">Loading comparables...</span></div>';
   renderContract(p);
   // Async: NHL API
@@ -2648,7 +2661,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const goAwards = () => {
     showView('awardsview');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
-    ['nav-awards','nav-awards-aw','nav-awards-lb'].forEach(id=>document.getElementById(id)?.classList.add('active'));
+    document.querySelectorAll('[id^="nav-awards"]').forEach(el=>el.classList.add('active'));
     initAwards();
   };
   const goGoalies = () => {
@@ -2742,6 +2755,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // Goalie card view nav
   const goGoalieCard = () => { if (currentGoalie) showGoalieCard(currentGoalie); else goGoalies(); };
 
+  // ── Breakout Stars + Team Rankings nav wiring ─────────────────────────────
+  document.querySelectorAll('[id^="nav-breakout"]').forEach(el=>el.addEventListener('click',()=>goBreakout('fwd')));
+  document.querySelectorAll('[id^="nav-rankings"]').forEach(el=>el.addEventListener('click',goRankings));
+
+  // Breakout Stars sub-tabs
+  document.getElementById('bk-tab-fwd')?.addEventListener('click', ()=>{ document.querySelectorAll('#bk-sub-tabs .season-btn').forEach(b=>b.classList.remove('active')); document.getElementById('bk-tab-fwd').classList.add('active'); renderBreakoutAward('F'); });
+  document.getElementById('bk-tab-dman')?.addEventListener('click', ()=>{ document.querySelectorAll('#bk-sub-tabs .season-btn').forEach(b=>b.classList.remove('active')); document.getElementById('bk-tab-dman').classList.add('active'); renderBreakoutAward('D'); });
+  document.getElementById('bk-tab-proj')?.addEventListener('click', ()=>{ document.querySelectorAll('#bk-sub-tabs .season-btn').forEach(b=>b.classList.remove('active')); document.getElementById('bk-tab-proj').classList.add('active'); renderProjLeaders(); });
+
+  // Team Rankings filters
+  document.getElementById('tr-sort')?.addEventListener('change', renderTeamRankings);
+  document.getElementById('tr-pos')?.addEventListener('change', renderTeamRankings);
+
+  // Landing page nav buttons
+  document.getElementById('lnav-lb')?.addEventListener('click', goLeaderboard);
+  document.getElementById('lnav-stats')?.addEventListener('click', goStats);
+  document.getElementById('lnav-goalies')?.addEventListener('click', goGoalies);
+  document.getElementById('lnav-teams')?.addEventListener('click', goTeams);
+  document.getElementById('lnav-compare')?.addEventListener('click', goCompare);
+  document.getElementById('lnav-fa')?.addEventListener('click', goFA);
+  document.getElementById('lnav-breakout')?.addEventListener('click', ()=>goBreakout('fwd'));
+  document.getElementById('lnav-rankings')?.addEventListener('click', goRankings);
+
   // Wire ALL nav-stats/compare/fa across every view — must be after const definitions
   ['nav-stats-tm','nav-stats-go','nav-stats-aw','nav-stats-lb','nav-stats-cs',
    'nav-stats-cmp','nav-stats-fa','nav-stats-gcv'].forEach(id=>
@@ -2757,6 +2793,27 @@ document.addEventListener('DOMContentLoaded', () => {
    'nav-fa-cmp','nav-fa-fa','nav-fa-gcv'].forEach(id=>
     document.getElementById(id)?.addEventListener('click', goFA));
   document.querySelectorAll('[id^="nav-fa"]').forEach(el=>el.addEventListener('click', goFA));
+
+  // Breakout Stars view nav
+  document.getElementById('nav-logo-bk')?.addEventListener('click',()=>showView('landing'));
+  document.getElementById('nav-players-bk')?.addEventListener('click',goPlayers);
+  document.getElementById('nav-leaderboard-bk')?.addEventListener('click',goLeaderboard);
+  document.getElementById('nav-stats-bk')?.addEventListener('click',goStats);
+  document.getElementById('nav-goalies-bk')?.addEventListener('click',goGoalies);
+  document.getElementById('nav-teams-bk')?.addEventListener('click',goTeams);
+  document.getElementById('nav-compare-bk')?.addEventListener('click',goCompare);
+  document.getElementById('nav-fa-bk')?.addEventListener('click',goFA);
+
+  // Team Rankings view nav
+  document.getElementById('nav-logo-tr')?.addEventListener('click',()=>showView('landing'));
+  document.getElementById('nav-players-tr')?.addEventListener('click',goPlayers);
+  document.getElementById('nav-leaderboard-tr')?.addEventListener('click',goLeaderboard);
+  document.getElementById('nav-stats-tr')?.addEventListener('click',goStats);
+  document.getElementById('nav-goalies-tr')?.addEventListener('click',goGoalies);
+  document.getElementById('nav-teams-tr')?.addEventListener('click',goTeams);
+  document.getElementById('nav-compare-tr')?.addEventListener('click',goCompare);
+  document.getElementById('nav-fa-tr')?.addEventListener('click',goFA);
+  document.getElementById('nav-breakout-tr')?.addEventListener('click',()=>goBreakout('fwd'));
 
   // Patch extra nav links on goals/awards/teamview for cross-view navigation
   ['nav-goalies-tm','nav-goalies-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click',goGoalies));
@@ -2794,13 +2851,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-logo" id="nav-logo-go">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
       <div class="nav-link" id="nav-players-go">Players</div>
-      <div class="nav-link" id="nav-lb-go">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-go">Teams</div>
-      <div class="nav-link active" id="nav-goalies-go">Goalies</div>
-      <div class="nav-link" id="nav-awards-go">Awards</div>
+      <div class="nav-link" id="nav-leaderboard-go">Leaderboard</div>
       <div class="nav-link" id="nav-stats-go">Stat Leaders</div>
+      <div class="nav-link active" id="nav-goalies-go">Goalies</div>
+      <div class="nav-link" id="nav-teams-go">Teams</div>
       <div class="nav-link" id="nav-compare-go">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-go">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-go">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-go">Team Rankings</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -2823,12 +2881,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-logo" id="nav-logo-aw">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
       <div class="nav-link" id="nav-players-aw">Players</div>
-      <div class="nav-link" id="nav-lb-aw">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-aw">Teams</div>
-      <div class="nav-link active" id="nav-awards-aw">Awards</div>
+      <div class="nav-link" id="nav-leaderboard-aw">Leaderboard</div>
       <div class="nav-link" id="nav-stats-aw">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-aw">Goalies</div>
+      <div class="nav-link" id="nav-teams-aw">Teams</div>
       <div class="nav-link" id="nav-compare-aw">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-aw">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-aw">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-aw">Team Rankings</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -2847,13 +2907,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-logo" id="nav-logo-gcv">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
       <div class="nav-link" id="nav-players-gcv">Players</div>
-      <div class="nav-link" id="nav-lb-gcv">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-gcv">Teams</div>
-      <div class="nav-link active" id="nav-goalies-gcv">Goalies</div>
-      <div class="nav-link" id="nav-awards-gcv">Awards</div>
+      <div class="nav-link" id="nav-leaderboard-gcv">Leaderboard</div>
       <div class="nav-link" id="nav-stats-gcv">Stat Leaders</div>
+      <div class="nav-link active" id="nav-goalies-gcv">Goalies</div>
+      <div class="nav-link" id="nav-teams-gcv">Teams</div>
       <div class="nav-link" id="nav-compare-gcv">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-gcv">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-gcv">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-gcv">Team Rankings</div>
     </div>
   </nav>
   <div class="goalie-card-detail" id="goalie-card-detail" style="max-width:900px;margin:0 auto;padding:1.5rem;"></div>
@@ -2865,13 +2926,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-logo" id="nav-logo-cs">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
       <div class="nav-link" id="nav-players-cs">Players</div>
-      <div class="nav-link" id="nav-lb-cs">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-cs">Teams</div>
-      <div class="nav-link" id="nav-goalies-cs">Goalies</div>
-      <div class="nav-link" id="nav-awards-cs">Awards</div>
+      <div class="nav-link" id="nav-leaderboard-cs">Leaderboard</div>
       <div class="nav-link active" id="nav-stats-cs">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-cs">Goalies</div>
+      <div class="nav-link" id="nav-teams-cs">Teams</div>
       <div class="nav-link" id="nav-compare-cs">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-cs">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-cs">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-cs">Team Rankings</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -2915,13 +2977,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-logo" id="nav-logo-cmp">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
       <div class="nav-link" id="nav-players-cmp">Players</div>
-      <div class="nav-link" id="nav-lb-cmp">Leaderboard</div>
-      <div class="nav-link active" id="nav-compare-cmp">Matchup Tool</div>
-      <div class="nav-link" id="nav-goalies-cmp">Goalies</div>
-      <div class="nav-link" id="nav-awards-cmp">Awards</div>
+      <div class="nav-link" id="nav-leaderboard-cmp">Leaderboard</div>
       <div class="nav-link" id="nav-stats-cmp">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-cmp">Goalies</div>
       <div class="nav-link" id="nav-teams-cmp">Teams</div>
+      <div class="nav-link active" id="nav-compare-cmp">Matchup Tool</div>
       <div class="nav-link" id="nav-fa-cmp">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-cmp">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-cmp">Team Rankings</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -2947,13 +3010,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-logo" id="nav-logo-fa">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
       <div class="nav-link" id="nav-players-fa">Players</div>
-      <div class="nav-link" id="nav-lb-fa">Leaderboard</div>
-      <div class="nav-link" id="nav-teams-fa">Teams</div>
-      <div class="nav-link" id="nav-goalies-fa">Goalies</div>
-      <div class="nav-link" id="nav-awards-fa">Awards</div>
+      <div class="nav-link" id="nav-leaderboard-fa">Leaderboard</div>
       <div class="nav-link" id="nav-stats-fa">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-fa">Goalies</div>
+      <div class="nav-link" id="nav-teams-fa">Teams</div>
       <div class="nav-link" id="nav-compare-fa">Matchup Tool</div>
       <div class="nav-link active" id="nav-fa-fa">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-fa">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-fa">Team Rankings</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -2984,6 +3048,106 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div id="fa-list"></div>
     <div class="lb-footer">Billy Puck Grades · Free Agent Tracker · 2025–26 UFA/RFA · Data: NST · EH · CapFriendly · MoneyPuck</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ BREAKOUT STARS VIEW ══════════════════════════════════ -->
+<div id="breakoutview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-bk">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-bk">Players</div>
+      <div class="nav-link" id="nav-leaderboard-bk">Leaderboard</div>
+      <div class="nav-link" id="nav-stats-bk">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-bk">Goalies</div>
+      <div class="nav-link" id="nav-teams-bk">Teams</div>
+      <div class="nav-link" id="nav-compare-bk">Matchup Tool</div>
+      <div class="nav-link" id="nav-fa-bk">Free Agents</div>
+      <div class="nav-link active" id="nav-breakout-bk">Breakout Stars</div>
+      <div class="nav-link" id="nav-rankings-bk">Team Rankings</div>
+    </div>
+  </nav>
+  <div class="lb-content">
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid var(--border);" id="bk-sub-tabs">
+      <button class="season-btn active" id="bk-tab-fwd">Breakout Stars — FWD</button>
+      <button class="season-btn" id="bk-tab-dman">Breakout Stars — DMAN</button>
+      <button class="season-btn blue" id="bk-tab-proj">Projected Leaders</button>
+    </div>
+    <div id="bk-content-panel">
+      <div style="padding:2rem;text-align:center;color:var(--text3);">Select a view above.</div>
+    </div>
+    <div class="lb-footer">Billy Puck Grades · Breakout Stars · 2025–26</div>
+  </div>
+</div>
+
+<!-- ═══════════════ TEAM RANKINGS VIEW ═══════════════════════════════════ -->
+<div id="teamrankings" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-tr">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-tr">Players</div>
+      <div class="nav-link" id="nav-leaderboard-tr">Leaderboard</div>
+      <div class="nav-link" id="nav-stats-tr">Stat Leaders</div>
+      <div class="nav-link" id="nav-goalies-tr">Goalies</div>
+      <div class="nav-link" id="nav-teams-tr">Teams</div>
+      <div class="nav-link" id="nav-compare-tr">Matchup Tool</div>
+      <div class="nav-link" id="nav-fa-tr">Free Agents</div>
+      <div class="nav-link" id="nav-breakout-tr">Breakout Stars</div>
+      <div class="nav-link active" id="nav-rankings-tr">Team Rankings</div>
+    </div>
+  </nav>
+  <div class="lb-content">
+    <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
+      <div style="font-size:.8rem;color:var(--text3);">Sort by:</div>
+      <select class="lb-select" id="tr-sort">
+        <option value="proj_pts">Projected Points</option>
+        <option value="skater_overall">Skater Overall</option>
+        <option value="goalie_score">Goalie Score</option>
+        <option value="Speed">Speed</option>
+        <option value="Endurance">Endurance</option>
+        <option value="Physicality">Physicality</option>
+        <option value="Goalscoring">Goalscoring</option>
+        <option value="Finishing">Finishing</option>
+        <option value="Shot volume">Shot volume</option>
+        <option value="Shot quality">Shot quality</option>
+        <option value="Shot speed">Shot speed</option>
+        <option value="Passing">Passing</option>
+        <option value="Playdriving">Playdriving</option>
+        <option value="Rush offense">Rush offense</option>
+        <option value="Forecheck offense">Forecheck offense</option>
+        <option value="Cycle offense">Cycle offense</option>
+        <option value="Net-front presence">Net-front presence</option>
+        <option value="Faceoffs">Faceoffs</option>
+        <option value="Entry defense">Entry defense</option>
+        <option value="Exits">Exits</option>
+        <option value="Shot suppression">Shot suppression</option>
+        <option value="Takeaways">Takeaways</option>
+        <option value="Power play">Power play</option>
+        <option value="Penalty kill">Penalty kill</option>
+        <option value="Penalty differential">Penalty differential</option>
+        <option value="On-ice offense">On-ice offense</option>
+        <option value="On-ice defense">On-ice defense</option>
+      </select>
+      <select class="lb-select" id="tr-pos">
+        <option value="all">All skaters</option>
+        <option value="F">Forwards only</option>
+        <option value="D">Defensemen only</option>
+      </select>
+    </div>
+    <div class="lb-table-wrap">
+      <table class="lb-table">
+        <thead><tr>
+          <th class="lb-rank">#</th>
+          <th>Team</th>
+          <th id="tr-col-hdr" style="color:var(--teal);">Proj. Points</th>
+          <th>Skater Overall</th>
+          <th>Goalie Score</th>
+        </tr></thead>
+        <tbody id="tr-tbody"></tbody>
+      </table>
+    </div>
+    <div class="lb-footer">Billy Puck Grades · Team Rankings · TOI-weighted category averages</div>
   </div>
 </div>
 
