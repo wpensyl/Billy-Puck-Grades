@@ -246,6 +246,16 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .comp-loading{padding:1.5rem;text-align:center;font-size:.8rem;color:var(--text3);}
 .landing-nav-btn{padding:.4rem 1rem;border-radius:999px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Karla',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s;}
 .landing-nav-btn:hover{border-color:var(--teal);color:var(--teal);}
+/* ── DROPDOWN NAV ──────────────────────────────────────────────────────── */
+.nav-dropdown{position:relative;display:inline-block;}
+.nav-dd-btn{padding:.35rem .8rem;font-size:.8rem;font-family:'Karla',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;background:transparent;border:none;color:var(--text2);display:flex;align-items:center;gap:.3rem;transition:color .15s;white-space:nowrap;}
+.nav-dd-btn:hover,.nav-dd-btn.active{color:var(--teal);}
+.nav-dd-btn .dd-arrow{font-size:.55rem;margin-top:1px;}
+.nav-dd-menu{position:absolute;top:calc(100% + 4px);left:0;min-width:160px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:200;display:none;flex-direction:column;padding:4px 0;}
+.nav-dd-menu.open{display:flex;}
+.nav-dd-item{padding:.45rem 1rem;font-size:.82rem;color:var(--text2);cursor:pointer;white-space:nowrap;transition:background .1s,color .1s;}
+.nav-dd-item:hover{background:var(--surface2);color:var(--teal);}
+.nav-dd-item.active{color:var(--teal);font-weight:600;}
 
 /* ── PHASE 2: Season Selector panel ─────────────────────────────────────── */
 .season-sel-wrap{padding:.75rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
@@ -328,15 +338,31 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link active" id="nav-players">Players</div>
-      <div class="nav-link" id="nav-leaderboard">Leaderboard</div>
-      <div class="nav-link" id="nav-stats">Stat Leaders</div>
+      <div class="nav-link active" id="nav-players">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-playerdata">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies">Goalies</div>
-      <div class="nav-link" id="nav-teams">Teams</div>
-      <div class="nav-link" id="nav-compare">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa">Free Agents</div>
-      <div class="nav-link" id="nav-breakout">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-teamdata">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
@@ -391,15 +417,31 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-lb">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-lb">Players</div>
-      <div class="nav-link active" id="nav-leaderboard-lb">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-lb">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-lb">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" id="nav-playerdata-lb">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-lb">
+          <div class="nav-dd-item active" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies-lb">Goalies</div>
-      <div class="nav-link" id="nav-teams-lb">Teams</div>
-      <div class="nav-link" id="nav-compare-lb">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-lb">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-lb">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-lb">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-teamdata-lb">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-lb">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-lb">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-lb">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
@@ -435,15 +477,31 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-tm">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-tm">Players</div>
-      <div class="nav-link" id="nav-leaderboard-tm">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-tm">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-tm">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-playerdata-tm">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-tm">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies-tm">Goalies</div>
-      <div class="nav-link active" id="nav-teams-tm">Teams</div>
-      <div class="nav-link" id="nav-compare-tm">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-tm">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-tm">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-tm">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" id="nav-teamdata-tm">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-tm">
+          <div class="nav-dd-item active" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-tm">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-tm">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="lb-content">
@@ -2839,7 +2897,7 @@ function renderTeamRankings() {
   const profiles = [];
   for (const team of NHL_TEAM_CODES) {
     const prof = getTeamProfile(team, posFilter);
-    if (!prof || prof.playerCount < 3) continue;
+    if (!prof) continue;  // show all 32 teams
     profiles.push(prof);
   }
   const getSortVal = p => {
@@ -2868,6 +2926,69 @@ function renderTeamRankings() {
       <td style="font-family:'DM Mono',monospace;color:${gaClr};">${p.goalieScore??'–'}</td>
     </tr>`;
   }).join('');
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DROPDOWN NAV WIRING
+// All nav-links divs now use .nav-dd-btn (dropdowns) and .nav-link (direct links)
+// Wire them all with a single delegation approach on document level.
+// ══════════════════════════════════════════════════════════════════════════════
+function wireAllNavs() {
+  const VIEW_MAP = {
+    'leaderboard': () => goLeaderboard(),
+    'stats':       () => goStats(),
+    'breakout':    () => goBreakout('fwd'),
+    'awards':      () => goAwards(),
+    'goalies':     () => goGoalies(),   // also fired by nav-link#nav-goalies
+    'players':     () => goPlayers(),   // also fired by nav-link#nav-players
+    'teams':       () => goTeams(),
+    'rankings':    () => goRankings(),
+    'compare':     () => goCompare(),
+    'fa':          () => goFA(),
+  };
+
+  // Close all open dropdown menus
+  function closeAllMenus(except) {
+    document.querySelectorAll('.nav-dd-menu.open').forEach(m => {
+      if (m !== except) m.classList.remove('open');
+    });
+    document.querySelectorAll('.nav-dd-btn').forEach(b => {
+      if (b.nextElementSibling !== except) b.classList.remove('open');
+    });
+  }
+
+  // Event delegation on document for all nav interactions
+  document.addEventListener('click', e => {
+    // Dropdown toggle button
+    const ddBtn = e.target.closest('.nav-dd-btn');
+    if (ddBtn) {
+      e.stopPropagation();
+      const menu = ddBtn.nextElementSibling;
+      const isOpen = menu?.classList.contains('open');
+      closeAllMenus(isOpen ? null : menu);
+      if (menu) menu.classList.toggle('open', !isOpen);
+      return;
+    }
+    // Dropdown item
+    const ddItem = e.target.closest('.nav-dd-item');
+    if (ddItem) {
+      const view = ddItem.dataset.view;
+      closeAllMenus(null);
+      if (view && VIEW_MAP[view]) VIEW_MAP[view]();
+      return;
+    }
+    // Direct nav-link (Player Cards, Goalies)
+    const navLink = e.target.closest('.nav-link[id^="nav-"]');
+    if (navLink) {
+      if (navLink.id.startsWith('nav-players')) { goPlayers(); return; }
+      if (navLink.id.startsWith('nav-goalies'))  { goGoalies(); return; }
+    }
+    // Nav logo
+    if (e.target.closest('.nav-logo')) { showView('landing'); return; }
+    // Click outside closes menus
+    closeAllMenus(null);
+  }, true);  // capture phase so it fires before stopPropagation elsewhere
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -3064,10 +3185,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lnav-rankings')?.addEventListener('click', goRankings);
 
   // Wire nav-breakout, nav-rankings, nav-leaderboard across ALL view suffixes
-  document.querySelectorAll('[id^="nav-breakout"]').forEach(el=>el.addEventListener('click',()=>goBreakout('fwd')));
-  document.querySelectorAll('[id^="nav-rankings"]').forEach(el=>el.addEventListener('click',goRankings));
-  document.querySelectorAll('[id^="nav-leaderboard"]').forEach(el=>el.addEventListener('click',goLeaderboard));
-  document.querySelectorAll('[id^="nav-lb-"]').forEach(el=>el.addEventListener('click',goLeaderboard));
+  // Dropdown nav wiring handled by wireAllNavs() delegation — see above
 
   // Wire ALL nav-stats/compare/fa across every view — must be after const definitions
   ['nav-stats-tm','nav-stats-go','nav-stats-aw','nav-stats-lb','nav-stats-cs',
@@ -3133,6 +3251,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // FA Tracker filters
   ['fa-type','fa-pos','fa-team','fa-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFATracker));
   document.getElementById('fa-search')?.addEventListener('input',renderFATracker);
+
+  // Wire all dropdown navs (must be after go* functions defined)
+  wireAllNavs();
 });
 </script>
 
@@ -3141,15 +3262,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-go">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-go">Players</div>
-      <div class="nav-link" id="nav-leaderboard-go">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-go">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-go">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-playerdata-go">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-go">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link active" id="nav-goalies-go">Goalies</div>
-      <div class="nav-link" id="nav-teams-go">Teams</div>
-      <div class="nav-link" id="nav-compare-go">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-go">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-go">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-go">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-teamdata-go">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-go">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-go">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-go">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3171,15 +3308,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-aw">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-aw">Players</div>
-      <div class="nav-link" id="nav-leaderboard-aw">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-aw">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-aw">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" id="nav-playerdata-aw">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-aw">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item active" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies-aw">Goalies</div>
-      <div class="nav-link" id="nav-teams-aw">Teams</div>
-      <div class="nav-link" id="nav-compare-aw">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-aw">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-aw">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-aw">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-teamdata-aw">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-aw">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-aw">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-aw">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3197,15 +3350,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-gcv">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-gcv">Players</div>
-      <div class="nav-link" id="nav-leaderboard-gcv">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-gcv">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-gcv">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-playerdata-gcv">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-gcv">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link active" id="nav-goalies-gcv">Goalies</div>
-      <div class="nav-link" id="nav-teams-gcv">Teams</div>
-      <div class="nav-link" id="nav-compare-gcv">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-gcv">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-gcv">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-gcv">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-teamdata-gcv">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-gcv">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-gcv">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-gcv">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="goalie-card-detail" id="goalie-card-detail" style="max-width:900px;margin:0 auto;padding:1.5rem;"></div>
@@ -3216,15 +3385,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-cs">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-cs">Players</div>
-      <div class="nav-link" id="nav-leaderboard-cs">Leaderboard</div>
-      <div class="nav-link active" id="nav-stats-cs">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-cs">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" id="nav-playerdata-cs">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-cs">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item active" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies-cs">Goalies</div>
-      <div class="nav-link" id="nav-teams-cs">Teams</div>
-      <div class="nav-link" id="nav-compare-cs">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-cs">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-cs">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-cs">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-teamdata-cs">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-cs">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-cs">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-cs">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3267,15 +3452,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-cmp">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-cmp">Players</div>
-      <div class="nav-link" id="nav-leaderboard-cmp">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-cmp">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-cmp">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-playerdata-cmp">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-cmp">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies-cmp">Goalies</div>
-      <div class="nav-link" id="nav-teams-cmp">Teams</div>
-      <div class="nav-link active" id="nav-compare-cmp">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-cmp">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-cmp">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-cmp">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" id="nav-teamdata-cmp">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-cmp">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item active" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-cmp">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-cmp">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3300,15 +3501,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-fa">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-fa">Players</div>
-      <div class="nav-link" id="nav-leaderboard-fa">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-fa">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-fa">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-playerdata-fa">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-fa">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies-fa">Goalies</div>
-      <div class="nav-link" id="nav-teams-fa">Teams</div>
-      <div class="nav-link" id="nav-compare-fa">Matchup Tool</div>
-      <div class="nav-link active" id="nav-fa-fa">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-fa">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-fa">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-teamdata-fa">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-fa">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" id="nav-contract-fa">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-fa">
+          <div class="nav-dd-item active" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3348,15 +3565,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-bk">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-bk">Players</div>
-      <div class="nav-link" id="nav-leaderboard-bk">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-bk">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-bk">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" id="nav-playerdata-bk">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-bk">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item active" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies-bk">Goalies</div>
-      <div class="nav-link" id="nav-teams-bk">Teams</div>
-      <div class="nav-link" id="nav-compare-bk">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-bk">Free Agents</div>
-      <div class="nav-link active" id="nav-breakout-bk">Breakout Stars</div>
-      <div class="nav-link" id="nav-rankings-bk">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-teamdata-bk">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-bk">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-bk">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-bk">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3377,15 +3610,31 @@ document.addEventListener('DOMContentLoaded', () => {
   <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-tr">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
-      <div class="nav-link" id="nav-players-tr">Players</div>
-      <div class="nav-link" id="nav-leaderboard-tr">Leaderboard</div>
-      <div class="nav-link" id="nav-stats-tr">Stat Leaders</div>
+      <div class="nav-link" id="nav-players-tr">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-playerdata-tr">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-tr">
+          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards">Awards</div>
+        </div>
+      </div>
       <div class="nav-link" id="nav-goalies-tr">Goalies</div>
-      <div class="nav-link" id="nav-teams-tr">Teams</div>
-      <div class="nav-link" id="nav-compare-tr">Matchup Tool</div>
-      <div class="nav-link" id="nav-fa-tr">Free Agents</div>
-      <div class="nav-link" id="nav-breakout-tr">Breakout Stars</div>
-      <div class="nav-link active" id="nav-rankings-tr">Team Rankings</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" id="nav-teamdata-tr">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-tr">
+          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item active" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" id="nav-contract-tr">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-tr">
+          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+        </div>
+      </div>
     </div>
   </nav>
   <div class="lb-content">
