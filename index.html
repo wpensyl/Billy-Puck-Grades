@@ -1898,7 +1898,7 @@ async function fetchGoalieStats(name) {
 }
 
 function fmtCap(v) { return v ? '$' + (v/1000000).toFixed(2) + 'M' : '–'; }
-function fmtVal(v) { return v ? '$' + Math.round(v/1000) + 'K' : '–'; }
+function fmtVal(v) { return v ? '$' + (v/1000000).toFixed(2) + 'M' : '–'; }
 // fmtSurplus already defined above — reuse it
 
 function renderGoalieGrid() {
@@ -2922,20 +2922,17 @@ function renderTeamRankings() {
   const hdrLabels = {'proj_pts':'Proj. Points','skater_overall':'Skater Overall','goalie_score':'Goalie Score'};
   if (colHdr) colHdr.textContent = hdrLabels[sortKey] || sortKey;
   if (!profiles.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--text3);">No team data yet — visit the Teams tab first to load rosters, then come back here.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text3);">No team data yet — visit the Teams tab first to load rosters, then come back here.</td></tr>';
     return;
   }
   tbody.innerHTML = profiles.map((p, i) => {
     const sortVal = getSortVal(p);
-    const sortClr = barColor(Math.min(100,sortVal));
-    const gaClr = p.goalieScore!=null ? barColor(p.goalieScore) : 'var(--text3)';
     const ovClr = barColor(p.avgOverall);
     return `<tr>
       <td class="lb-rank">${i+1}</td>
       <td style="font-weight:600;font-size:.95rem;">${p.teamCode}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:600;color:${sortClr};">${sortVal??'–'}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:600;color:var(--text);">${sortVal??'–'}</td>
       <td style="font-family:'DM Mono',monospace;color:${ovClr};">${p.avgOverall}</td>
-      <td style="font-family:'DM Mono',monospace;color:${gaClr};">${p.goalieScore??'–'}</td>
     </tr>`;
   }).join('');
 }
@@ -2947,55 +2944,59 @@ function renderTeamRankings() {
 // Wire them all with a single delegation approach on document level.
 // ══════════════════════════════════════════════════════════════════════════════
 function wireAllNavs() {
-  function closeAll() {
-    document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
-  }
-
-  // Wire dropdown items (backup for browsers where onclick attr works but want both)
-  document.querySelectorAll('.nav-dd-item').forEach(item => {
-    item.addEventListener('click', function(e) {
-      e.stopPropagation();
-      closeAll();
-      const view = this.dataset.view;
-      if (view && window._NAV[view]) window._NAV[view]();
-    });
-  });
-
-  // Wire Player Cards and Goalies direct nav-links
+  // Direct nav-links (Player Cards, Goalies) — backup to nothing; these have no onclick attrs
   document.querySelectorAll('[id^="nav-players"]').forEach(el =>
     el.addEventListener('click', () => window._NAV.players && window._NAV.players()));
   document.querySelectorAll('[id^="nav-goalies"].nav-link').forEach(el =>
     el.addEventListener('click', () => window._NAV.goalies && window._NAV.goalies()));
 
-  // Wire nav logos to landing
+  // Nav logos to landing
   document.querySelectorAll('.nav-logo').forEach(el =>
     el.addEventListener('click', () => showView('landing')));
 
-  // Close on outside click
-  document.addEventListener('click', closeAll);
+  // Outside-click closes menus. Uses closest() so clicks INSIDE any dropdown
+  // (button or menu) never trigger a close here — no stopPropagation race.
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.nav-dropdown') && !e.target.closest('.nav-dd-menu')) {
+      document.querySelectorAll('.nav-dd-menu').forEach(m => {
+        m.classList.remove('open');
+        m.style.display = '';
+      });
+    }
+  });
 }
 
 
 // Simple direct toggle for nav dropdowns — works without event listener setup
 function toggleNavMenu(e, btn) {
   e.stopPropagation();
+  e.preventDefault();
   const dropdown = btn.closest('.nav-dropdown');
   const menu = dropdown && dropdown.querySelector('.nav-dd-menu');
   if (!menu) return;
   const wasOpen = menu.classList.contains('open');
-  document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
+  // Close every menu (inline display too, in case class/CSS got out of sync)
+  document.querySelectorAll('.nav-dd-menu').forEach(m => {
+    m.classList.remove('open');
+    m.style.display = '';
+  });
   if (!wasOpen) {
     const rect = btn.getBoundingClientRect();
     menu.style.top  = (rect.bottom + 4) + 'px';
     menu.style.left = rect.left + 'px';
     menu.classList.add('open');
+    menu.style.display = 'flex';
   }
 }
 // Global registry — populated at end of DOMContentLoaded once go* consts exist
 window._NAV = {};
 function navGoView(e, view) {
   e.stopPropagation();
-  document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
+  e.preventDefault();
+  document.querySelectorAll('.nav-dd-menu').forEach(m => {
+    m.classList.remove('open');
+    m.style.display = '';
+  });
   if (window._NAV[view]) window._NAV[view]();
 }
 document.addEventListener('DOMContentLoaded', () => {
@@ -3708,7 +3709,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <th>Team</th>
           <th id="tr-col-hdr" style="color:var(--teal);">Proj. Points</th>
           <th>Skater Overall</th>
-          <th>Goalie Score</th>
         </tr></thead>
         <tbody id="tr-tbody"></tbody>
       </table>
