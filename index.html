@@ -2187,25 +2187,36 @@ function renderGoalieCard(g) {
   const ctx = document.getElementById('goalie-prog-chart')?.getContext('2d');
   if (ctx) {
     const seasons = ['20\u201321','21\u201322','22\u201323','23\u201324','24\u201325','25\u201326'];
-    // Build an array: only current season has real data; fill others with null
-    // so the chart shows the single known point clearly
-    const currentIdx = 5;
-    const dataPoints = seasons.map((s, i) => i === currentIdx ? (g.overall_2526 ?? null) : null);
-    const histLine = seasons.map(() => g.comp_value_norm ?? null);
+    const dataPoints = [
+      null,
+      g.pct_2122 ?? null,
+      g.pct_2223 ?? null,
+      g.pct_2324 ?? null,
+      g.pct_2425 ?? null,
+      g.overall_2526 ?? null,
+    ];
     goalieValueChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: seasons,
-        datasets: [
-          {label:'Overall (25\u201326)',data:dataPoints,borderColor:'#5b9cf6',borderWidth:2,pointBackgroundColor:'#5b9cf6',pointRadius:5,tension:0.3,spanGaps:false},
-          {label:'Historical avg',data:histLine,borderColor:'rgba(91,156,246,0.35)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,tension:0,spanGaps:true},
-        ]
+        datasets: [{
+          label: 'Score %ile',
+          data: dataPoints,
+          borderColor: '#5b9cf6',
+          borderWidth: 2,
+          pointBackgroundColor: dataPoints.map(v => v != null ? '#5b9cf6' : 'transparent'),
+          pointBorderColor:     dataPoints.map(v => v != null ? '#5b9cf6' : 'transparent'),
+          pointRadius:          dataPoints.map(v => v != null ? 5 : 0),
+          tension: 0.3,
+          spanGaps: false,
+        }]
       },
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,callbacks:{label:c=>c.raw!=null?`${c.dataset.label}: ${c.raw}th pct`:'No data'}}},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
+          callbacks:{label:c=>c.raw!=null?`Score %ile: ${c.raw}th`:'No data'}}},
         scales:{
           x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
-          y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10}}}
+          y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10},callback:v=>v+'th'}}
         }
       }
     });
@@ -2669,9 +2680,6 @@ document.addEventListener('DOMContentLoaded', () => {
   ['nav-teams-cs','nav-teams-cmp','nav-teams-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goTeams));
   ['nav-goalies-cs','nav-goalies-cmp','nav-goalies-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goGoalies));
   ['nav-awards-cs','nav-awards-cmp','nav-awards-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goAwards));
-  ['nav-stats-cmp','nav-stats-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goStats));
-  ['nav-compare-cs','nav-compare-fa'].forEach(id=>document.getElementById(id)?.addEventListener('click',goCompare));
-  ['nav-fa-cs','nav-fa-cmp'].forEach(id=>document.getElementById(id)?.addEventListener('click',goFA));
 
   document.getElementById('comp-tabs').addEventListener('click', e => {
     const tab = e.target.closest('.tab');
@@ -2734,9 +2742,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Goalie card view nav
   const goGoalieCard = () => { if (currentGoalie) showGoalieCard(currentGoalie); else goGoalies(); };
 
+  // Wire ALL nav-stats/compare/fa across every view — must be after const definitions
+  ['nav-stats-tm','nav-stats-go','nav-stats-aw','nav-stats-lb','nav-stats-cs',
+   'nav-stats-cmp','nav-stats-fa','nav-stats-gcv'].forEach(id=>
+    document.getElementById(id)?.addEventListener('click', goStats));
   document.querySelectorAll('[id^="nav-stats"]').forEach(el=>el.addEventListener('click', goStats));
+
+  ['nav-compare-tm','nav-compare-go','nav-compare-aw','nav-compare-lb',
+   'nav-compare-cs','nav-compare-cmp','nav-compare-fa','nav-compare-gcv'].forEach(id=>
+    document.getElementById(id)?.addEventListener('click', goCompare));
   document.querySelectorAll('[id^="nav-compare"]').forEach(el=>el.addEventListener('click', goCompare));
-  document.querySelectorAll('[id^="nav-fa-"]').forEach(el=>el.addEventListener('click', goFA));
+
+  ['nav-fa-tm','nav-fa-go','nav-fa-aw','nav-fa-lb','nav-fa-cs',
+   'nav-fa-cmp','nav-fa-fa','nav-fa-gcv'].forEach(id=>
+    document.getElementById(id)?.addEventListener('click', goFA));
+  document.querySelectorAll('[id^="nav-fa"]').forEach(el=>el.addEventListener('click', goFA));
 
   // Patch extra nav links on goals/awards/teamview for cross-view navigation
   ['nav-goalies-tm','nav-goalies-aw'].forEach(id=>document.getElementById(id)?.addEventListener('click',goGoalies));
@@ -2752,6 +2772,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nav-stats-gcv')?.addEventListener('click',goStats);
   document.getElementById('nav-compare-gcv')?.addEventListener('click',goCompare);
   document.getElementById('nav-fa-gcv')?.addEventListener('click',goFA);
+
+  // Goalie card view nav (must be after goStats/goCompare/goFA are defined)
+  document.getElementById('nav-stats-gcv')?.addEventListener('click', goStats);
+  document.getElementById('nav-compare-gcv')?.addEventListener('click', goCompare);
+  document.getElementById('nav-fa-gcv')?.addEventListener('click', goFA);
 
   // Cat Stats filters
   ['catboard-pos','catboard-team','catboard-mingp'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCatBoard));
