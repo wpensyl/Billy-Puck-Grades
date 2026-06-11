@@ -325,13 +325,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <button class="landing-nav-btn" id="lnav-lb">Leaderboard</button>
     <button class="landing-nav-btn" id="lnav-stats">Stat Leaders</button>
     <button class="landing-nav-btn" id="lnav-goalies">Goalies</button>
+    <button class="landing-nav-btn" id="lnav-awards">Awards</button>
     <button class="landing-nav-btn" id="lnav-teams">Teams</button>
     <button class="landing-nav-btn" id="lnav-compare">Matchup Tool</button>
     <button class="landing-nav-btn" id="lnav-fa">Free Agents</button>
     <button class="landing-nav-btn" id="lnav-breakout">Breakout Stars</button>
     <button class="landing-nav-btn" id="lnav-rankings">Team Rankings</button>
   </div>
-  <div class="landing-hint">2025–26 Season &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-lb-link">Browse leaderboard →</span> &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-tm-link">Teams →</span> &nbsp;·&nbsp; <span style="color:var(--teal);cursor:pointer;" id="landing-aw-link">Awards →</span></div>
+  <div class="landing-hint">2025–26 NHL Season</div>
 </div>
 
 <div id="card-view" class="view">
@@ -2936,59 +2937,55 @@ function renderTeamRankings() {
 // ══════════════════════════════════════════════════════════════════════════════
 function wireAllNavs() {
   const VIEW_MAP = {
-    'leaderboard': () => goLeaderboard(),
-    'stats':       () => goStats(),
+    'leaderboard': goLeaderboard,
+    'stats':       goStats,
     'breakout':    () => goBreakout('fwd'),
-    'awards':      () => goAwards(),
-    'goalies':     () => goGoalies(),   // also fired by nav-link#nav-goalies
-    'players':     () => goPlayers(),   // also fired by nav-link#nav-players
-    'teams':       () => goTeams(),
-    'rankings':    () => goRankings(),
-    'compare':     () => goCompare(),
-    'fa':          () => goFA(),
+    'awards':      goAwards,
+    'teams':       goTeams,
+    'rankings':    goRankings,
+    'compare':     goCompare,
+    'fa':          goFA,
   };
 
-  // Close all open dropdown menus
-  function closeAllMenus(except) {
-    document.querySelectorAll('.nav-dd-menu.open').forEach(m => {
-      if (m !== except) m.classList.remove('open');
-    });
-    document.querySelectorAll('.nav-dd-btn').forEach(b => {
-      if (b.nextElementSibling !== except) b.classList.remove('open');
-    });
+  // Close all open menus
+  function closeAll() {
+    document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
   }
 
-  // Event delegation on document for all nav interactions
-  document.addEventListener('click', e => {
-    // Dropdown toggle button
-    const ddBtn = e.target.closest('.nav-dd-btn');
-    if (ddBtn) {
+  // Wire every dropdown button
+  document.querySelectorAll('.nav-dd-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
       e.stopPropagation();
-      const menu = ddBtn.nextElementSibling;
-      const isOpen = menu?.classList.contains('open');
-      closeAllMenus(isOpen ? null : menu);
-      if (menu) menu.classList.toggle('open', !isOpen);
-      return;
-    }
-    // Dropdown item
-    const ddItem = e.target.closest('.nav-dd-item');
-    if (ddItem) {
-      const view = ddItem.dataset.view;
-      closeAllMenus(null);
+      const menu = btn.parentElement.querySelector('.nav-dd-menu');
+      if (!menu) return;
+      const wasOpen = menu.classList.contains('open');
+      closeAll();
+      if (!wasOpen) menu.classList.add('open');
+    });
+  });
+
+  // Wire every dropdown item
+  document.querySelectorAll('.nav-dd-item').forEach(item => {
+    item.addEventListener('click', e => {
+      e.stopPropagation();
+      closeAll();
+      const view = item.dataset.view;
       if (view && VIEW_MAP[view]) VIEW_MAP[view]();
-      return;
-    }
-    // Direct nav-link (Player Cards, Goalies)
-    const navLink = e.target.closest('.nav-link[id^="nav-"]');
-    if (navLink) {
-      if (navLink.id.startsWith('nav-players')) { goPlayers(); return; }
-      if (navLink.id.startsWith('nav-goalies'))  { goGoalies(); return; }
-    }
-    // Nav logo
-    if (e.target.closest('.nav-logo')) { showView('landing'); return; }
-    // Click outside closes menus
-    closeAllMenus(null);
-  }, true);  // capture phase so it fires before stopPropagation elsewhere
+    });
+  });
+
+  // Wire Player Cards and Goalies direct links
+  document.querySelectorAll('.nav-link[id^="nav-players"]').forEach(el =>
+    el.addEventListener('click', goPlayers));
+  document.querySelectorAll('.nav-link[id^="nav-goalies"]').forEach(el =>
+    el.addEventListener('click', goGoalies));
+
+  // Wire nav logos
+  document.querySelectorAll('.nav-logo').forEach(el =>
+    el.addEventListener('click', () => showView('landing')));
+
+  // Close on outside click
+  document.addEventListener('click', closeAll);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -3178,6 +3175,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lnav-lb')?.addEventListener('click', goLeaderboard);
   document.getElementById('lnav-stats')?.addEventListener('click', goStats);
   document.getElementById('lnav-goalies')?.addEventListener('click', goGoalies);
+  document.getElementById('lnav-awards')?.addEventListener('click', goAwards);
   document.getElementById('lnav-teams')?.addEventListener('click', goTeams);
   document.getElementById('lnav-compare')?.addEventListener('click', goCompare);
   document.getElementById('lnav-fa')?.addEventListener('click', goFA);
