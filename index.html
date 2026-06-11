@@ -1779,11 +1779,13 @@ function renderAnalyticsStrip(p) {
   const prog = p.progression || {};
   // Pull last season (2025-26) value from each track
   const lastPct = (key) => {
+    if (!prog || !prog[key]) return null;
     const arr = prog[key];
-    if (!arr || !arr.length) return null;
-    // Find the most recent non-null pct (some players missing current season)
+    if (!Array.isArray(arr) || !arr.length) return null;
+    // Scan backwards for most recent non-null pct
     for (let i = arr.length - 1; i >= 0; i--) {
-      if (arr[i]?.pct != null) return arr[i].pct;
+      const v = arr[i]?.pct;
+      if (v != null && v !== '' && !isNaN(v)) return v;
     }
     return null;
   };
@@ -2650,7 +2652,7 @@ function populateCmpTeams() {
 const PROJ_SEASONS_LABELS = ['2025\u201326','2026\u201327','2027\u201328','2028\u201329','2029\u201330','2030\u201331','2031\u201332','2032\u201333'];
 
 function renderBreakoutAward(type) {
-  const el = document.getElementById('award-panel');
+  const el = document.getElementById('bk-content-panel') || document.getElementById('award-panel');
   if (!el) return;
   const data = BREAKOUT_DATA[type === 'F' ? 'fwd' : 'dman'] || [];
   if (!data.length) {
@@ -2712,7 +2714,7 @@ function renderBreakoutAward(type) {
 }
 
 function renderProjLeaders() {
-  const el = document.getElementById('award-panel');
+  const el = document.getElementById('bk-content-panel') || document.getElementById('award-panel');
   if (!el) return;
   const proj = BREAKOUT_DATA.proj_leaders || {};
   if (!Object.keys(proj).length) {
@@ -2768,6 +2770,104 @@ function renderProjLeaders() {
   // Re-wire selectors (they were just re-rendered)
   document.getElementById('proj-season-sel')?.addEventListener('change', renderProjLeaders);
   document.getElementById('proj-type-sel')?.addEventListener('change',   renderProjLeaders);
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEAM RANKINGS
+// ══════════════════════════════════════════════════════════════════════════════
+const NHL_TEAM_CODES = [
+  'ANA','BOS','BUF','CGY','CAR','CHI','COL','CBJ','DAL','DET',
+  'EDM','FLA','LAK','MIN','MTL','NSH','NJD','NYI','NYR','OTT',
+  'PHI','PIT','STL','SJS','SEA','TBL','TOR','VAN','VGK','WSH','WPG','UTA'
+];
+
+function getTeamProfile(teamCode, posFilter) {
+  const liveRoster = nhlRosterCache[teamCode];
+  let players = ALL_PLAYERS.filter(p => {
+    const onTeam = liveRoster ? liveRoster.has(p.name) : p.current_team === teamCode;
+    if (!onTeam) return false;
+    if (posFilter === 'F' && p._type !== 'F') return false;
+    if (posFilter === 'D' && p._type !== 'D') return false;
+    return true;
+  });
+  if (!players.length) return null;
+  const parseTOI = s => { if(!s) return null; const pts=s.split(':'); return pts.length===2?parseInt(pts[0])+parseInt(pts[1])/60:null; };
+  const toiMap = {};
+  players.forEach(p => { const t=parseTOI(p.toi_per_gp); toiMap[p.name]=(t&&p.gp)?t*p.gp:0; });
+  const totalTOI = Object.values(toiMap).reduce((s,t)=>s+(t||0),0);
+  let ws=0,wt=0;
+  players.forEach(p=>{ const w=toiMap[p.name]||0; ws+=(p.overall_pct||0)*w; wt+=w; });
+  const avgOverall = wt>0 ? Math.round(ws/wt) : 0;
+  const CAT_GROUPS = {
+    'Athletic & Compete':['Speed','Endurance','Physicality'],
+    'Scoring':['Goalscoring','Finishing','Shot volume','Shot quality','Shot speed'],
+    'Offense':['Passing','Playdriving','Rush offense','Forecheck offense','Cycle offense','Net-front presence','Faceoffs'],
+    'Defense':['Entry defense','Exits','Shot suppression','Takeaways'],
+    'Special teams':['Power play','Penalty kill','Penalty differential'],
+    'Analytics':['On-ice offense','On-ice defense'],
+  };
+  const catAvgs = {};
+  for (const [grp, cats] of Object.entries(CAT_GROUPS)) {
+    for (const name of cats) {
+      let wSum=0, wTotal=0;
+      players.forEach(p => {
+        const v=((p.categories||{})[grp]||[]).find(c=>c.name===name)?.pct;
+        if (v==null) return;
+        const w=toiMap[p.name]||(totalTOI/players.length||1);
+        wSum+=v*w; wTotal+=w;
+      });
+      catAvgs[name] = wTotal>0 ? Math.round(wSum/wTotal) : null;
+    }
+  }
+  const goalies = ALL_GOALIES.filter(g=>g.current_team===teamCode||g.team===teamCode);
+  const gGP = goalies.reduce((s,g)=>s+(g.gp||0),0);
+  const goalieScore = gGP>0 ? Math.round(goalies.reduce((s,g)=>s+(g.overall_2526??g.comp_value_norm??50)*(g.gp||0),0)/gGP) : null;
+  const skaterCoef = typeof PTS_COEF_SKATER !== 'undefined' ? PTS_COEF_SKATER : 0.8;
+  const goalieCoef = typeof PTS_COEF_GOALIE !== 'undefined' ? PTS_COEF_GOALIE : 30;
+  const intercept  = typeof PTS_INTERCEPT   !== 'undefined' ? PTS_INTERCEPT   : 20;
+  const projPts = Math.round(skaterCoef*avgOverall + goalieCoef*((goalieScore||50)/100) + intercept);
+  return { teamCode, avgOverall, goalieScore, projPts, catAvgs, playerCount: players.length };
+}
+
+function renderTeamRankings() {
+  const sortKey = document.getElementById('tr-sort')?.value || 'proj_pts';
+  const posFilter = document.getElementById('tr-pos')?.value || 'all';
+  const tbody = document.getElementById('tr-tbody');
+  const colHdr = document.getElementById('tr-col-hdr');
+  if (!tbody) return;
+  const profiles = [];
+  for (const team of NHL_TEAM_CODES) {
+    const prof = getTeamProfile(team, posFilter);
+    if (!prof || prof.playerCount < 3) continue;
+    profiles.push(prof);
+  }
+  const getSortVal = p => {
+    if (sortKey==='proj_pts')       return p.projPts||0;
+    if (sortKey==='skater_overall') return p.avgOverall||0;
+    if (sortKey==='goalie_score')   return p.goalieScore||0;
+    return p.catAvgs[sortKey]??0;
+  };
+  profiles.sort((a,b) => getSortVal(b)-getSortVal(a));
+  const hdrLabels = {'proj_pts':'Proj. Points','skater_overall':'Skater Overall','goalie_score':'Goalie Score'};
+  if (colHdr) colHdr.textContent = hdrLabels[sortKey] || sortKey;
+  if (!profiles.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--text3);">No team data yet — visit the Teams tab first to load rosters, then come back here.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = profiles.map((p, i) => {
+    const sortVal = getSortVal(p);
+    const sortClr = barColor(Math.min(100,sortVal));
+    const gaClr = p.goalieScore!=null ? barColor(p.goalieScore) : 'var(--text3)';
+    const ovClr = barColor(p.avgOverall);
+    return `<tr>
+      <td class="lb-rank">${i+1}</td>
+      <td style="font-weight:600;font-size:.95rem;">${p.teamCode}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:600;color:${sortClr};">${sortVal??'–'}</td>
+      <td style="font-family:'DM Mono',monospace;color:${ovClr};">${p.avgOverall}</td>
+      <td style="font-family:'DM Mono',monospace;color:${gaClr};">${p.goalieScore??'–'}</td>
+    </tr>`;
+  }).join('');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2962,6 +3062,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lnav-fa')?.addEventListener('click', goFA);
   document.getElementById('lnav-breakout')?.addEventListener('click', ()=>goBreakout('fwd'));
   document.getElementById('lnav-rankings')?.addEventListener('click', goRankings);
+
+  // Wire nav-breakout, nav-rankings, nav-leaderboard across ALL view suffixes
+  document.querySelectorAll('[id^="nav-breakout"]').forEach(el=>el.addEventListener('click',()=>goBreakout('fwd')));
+  document.querySelectorAll('[id^="nav-rankings"]').forEach(el=>el.addEventListener('click',goRankings));
+  document.querySelectorAll('[id^="nav-leaderboard"]').forEach(el=>el.addEventListener('click',goLeaderboard));
+  document.querySelectorAll('[id^="nav-lb-"]').forEach(el=>el.addEventListener('click',goLeaderboard));
 
   // Wire ALL nav-stats/compare/fa across every view — must be after const definitions
   ['nav-stats-tm','nav-stats-go','nav-stats-aw','nav-stats-lb','nav-stats-cs',
