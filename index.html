@@ -910,46 +910,211 @@ function renderNHLStats(stats) {
 }
 
 function renderCategories(p) {
-  const el = document.getElementById('cat-list');
-  el.innerHTML = '';
-  tipVisible = null;
-  Object.entries(p.categories || {}).forEach(([grp, rows]) => {
-    const ghd = document.createElement('div');
-    ghd.className = 'grp-hd';
-    ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
-    el.appendChild(ghd);
-    rows.forEach(cat => {
-      const pc = cat.pct ?? 0;
-      const cls = barClass(pc);
-      const row = document.createElement('div');
-      row.className = 'cat-row';
-      const nw = document.createElement('div');
-      nw.className = 'cat-name-wrap';
-      nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
-      if (cat.tip) {
+  const prog = p.progression || {};
+  const isD = p._type === 'D';
+  const SEASON_KEYS = ['2020-21','2021-22','2022-23','2023-24','2024-25','2025-26'];
+  const SEA_SHORT = {'2020-21':'20–21','2021-22':'21–22','2022-23':'22–23','2023-24':'23–24','2024-25':'24–25','2025-26':'25–26'};
+
+  // Which seasons have any progression data?
+  const availableSeasons = SEASON_KEYS.filter(s =>
+    ['overall','off_prod','def_prod','off_analytics','def_analytics'].some(k =>
+      (prog[k]||[]).find(e => e.season === s)?.pct != null
+    )
+  );
+  if (!availableSeasons.includes('2025-26') && Object.keys(p.categories||{}).length) {
+    if (!availableSeasons.includes('2025-26')) availableSeasons.push('2025-26');
+  }
+
+  // Ensure currentSeasonView is valid
+  if (!availableSeasons.includes(currentSeasonView) && currentSeasonView !== '4yr-avg') {
+    currentSeasonView = '2025-26';
+  }
+
+  // Inject season selector buttons into cat-panel header
+  const panelEl = document.getElementById('cat-panel');
+  if (panelEl) {
+    const hd = panelEl.querySelector('.panel-hd');
+    if (hd) {
+      hd.querySelectorAll('.season-sel-group').forEach(el=>el.remove());
+      const btnGroup = document.createElement('div');
+      btnGroup.className = 'season-sel-group';
+      btnGroup.style.cssText = 'display:flex;gap:.3rem;flex-wrap:wrap;align-items:center;margin-left:auto;';
+      [...availableSeasons].reverse().forEach(s => {
         const btn = document.createElement('button');
-        btn.className = 'info-btn'; btn.textContent = 'i';
-        const tipEl = document.createElement('div');
-        tipEl.className = 'tooltip-box'; tipEl.textContent = cat.tip;
+        btn.className = 'season-btn' + (s !== '2025-26' ? ' blue' : '') + (currentSeasonView === s ? ' active' : '');
+        btn.textContent = SEA_SHORT[s] || s;
         btn.addEventListener('click', e => {
           e.stopPropagation();
-          if (tipVisible && tipVisible !== tipEl) tipVisible.classList.remove('vis');
-          tipEl.classList.toggle('vis');
-          tipVisible = tipEl.classList.contains('vis') ? tipEl : null;
+          currentSeasonView = s;
+          hd.querySelectorAll('.season-btn').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          buildCatContent(s);
         });
-        nw.appendChild(btn); row.appendChild(tipEl);
+        btnGroup.appendChild(btn);
+      });
+      const avgBtn = document.createElement('button');
+      avgBtn.className = 'season-btn' + (currentSeasonView === '4yr-avg' ? ' active' : '');
+      avgBtn.textContent = '4-yr avg';
+      avgBtn.style.borderStyle = 'dashed';
+      avgBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        currentSeasonView = '4yr-avg';
+        hd.querySelectorAll('.season-btn').forEach(b=>b.classList.remove('active'));
+        avgBtn.classList.add('active');
+        buildCatContent('4yr-avg');
+      });
+      btnGroup.appendChild(avgBtn);
+      hd.appendChild(btnGroup);
+    }
+  }
+
+  buildCatContent(currentSeasonView);
+
+  function buildCatContent(season) {
+    const catList = document.getElementById('cat-list');
+    catList.innerHTML = '';
+    tipVisible = null;
+
+    // Team history badge
+    const teamHist = p.team_history || {};
+    if (season !== '4yr-avg' && Object.keys(teamHist).length) {
+      const tf = teamHist[season];
+      if (tf && tf !== '#N/A') {
+        const currentTeam = p.current_team || p.team || '';
+        const changed = tf !== currentTeam;
+        const badge = document.createElement('div');
+        badge.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.2rem 0 .5rem;display:flex;align-items:center;gap:.4rem;';
+        badge.innerHTML = `<span>Team in ${season}:</span><span style="font-weight:600;color:${changed?'var(--blue)':'var(--text2)'};">${tf}</span>${changed?`<span style="font-size:.65rem;color:var(--blue);">(now ${currentTeam})</span>`:''}`;
+        catList.appendChild(badge);
       }
-      const track = document.createElement('div');
-      track.className = 'cat-track';
-      track.innerHTML = `<div class="cat-fill ${cls}" style="width:${pc}%;"></div>`;
-      const pctEl = document.createElement('span');
-      pctEl.className = `cat-pct ${cls}`;
-      pctEl.textContent = cat.pct != null ? cat.pct : '–';
-      row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
-      el.appendChild(row);
-    });
-  });
-  document.addEventListener('click', () => { if (tipVisible) { tipVisible.classList.remove('vis'); tipVisible = null; } });
+    }
+
+    if (season === '4yr-avg') {
+      // Use cat_norms_4yr (full per-category 4-yr norms) if available
+      const norms4 = p.cat_norms_4yr || {};
+      if (Object.keys(norms4).length) {
+        for (const [grp, cats] of Object.entries(norms4)) {
+          if (!cats.length) continue;
+          const ghd = document.createElement('div'); ghd.className = 'grp-hd';
+          ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
+          catList.appendChild(ghd);
+          for (const cat of cats) {
+            if (cat.pct == null) continue;
+            const cls = barClass(cat.pct);
+            const row = document.createElement('div'); row.className = 'cat-row';
+            const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+            nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
+            const track = document.createElement('div'); track.className = 'cat-track';
+            track.innerHTML = `<div class="cat-fill ${cls}" style="width:${cat.pct}%;"></div>`;
+            const pctEl = document.createElement('span'); pctEl.className = `cat-pct ${cls}`; pctEl.textContent = cat.pct;
+            row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+            catList.appendChild(row);
+          }
+        }
+        return;
+      }
+      // Fallback: 4-season rolling avg of progression tracks
+      const tracks = [{key:'overall',label:'Overall composite'},{key:'off_prod',label:'Off production'},
+        {key:'def_prod',label:'Def production'},{key:'off_analytics',label:'Off analytics'},{key:'def_analytics',label:'Def analytics'}];
+      const rollingAvg = arr => { const v=(arr||[]).map(s=>s?.pct??null).filter(v=>v!=null); const l=v.slice(-4); return l.length?Math.round(l.reduce((a,b)=>a+b,0)/l.length):null; };
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.3rem 0 .6rem;';
+      note.textContent = '4-yr avg of composite track percentiles (run update.py for full per-category 4-yr data).';
+      catList.appendChild(note);
+      for (const {key,label} of tracks) {
+        const avg = rollingAvg(prog[key]); if (avg==null) continue;
+        const cls = barClass(avg);
+        const row = document.createElement('div'); row.className = 'cat-row';
+        const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+        nw.innerHTML = `<span class="cat-name">${label}</span>`;
+        const tr2 = document.createElement('div'); tr2.className = 'cat-track';
+        tr2.innerHTML = `<div class="cat-fill ${cls}" style="width:${avg}%;"></div>`;
+        const pe = document.createElement('span'); pe.className = `cat-pct ${cls}`; pe.textContent = avg;
+        row.appendChild(nw); row.appendChild(tr2); row.appendChild(pe);
+        catList.appendChild(row);
+      }
+      return;
+    }
+
+    if (season === '2025-26' && Object.keys(p.categories||{}).length) {
+      // Full current-season category breakdown
+      Object.entries(p.categories).forEach(([grp, rows]) => {
+        const ghd = document.createElement('div'); ghd.className = 'grp-hd';
+        ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
+        catList.appendChild(ghd);
+        rows.forEach(cat => {
+          const pc = cat.pct ?? 0; const cls = barClass(pc);
+          const row = document.createElement('div'); row.className = 'cat-row';
+          const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+          nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
+          if (cat.tip) {
+            const btn = document.createElement('button'); btn.className = 'info-btn'; btn.textContent = 'i';
+            const tipEl = document.createElement('div'); tipEl.className = 'tooltip-box'; tipEl.textContent = cat.tip;
+            btn.addEventListener('click', e => {
+              e.stopPropagation();
+              if (tipVisible && tipVisible !== tipEl) tipVisible.classList.remove('vis');
+              tipEl.classList.toggle('vis');
+              tipVisible = tipEl.classList.contains('vis') ? tipEl : null;
+            });
+            nw.appendChild(btn); row.appendChild(tipEl);
+          }
+          const track = document.createElement('div'); track.className = 'cat-track';
+          track.innerHTML = `<div class="cat-fill ${cls}" style="width:${pc}%;"></div>`;
+          const pctEl = document.createElement('span'); pctEl.className = `cat-pct ${cls}`; pctEl.textContent = cat.pct != null ? cat.pct : '–';
+          row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+          catList.appendChild(row);
+        });
+      });
+    } else {
+      // Historical season: use cat_history for full per-category data
+      const catHist = p.cat_history || {};
+      const catsForSeason = {};
+      for (const [grp, cats] of Object.entries(catHist)) {
+        const filtered = cats.filter(c => c.seasons && c.seasons[season] != null);
+        if (filtered.length) catsForSeason[grp] = filtered;
+      }
+      if (Object.keys(catsForSeason).length) {
+        for (const [grp, cats] of Object.entries(catsForSeason)) {
+          const ghd = document.createElement('div'); ghd.className = 'grp-hd';
+          ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
+          catList.appendChild(ghd);
+          for (const cat of cats) {
+            const val = cat.seasons[season]; const cls = barClass(val);
+            const row = document.createElement('div'); row.className = 'cat-row';
+            const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+            nw.innerHTML = `<span class="cat-name">${cat.name}</span>`;
+            const track = document.createElement('div'); track.className = 'cat-track';
+            track.innerHTML = `<div class="cat-fill ${cls}" style="width:${val}%;"></div>`;
+            const pctEl = document.createElement('span'); pctEl.className = `cat-pct ${cls}`; pctEl.textContent = val;
+            row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+            catList.appendChild(row);
+          }
+        }
+      } else {
+        // Fallback: composite tracks
+        const tracks = [{key:'overall',label:'Overall composite'},{key:'off_prod',label:'Off production'},
+          {key:'def_prod',label:'Def production'},{key:'off_analytics',label:'Off analytics'},{key:'def_analytics',label:'Def analytics'}];
+        const note2 = document.createElement('div');
+        note2.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.3rem 0 .6rem;';
+        note2.textContent = 'Full category data not available for this season.';
+        catList.appendChild(note2);
+        for (const {key,label} of tracks) {
+          const entry = (prog[key]||[]).find(e => e.season === season);
+          const val = entry?.pct ?? null; if (val == null) continue;
+          const cls = barClass(val);
+          const row = document.createElement('div'); row.className = 'cat-row';
+          const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+          nw.innerHTML = `<span class="cat-name">${label}</span>`;
+          const track = document.createElement('div'); track.className = 'cat-track';
+          track.innerHTML = `<div class="cat-fill ${cls}" style="width:${val}%;"></div>`;
+          const pctEl = document.createElement('span'); pctEl.className = `cat-pct ${cls}`; pctEl.textContent = val;
+          row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
+          catList.appendChild(row);
+        }
+      }
+    }
+    document.addEventListener('click', () => { if (tipVisible) { tipVisible.classList.remove('vis'); tipVisible = null; } }, {once:true});
+  }
 }
 
 function renderProgression(p) {
@@ -1616,7 +1781,11 @@ function renderAnalyticsStrip(p) {
   const lastPct = (key) => {
     const arr = prog[key];
     if (!arr || !arr.length) return null;
-    return arr[arr.length - 1]?.pct ?? null;
+    // Find the most recent non-null pct (some players missing current season)
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (arr[i]?.pct != null) return arr[i].pct;
+    }
+    return null;
   };
   const tiles = [
     {val: lastPct('off_prod'),      lbl: 'Off production'},
@@ -2727,6 +2896,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── PHASE 2 NAV ────────────────────────────────────────────────────────────
+  const goBreakout = (subTab) => {
+    showView('breakoutview');
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-breakout"]').forEach(el=>el.classList.add('active'));
+    document.querySelectorAll('#bk-sub-tabs .season-btn').forEach(b=>b.classList.remove('active'));
+    const tabMap = {fwd:'bk-tab-fwd', dman:'bk-tab-dman', proj:'bk-tab-proj'};
+    document.getElementById(tabMap[subTab||'fwd'])?.classList.add('active');
+    if ((subTab||'fwd')==='proj') renderProjLeaders();
+    else renderBreakoutAward((subTab||'fwd')==='dman'?'D':'F');
+  };
+  const goRankings = () => {
+    showView('teamrankings');
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-rankings"]').forEach(el=>el.classList.add('active'));
+    renderTeamRankings();
+  };
   const goStats = () => {
     showView('catstatsview');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
