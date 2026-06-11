@@ -2853,9 +2853,20 @@ const NHL_TEAM_CODES = [
 ];
 
 function getTeamProfile(teamCode, posFilter) {
+  // Normalize: NHL API returns dotted abbrevs (S.J, N.J, L.A, T.B)
+  // but NHL_TEAM_CODES uses standard 3-letter codes
+  const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+  const dotted = DOTTED[teamCode];  // e.g. 'S.J' for 'SJS'
+
   const liveRoster = nhlRosterCache[teamCode];
   let players = ALL_PLAYERS.filter(p => {
-    const onTeam = liveRoster ? liveRoster.has(p.name) : p.current_team === teamCode;
+    let onTeam;
+    if (liveRoster) {
+      onTeam = liveRoster.has(p.name);
+    } else {
+      // Match either standard code (SJS) or dotted form (S.J)
+      onTeam = p.current_team === teamCode || (dotted && p.current_team === dotted);
+    }
     if (!onTeam) return false;
     if (posFilter === 'F' && p._type !== 'F') return false;
     if (posFilter === 'D' && p._type !== 'D') return false;
@@ -2893,10 +2904,7 @@ function getTeamProfile(teamCode, posFilter) {
   const goalies = ALL_GOALIES.filter(g=>g.current_team===teamCode||g.team===teamCode);
   const gGP = goalies.reduce((s,g)=>s+(g.gp||0),0);
   const goalieScore = gGP>0 ? Math.round(goalies.reduce((s,g)=>s+(g.overall_2526??g.comp_value_norm??50)*(g.gp||0),0)/gGP) : null;
-  const skaterCoef = typeof PTS_COEF_SKATER !== 'undefined' ? PTS_COEF_SKATER : 0.8;
-  const goalieCoef = typeof PTS_COEF_GOALIE !== 'undefined' ? PTS_COEF_GOALIE : 30;
-  const intercept  = typeof PTS_INTERCEPT   !== 'undefined' ? PTS_INTERCEPT   : 20;
-  const projPts = Math.round(skaterCoef*avgOverall + goalieCoef*((goalieScore||50)/100) + intercept);
+  const projPts = Math.round(PTS_COEF_SKATER * avgOverall + PTS_COEF_GOALIE * ((goalieScore||50)/100) + PTS_INTERCEPT);
   return { teamCode, avgOverall, goalieScore, projPts, catAvgs, playerCount: players.length };
 }
 
