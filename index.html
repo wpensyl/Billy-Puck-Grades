@@ -2947,60 +2947,31 @@ function renderTeamRankings() {
 // Wire them all with a single delegation approach on document level.
 // ══════════════════════════════════════════════════════════════════════════════
 function wireAllNavs() {
-  const VIEW_MAP = {
-    'leaderboard': goLeaderboard,
-    'stats':       goStats,
-    'breakout':    () => goBreakout('fwd'),
-    'awards':      goAwards,
-    'teams':       goTeams,
-    'rankings':    goRankings,
-    'compare':     goCompare,
-    'fa':          goFA,
-  };
-
   function closeAll() {
     document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
   }
 
-  // Wire dropdown toggle buttons — use fixed positioning to avoid clipping
-  document.querySelectorAll('.nav-dd-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      const dropdown = this.closest('.nav-dropdown');
-      const menu = dropdown && dropdown.querySelector('.nav-dd-menu');
-      if (!menu) return;
-      const wasOpen = menu.classList.contains('open');
-      closeAll();
-      if (!wasOpen) {
-        const rect = this.getBoundingClientRect();
-        menu.style.top = (rect.bottom + 4) + 'px';
-        menu.style.left = rect.left + 'px';
-        menu.classList.add('open');
-      }
-    });
-  });
-
-  // Wire dropdown items
+  // Wire dropdown items (backup for browsers where onclick attr works but want both)
   document.querySelectorAll('.nav-dd-item').forEach(item => {
     item.addEventListener('click', function(e) {
       e.stopPropagation();
       closeAll();
       const view = this.dataset.view;
-      if (view && VIEW_MAP[view]) VIEW_MAP[view]();
+      if (view && window._NAV[view]) window._NAV[view]();
     });
   });
 
   // Wire Player Cards and Goalies direct nav-links
   document.querySelectorAll('[id^="nav-players"]').forEach(el =>
-    el.addEventListener('click', goPlayers));
+    el.addEventListener('click', () => window._NAV.players && window._NAV.players()));
   document.querySelectorAll('[id^="nav-goalies"].nav-link').forEach(el =>
-    el.addEventListener('click', goGoalies));
+    el.addEventListener('click', () => window._NAV.goalies && window._NAV.goalies()));
 
   // Wire nav logos to landing
   document.querySelectorAll('.nav-logo').forEach(el =>
     el.addEventListener('click', () => showView('landing')));
 
-  // Close on outside click (bubble phase, after stopPropagation from btn/item)
+  // Close on outside click
   document.addEventListener('click', closeAll);
 }
 
@@ -3012,7 +2983,6 @@ function toggleNavMenu(e, btn) {
   const menu = dropdown && dropdown.querySelector('.nav-dd-menu');
   if (!menu) return;
   const wasOpen = menu.classList.contains('open');
-  // Close all open menus
   document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
   if (!wasOpen) {
     const rect = btn.getBoundingClientRect();
@@ -3021,16 +2991,12 @@ function toggleNavMenu(e, btn) {
     menu.classList.add('open');
   }
 }
+// Global registry — populated at end of DOMContentLoaded once go* consts exist
+window._NAV = {};
 function navGoView(e, view) {
   e.stopPropagation();
   document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
-  const map = {
-    leaderboard: ()=>goLeaderboard(), stats: ()=>goStats(),
-    breakout: ()=>goBreakout('fwd'), awards: ()=>goAwards(),
-    teams: ()=>goTeams(), rankings: ()=>goRankings(),
-    compare: ()=>goCompare(), fa: ()=>goFA()
-  };
-  if (map[view]) map[view]();
+  if (window._NAV[view]) window._NAV[view]();
 }
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
@@ -3297,6 +3263,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // FA Tracker filters
   ['fa-type','fa-pos','fa-team','fa-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFATracker));
   document.getElementById('fa-search')?.addEventListener('input',renderFATracker);
+
+  // Populate global nav registry so navGoView (global fn) can reach these closures
+  window._NAV = {
+    leaderboard: goLeaderboard,
+    stats:       goStats,
+    breakout:    () => goBreakout('fwd'),
+    awards:      goAwards,
+    teams:       goTeams,
+    rankings:    goRankings,
+    compare:     goCompare,
+    fa:          goFA,
+    players:     goPlayers,
+    goalies:     goGoalies,
+  };
 
   // Wire all dropdown navs (must be after go* functions defined)
   wireAllNavs();
