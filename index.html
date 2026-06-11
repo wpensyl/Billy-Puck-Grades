@@ -338,27 +338,27 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <div class="nav-links">
       <div class="nav-link active" id="nav-players">Player Cards</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-playerdata">Player Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies">Goalies</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-teamdata">Team Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -420,24 +420,24 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn active" id="nav-playerdata-lb">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-lb">
           <div class="nav-dd-item active" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies-lb">Goalies</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-teamdata-lb">Team Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-lb">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-lb">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-lb">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-lb">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-lb">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -477,12 +477,12 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <div class="nav-links">
       <div class="nav-link" id="nav-players-tm">Player Cards</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-playerdata-tm">Player Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-tm">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-tm">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies-tm">Goalies</div>
@@ -490,14 +490,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn active" id="nav-teamdata-tm">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-tm">
           <div class="nav-dd-item active" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-tm">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-tm">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-tm">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -3004,6 +3004,34 @@ function wireAllNavs() {
   document.addEventListener('click', closeAll);
 }
 
+
+// Simple direct toggle for nav dropdowns — works without event listener setup
+function toggleNavMenu(e, btn) {
+  e.stopPropagation();
+  const dropdown = btn.closest('.nav-dropdown');
+  const menu = dropdown && dropdown.querySelector('.nav-dd-menu');
+  if (!menu) return;
+  const wasOpen = menu.classList.contains('open');
+  // Close all open menus
+  document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
+  if (!wasOpen) {
+    const rect = btn.getBoundingClientRect();
+    menu.style.top  = (rect.bottom + 4) + 'px';
+    menu.style.left = rect.left + 'px';
+    menu.classList.add('open');
+  }
+}
+function navGoView(e, view) {
+  e.stopPropagation();
+  document.querySelectorAll('.nav-dd-menu.open').forEach(m => m.classList.remove('open'));
+  const map = {
+    leaderboard: ()=>goLeaderboard(), stats: ()=>goStats(),
+    breakout: ()=>goBreakout('fwd'), awards: ()=>goAwards(),
+    teams: ()=>goTeams(), rankings: ()=>goRankings(),
+    compare: ()=>goCompare(), fa: ()=>goFA()
+  };
+  if (map[view]) map[view]();
+}
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   if (window.location.protocol === 'file:') {
@@ -3282,27 +3310,27 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-links">
       <div class="nav-link" id="nav-players-go">Player Cards</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-playerdata-go">Player Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-go">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-go">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link active" id="nav-goalies-go">Goalies</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-teamdata-go">Team Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-go">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-go">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-go">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-go">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-go">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -3330,25 +3358,25 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" id="nav-playerdata-aw">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-aw">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item active" data-view="awards">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies-aw">Goalies</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-teamdata-aw">Team Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-aw">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-aw">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-aw">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-aw">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-aw">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -3370,27 +3398,27 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-links">
       <div class="nav-link" id="nav-players-gcv">Player Cards</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-playerdata-gcv">Player Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-gcv">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-gcv">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link active" id="nav-goalies-gcv">Goalies</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-teamdata-gcv">Team Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-gcv">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-gcv">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-gcv">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-gcv">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-gcv">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -3407,25 +3435,25 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" id="nav-playerdata-cs">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-cs">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item active" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies-cs">Goalies</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-teamdata-cs">Team Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-cs">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-cs">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-cs">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-cs">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-cs">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -3472,27 +3500,27 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-links">
       <div class="nav-link" id="nav-players-cmp">Player Cards</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-playerdata-cmp">Player Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-cmp">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-cmp">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies-cmp">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" id="nav-teamdata-cmp">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-cmp">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item active" data-view="compare">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-cmp">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-cmp">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-cmp">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -3521,21 +3549,21 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-links">
       <div class="nav-link" id="nav-players-fa">Player Cards</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-playerdata-fa">Player Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-fa">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-fa">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies-fa">Goalies</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-teamdata-fa">Team Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-fa">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-fa">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -3587,25 +3615,25 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" id="nav-playerdata-bk">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-bk">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item active" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies-bk">Goalies</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-teamdata-bk">Team Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-bk">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-bk">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-bk">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-bk">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-bk">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
@@ -3630,27 +3658,27 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="nav-links">
       <div class="nav-link" id="nav-players-tr">Player Cards</div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-playerdata-tr">Player Data <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-tr">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-tr">
-          <div class="nav-dd-item" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats">Stat Leaders</div>
-          <div class="nav-dd-item" data-view="breakout">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards">Awards</div>
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
       <div class="nav-link" id="nav-goalies-tr">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" id="nav-teamdata-tr">Team Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-td-tr">
-          <div class="nav-dd-item" data-view="teams">Team Overview</div>
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item active" data-view="rankings">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn" id="nav-contract-tr">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-tr">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-tr">
-          <div class="nav-dd-item" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
         </div>
       </div>
     </div>
