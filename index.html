@@ -583,6 +583,7 @@ async function loadData() {
     populateFATeams();
     populateCatBoardTeams();
     populateCmpTeams();
+    populateSnapshotSelector();
   } catch(e) {
     if (loading) loading.textContent = 'Error loading data: ' + e.message;
     console.error(e);
@@ -891,6 +892,22 @@ async function showPlayer(p) {
     const fallEl = document.getElementById('ph-init');
     if (imgEl && fallEl) tryHeadshot(pid, imgEl, fallEl, p.name);
     fetchNHLBoxScore(p.name).then(stats => { if (stats) renderNHLStats(stats); });
+    // Dynamically update team from NHL API (handles trades not yet in JSON)
+    fetch(`https://api-web.nhle.com/v1/player/${pid}/landing`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        const liveTeam = data.currentTeamAbbrev || data.fullTeamName;
+        if (liveTeam) {
+          const teamEl = document.getElementById('ph-team');
+          if (teamEl && teamEl.textContent !== liveTeam) {
+            teamEl.textContent = liveTeam;
+            teamEl.title = 'Team updated live from NHL API';
+            teamEl.style.borderBottom = '1px dashed var(--teal)';
+            teamEl.style.cursor = 'help';
+          }
+        }
+      }).catch(() => {});
   });
   // Async: comps
   const compData = await loadComps(p._type);
@@ -910,7 +927,7 @@ function renderHeader(p) {
     <div style="flex:1;min-width:0;">
       <div class="player-name" style="color:var(--text);">${p.name}</div>
       <div class="player-sub">
-        <span>${p.current_team||p.team||'–'}</span><span id="ph-jersey" style="color:var(--text3);font-size:.82rem;"></span><span class="sep">·</span>
+        <span id="ph-team">${p.current_team||p.team||'–'}</span><span id="ph-jersey" style="color:var(--text3);font-size:.82rem;"></span><span class="sep">·</span>
         <span>Age ${p.age ? Math.floor(p.age) : '–'}</span><span class="sep">·</span>
         <span>${p.height||'–'} · ${p.weight ? p.weight+' lbs' : '–'}</span>
       </div>
@@ -2852,13 +2869,11 @@ const NHL_TEAM_CODES = [
   'PHI','PIT','STL','SJS','SEA','TBL','TOR','VAN','VGK','WSH','WPG','UTA'
 ];
 
-function getTeamProfile(teamCode, posFilter) {
-  // Normalize: NHL API returns dotted abbrevs (S.J, N.J, L.A, T.B)
-  // but NHL_TEAM_CODES uses standard 3-letter codes
+function getTeamProfile(teamCode, posFilter, snapRoster) {
+  // snapRoster: optional Set of player names from a historical snapshot
   const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
-  const dotted = DOTTED[teamCode];  // e.g. 'S.J' for 'SJS'
-
-  const liveRoster = nhlRosterCache[teamCode];
+  const dotted = DOTTED[teamCode];
+  const liveRoster = snapRoster || nhlRosterCache[teamCode];
   let players = ALL_PLAYERS.filter(p => {
     let onTeam;
     if (liveRoster) {
@@ -2914,10 +2929,17 @@ function renderTeamRankings() {
   const tbody = document.getElementById('tr-tbody');
   const colHdr = document.getElementById('tr-col-hdr');
   if (!tbody) return;
+
+  const snapLabel = document.getElementById('tr-snapshot')?.value || '';
+  const snapData = snapLabel ? (window.ROSTER_SNAPSHOTS?.[snapLabel]?.rosters || {}) : null;
+  const DOTTED_TR = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+
   const profiles = [];
   for (const team of NHL_TEAM_CODES) {
-    const prof = getTeamProfile(team, posFilter);
-    if (!prof) continue;  // show all 32 teams
+    const storeKey = DOTTED_TR[team] || team;
+    const snapRoster = snapData ? new Set(snapData[storeKey] || []) : null;
+    const prof = getTeamProfile(team, posFilter, snapRoster);
+    if (!prof) continue;
     profiles.push(prof);
   }
   const getSortVal = p => {
