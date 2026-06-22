@@ -359,6 +359,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -438,6 +439,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-lb">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-lb">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -498,6 +500,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-tm">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-tm">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -589,6 +592,7 @@ async function loadData() {
     populateCatBoardTeams();
     populateCmpTeams();
     populateSnapshotSelector();
+    populateExtTeams();
   } catch(e) {
     if (loading) loading.textContent = 'Error loading data: ' + e.message;
     console.error(e);
@@ -3058,6 +3062,91 @@ function navGoView(e, view) {
   });
   if (window._NAV[view]) window._NAV[view]();
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EXTENSION CANDIDATES
+// ══════════════════════════════════════════════════════════════════════════════
+function populateExtTeams() {
+  const sel = document.getElementById('ext-team');
+  if (!sel || sel.options.length > 1) return;
+  const teams = [...new Set(ALL_PLAYERS.filter(p => p.exp_year === '2027')
+    .map(p => p.current_team || p.team || '').filter(Boolean))].sort();
+  teams.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    sel.appendChild(o);
+  });
+}
+
+function renderExtCandidates() {
+  const posVal  = document.getElementById('ext-pos')?.value  || 'all';
+  const typeVal = document.getElementById('ext-type')?.value || 'all';
+  const teamVal = document.getElementById('ext-team')?.value || 'all';
+  const sortVal = document.getElementById('ext-sort')?.value || 'overall';
+
+  const fmtM = v => v ? '$' + (v/1000000).toFixed(2) + 'M' : '–';
+  const fmtK = v => v ? '$' + (v/1000000).toFixed(2) + 'M' : '–';
+
+  let pool = ALL_PLAYERS.filter(p => {
+    if (p.exp_year !== '2027') return false;
+    if (posVal !== 'all' && p._type !== posVal) return false;
+    if (typeVal === 'UFA' && p.expiry_type !== 'UFA') return false;
+    if (typeVal === 'RFA' && !p.expiry_type?.startsWith('RFA')) return false;
+    if (teamVal !== 'all' && (p.current_team || p.team) !== teamVal) return false;
+    return true;
+  });
+
+  const sortFn = {
+    overall: (a, b) => (b.overall_pct || 0) - (a.overall_pct || 0),
+    surplus: (a, b) => (b.surplus || 0) - (a.surplus || 0),
+    value:   (a, b) => (b.value || 0) - (a.value || 0),
+    aav1:    (a, b) => (b.aav_1yr || 0) - (a.aav_1yr || 0),
+    cap:     (a, b) => (b.cap || 0) - (a.cap || 0),
+  };
+  pool.sort(sortFn[sortVal] || sortFn.overall);
+
+  const tbody = document.getElementById('ext-tbody');
+  if (!tbody) return;
+
+  if (!pool.length) {
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:2rem;color:var(--text3);">No players match the selected filters.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = pool.map((p, i) => {
+    const ov    = p.overall_pct ?? 0;
+    const ovClr = barColor(ov);
+    const surplus = p.surplus || 0;
+    const sClr = surplus > 0 ? 'var(--teal)' : surplus < 0 ? 'var(--coral)' : 'var(--text3)';
+    const typeLabel = p.expiry_type || '–';
+    const typeClr = typeLabel === 'UFA' ? 'var(--blue)' : 'var(--teal)';
+    const veClr = p.norm_at_expiry ? barColor(p.norm_at_expiry) : 'var(--text3)';
+    return `<tr style="cursor:pointer;" data-name="${p.name}">
+      <td class="lb-rank">${i+1}</td>
+      <td style="font-weight:500;">${p.name}</td>
+      <td style="color:var(--text3);font-size:.82rem;">${p._type||p.pos||'–'}</td>
+      <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
+      <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-weight:600;color:${ovClr};">${ov}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.cap)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.value)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_1yr)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_3yr)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_7yr)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${veClr};">${fmtM(p.value_at_expiry)}</td>
+    </tr>`;
+  }).join('');
+
+  // Click row → player card
+  tbody.querySelectorAll('tr[data-name]').forEach(row => {
+    row.addEventListener('click', () => {
+      const p = ALL_PLAYERS.find(x => x.name === row.dataset.name);
+      if (p) showPlayer(p);
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   if (window.location.protocol === 'file:') {
@@ -3222,6 +3311,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[id^="nav-compare"]').forEach(el=>el.classList.add('active'));
     populateCmpTeams();
   };
+  const goExt = () => {
+    showView('extcandidates');
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-contract"]').forEach(el=>el.classList.add('active'));
+    renderExtCandidates();
+  };
   const goFA = () => {
     showView('fatracker');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
@@ -3322,6 +3417,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cmp-run')?.addEventListener('click',renderTeamCompare);
   // FA Tracker filters
   ['fa-type','fa-pos','fa-team','fa-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFATracker));
+  ['ext-pos','ext-type','ext-team','ext-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderExtCandidates));
   document.getElementById('fa-search')?.addEventListener('input',renderFATracker);
 
   // Populate global nav registry so navGoView (global fn) can reach these closures
@@ -3334,9 +3430,16 @@ document.addEventListener('DOMContentLoaded', () => {
     rankings:    goRankings,
     compare:     goCompare,
     fa:          goFA,
+    ext:         goExt,
     players:     goPlayers,
     goalies:     goGoalies,
   };
+
+  // Wire ext candidates internal nav
+  document.getElementById('nav-logo-ext')?.addEventListener('click', () => showView('landing'));
+  document.getElementById('nav-players-ext')?.addEventListener('click', goPlayers);
+  document.getElementById('nav-goalies-ext')?.addEventListener('click', goGoalies);
+  document.querySelectorAll('[id^="nav-leaderboard-ext"]').forEach(el=>el.addEventListener('click',goLeaderboard));
 
   // Wire all dropdown navs (must be after go* functions defined)
   wireAllNavs();
@@ -3371,6 +3474,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-go">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-go">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -3417,6 +3521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-aw">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-aw">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -3459,6 +3564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-gcv">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-gcv">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -3494,6 +3600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-cs">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-cs">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -3561,6 +3668,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-cmp">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-cmp">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -3674,6 +3782,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-bk">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-bk">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -3719,6 +3828,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-tr">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-tr">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
         </div>
       </div>
     </div>
@@ -3779,6 +3889,91 @@ document.addEventListener('DOMContentLoaded', () => {
       </table>
     </div>
     <div class="lb-footer">Billy Puck Grades · Team Rankings · TOI-weighted category averages</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ EXTENSION CANDIDATES VIEW ═══════════════════════════════ -->
+<div id="extcandidates" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-ext">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-ext">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-ext">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-ext">
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
+        </div>
+      </div>
+      <div class="nav-link" id="nav-goalies-ext">Goalies</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-ext">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-ext">
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-contract-ext">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-ext">
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item active" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="lb-content">
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:1.1rem;font-weight:600;margin-bottom:.25rem;">Extension Candidates</div>
+      <div style="font-size:.78rem;color:var(--text3);">Players with 2027 contract expiry — implied extension AAV based on projected value model</div>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;">
+      <select class="lb-select" id="ext-pos">
+        <option value="all">All positions</option>
+        <option value="F">Forwards</option>
+        <option value="D">Defensemen</option>
+      </select>
+      <select class="lb-select" id="ext-type">
+        <option value="all">UFA &amp; RFA</option>
+        <option value="UFA">UFA only</option>
+        <option value="RFA">RFA only</option>
+      </select>
+      <select class="lb-select" id="ext-team">
+        <option value="all">All teams</option>
+      </select>
+      <select class="lb-select" id="ext-sort">
+        <option value="overall">Overall rating</option>
+        <option value="surplus">Surplus value</option>
+        <option value="value">Model value</option>
+        <option value="aav1">1-yr ext AAV</option>
+        <option value="cap">Cap hit</option>
+      </select>
+    </div>
+    <div class="lb-table-wrap">
+      <table class="lb-table">
+        <thead><tr>
+          <th class="lb-rank">#</th>
+          <th>Player</th>
+          <th>Pos</th>
+          <th>Team</th>
+          <th>Type</th>
+          <th>Overall</th>
+          <th>Cap Hit</th>
+          <th>25-26 Value</th>
+          <th>Surplus</th>
+          <th>1-Yr Ext</th>
+          <th>3-Yr Ext</th>
+          <th>7-Yr Ext</th>
+          <th>Value@Exp</th>
+        </tr></thead>
+        <tbody id="ext-tbody"></tbody>
+      </table>
+    </div>
+    <div class="lb-footer">Billy Puck Grades · Extension Candidates · 2027 expiry · Extension AAV = implied fair value for deal starting 2026-27</div>
   </div>
 </div>
 
