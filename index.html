@@ -548,13 +548,14 @@ let currentSeasonView = '2025-26';  // active season in season selector
 async function loadData() {
   const loading = document.getElementById('loading-msg');
   try {
-    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes] = await Promise.all([
+    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes, snapRes] = await Promise.all([
       fetch("players_fwd.json"),
       fetch("players_dman.json"),
       fetch("players_goalie.json"),
       fetch("comp_fwd.json"),
       fetch("comp_dman.json"),
       fetch("breakout.json"),
+      fetch('roster_snapshots.json').catch(() => null),
     ]);
     if (!fwdRes.ok || !dmanRes.ok) throw new Error('Failed to load player data');
     const [fwds, dmans, goalies, cfwd, cdman, bkData] = await Promise.all([
@@ -569,6 +570,10 @@ async function loadData() {
     COMP_FWD = cfwd;
     COMP_DMAN = cdman;
     BREAKOUT_DATA = bkData || {};
+    try {
+      const snapRaw = snapRes ? await snapRes.json().catch(()=>null) : null;
+      window.ROSTER_SNAPSHOTS = snapRaw?.snapshots || {};
+    } catch(e) { window.ROSTER_SNAPSHOTS = {}; }
     precomputeNorms('fwd', cfwd);
     precomputeNorms('dman', cdman);
     // Build rookie map for Calder (comp data now available)
@@ -1598,7 +1603,11 @@ async function renderTeamView(teamCode) {
   })();
 
   // GP-weighted goalie Score% for pts projection
-  const teamGoaliesEarly = ALL_GOALIES.filter(g => g.current_team === teamCode || g.team === teamCode);
+  const liveRosterEarly = nhlRosterCache[teamCode];
+  const teamGoaliesEarly = ALL_GOALIES.filter(g =>
+    g.current_team === teamCode || g.team === teamCode ||
+    (liveRosterEarly && liveRosterEarly.has(g.name))
+  );
   const totalGP = teamGoaliesEarly.reduce((s,g) => s + (g.gp||0), 0);
   const goalieScorePct = totalGP > 0
     ? teamGoaliesEarly.reduce((s,g) => s + (g.overall_2526 ?? g.comp_value_norm ?? 50) * (g.gp||0), 0) / totalGP
@@ -1691,8 +1700,12 @@ async function renderTeamView(teamCode) {
       </table>
     </div>`;
 
-  // Goalies for this team
-  const teamGoalies = ALL_GOALIES.filter(g => g.current_team === teamCode || g.team === teamCode);
+  // Goalies for this team — check live NHL roster cache too (catches recent trades)
+  const liveGoalieRoster = nhlRosterCache[teamCode];
+  const teamGoalies = ALL_GOALIES.filter(g =>
+    g.current_team === teamCode || g.team === teamCode ||
+    (liveGoalieRoster && liveGoalieRoster.has(g.name))
+  );
   let goalieHtml = '';
   if (teamGoalies.length) {
     const goalieRows = teamGoalies.map(g => {
