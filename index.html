@@ -2744,6 +2744,22 @@ function populateCmpTeams() {
   NHL_TEAMS.forEach(t=>{[selA,selB].forEach(s=>{const o=document.createElement('option');o.value=t;o.textContent=t;s.appendChild(o);});});
 }
 
+function populateSnapshotSelector() {
+  const sel = document.getElementById('tr-snapshot');
+  if (!sel) return;
+  const snaps = window.ROSTER_SNAPSHOTS || {};
+  const labels = Object.keys(snaps).sort().reverse(); // newest first
+  if (!labels.length) return;
+  labels.forEach(label => {
+    if (sel.querySelector(`option[value="${label}"]`)) return; // already added
+    const opt = document.createElement('option');
+    opt.value = label;
+    const total = snaps[label]?.total_players || '?';
+    opt.textContent = `vs ${label} (${total} players)`;
+    sel.appendChild(opt);
+  });
+}
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PHASE 2: BREAKOUT STARS + PROJECTED SEASON LEADERS
@@ -3744,6 +3760,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="F">Forwards only</option>
         <option value="D">Defensemen only</option>
       </select>
+      <div style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--text3);">
+        Compare vs:
+        <select class="lb-select" id="tr-snapshot" style="font-size:.78rem;">
+          <option value="">Live roster</option>
+        </select>
+      </div>
     </div>
     <div class="lb-table-wrap">
       <table class="lb-table">
