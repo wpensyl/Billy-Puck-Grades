@@ -246,6 +246,12 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .comp-loading{padding:1.5rem;text-align:center;font-size:.8rem;color:var(--text3);}
 .landing-nav-btn{padding:.4rem 1rem;border-radius:999px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Karla',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s;}
 .landing-nav-btn:hover{border-color:var(--teal);color:var(--teal);}
+/* ── CONTRACT CALCULATOR ────────────────────────────────────────────────── */
+.calc-init-box{width:56px;height:56px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:600;color:var(--text2);flex-shrink:0;}
+.calc-term-btn{padding:.3rem .7rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Karla',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s;}
+.calc-term-btn.active,.calc-term-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+.calc-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;}
+
 /* ── DROPDOWN NAV ──────────────────────────────────────────────────────── */
 .nav-dropdown{position:relative;display:inline-block;}
 .nav-dd-btn{padding:.35rem .8rem;font-size:.8rem;font-family:'Karla',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;background:transparent;border:none;color:var(--text2);display:flex;align-items:center;gap:.3rem;transition:color .15s;white-space:nowrap;}
@@ -361,6 +367,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <div class="nav-dd-menu" id="nddm-ct">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -442,6 +449,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <div class="nav-dd-menu" id="nddm-ct-lb">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -504,6 +512,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <div class="nav-dd-menu" id="nddm-ct-tm">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -2674,72 +2683,95 @@ async function renderTeamCompare() {
 // ══════════════════════════════════════════════════════════════════════════════
 // PHASE 2: FREE AGENT TRACKER
 // ══════════════════════════════════════════════════════════════════════════════
+function getPlayer4yrAttr(p, attrName) {
+  if (!p) return null;
+  if (attrName === 'Overall Rating') return p.overall_pct ?? null;
+  const norms = p.cat_norms_4yr || {};
+  for (const cats of Object.values(norms)) {
+    const c = cats.find(x => x.name === attrName);
+    if (c) return c.pct ?? null;
+  }
+  // Fallback: current season categories
+  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special teams','Analytics'];
+  for (const grp of CAT_GROUPS) {
+    const c = ((p.categories || {})[grp] || []).find(x => x.name === attrName);
+    if (c) return c.pct ?? null;
+  }
+  return null;
+}
+
 function renderFATracker() {
-  const typeVal=(document.getElementById('fa-type')?.value)||'both';
-  const posVal=(document.getElementById('fa-pos')?.value)||'all';
-  const teamVal=(document.getElementById('fa-team')?.value)||'all';
-  const sortVal=(document.getElementById('fa-sort')?.value)||'value';
-  const filterQ=((document.getElementById('fa-search')?.value)||'').toLowerCase();
-  let pool=ALL_PLAYERS.filter(p=>{
-    if (p.exp_year!=='2026') return false;
-    if (typeVal==='UFA'&&p.expiry_type!=='UFA') return false;
-    if (typeVal==='RFA'&&!p.expiry_type?.startsWith('RFA')) return false;
-    if (posVal==='F'&&p._type!=='F') return false;
-    if (posVal==='D'&&p._type!=='D') return false;
-    if (teamVal!=='all'&&p.current_team!==teamVal) return false;
-    if (filterQ&&!p.name.toLowerCase().includes(filterQ)) return false;
+  const typeVal  = document.getElementById('fa-type')?.value   || 'both';
+  const posVal   = document.getElementById('fa-pos')?.value    || 'all';
+  const teamVal  = document.getElementById('fa-team')?.value   || 'all';
+  const sortVal  = document.getElementById('fa-sort')?.value   || 'overall';
+  const filterQ  = (document.getElementById('fa-search')?.value || '').toLowerCase();
+  const isAttrSort = sortVal.startsWith('attr_');
+  const attrName   = isAttrSort ? sortVal.slice(5) : null;
+
+  let pool = ALL_PLAYERS.filter(p => {
+    if (p.exp_year !== '2026') return false;
+    if (typeVal === 'UFA' && p.expiry_type !== 'UFA') return false;
+    if (typeVal === 'RFA' && !p.expiry_type?.startsWith('RFA')) return false;
+    if (posVal === 'F' && p._type !== 'F') return false;
+    if (posVal === 'D' && p._type !== 'D') return false;
+    if (teamVal !== 'all' && (p.current_team || p.team) !== teamVal) return false;
+    if (filterQ && !p.name.toLowerCase().includes(filterQ)) return false;
     return true;
   });
-  pool=[...pool].sort((a,b)=>{
-    if (sortVal==='value')   return(b.value||0)-(a.value||0);
-    if (sortVal==='surplus') return(b.surplus||0)-(a.surplus||0);
-    if (sortVal==='overall') return(b.overall_pct||0)-(a.overall_pct||0);
-    if (sortVal==='cap')     return(a.cap||0)-(b.cap||0);
-    if (sortVal==='age')     return(a.age||0)-(b.age||0);
-    return(b.value||0)-(a.value||0);
+
+  pool = [...pool].sort((a, b) => {
+    if (isAttrSort) {
+      return (getPlayer4yrAttr(b,attrName)??-1) - (getPlayer4yrAttr(a,attrName)??-1);
+    }
+    if (sortVal === 'overall') return (b.overall_pct||0) - (a.overall_pct||0);
+    if (sortVal === 'surplus') return (b.surplus||0)     - (a.surplus||0);
+    if (sortVal === 'cap')     return (a.cap||0)         - (b.cap||0);
+    if (sortVal === 'age')     return (a.age||0)         - (b.age||0);
+    return (b.overall_pct||0) - (a.overall_pct||0);
   });
-  const countEl=document.getElementById('fa-count');
-  if (countEl) countEl.textContent=`${pool.length} players`;
-  const el=document.getElementById('fa-list');
-  if (!el) return;
-  if (!pool.length){el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text3);">No players match the current filters.</div>';return;}
-  el.innerHTML=pool.map(p=>{
-    const isD=p._type==='D';
-    const ac=isD?'var(--blue)':'var(--teal)';
-    const ov=p.overall_pct??0;
-    const sv=p.surplus??0;
-    const isUFA=p.expiry_type==='UFA';
-    const tier=ov>=70?{cls:'fa-tier-a',lbl:'Tier A'}:ov>=50?{cls:'fa-tier-b',lbl:'Tier B'}:{cls:'fa-tier-c',lbl:'Tier C'};
-    const pid=nhlIdCache[p.name];
-    const hsUrl=nhlHeadshotCache[p.name]||(pid?`https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`:'');
-    return `<div class="award-card" data-name="${p.name}" style="cursor:pointer;margin-bottom:.65rem;">
-      <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;">
-        ${hsUrl?`<img src="${hsUrl}" onerror="this.style.display='none'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">`:`<div style="width:34px;height:34px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text3);flex-shrink:0;">${initials(p.name)}</div>`}
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
-            <span style="font-size:.9rem;font-weight:500;color:var(--text);">${p.name}</span>
-            <span class="fa-tier-badge ${tier.cls}">${tier.lbl}</span>
-            <span style="font-size:.7rem;color:var(--text3);">${isUFA?'UFA':'RFA'}</span>
-          </div>
-          <div style="font-size:.73rem;color:var(--text3);">${p.current_team||p.team||'\u2013'} \u00b7 ${p.pos||p._type} \u00b7 Age ${p.age?Math.floor(p.age):'\u2013'} \u00b7 ${p.role||'\u2013'} \u00b7 ${p.gp||0} GP</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div style="font-family:'DM Mono',monospace;font-size:1.15rem;font-weight:500;color:${ac};">${ov}</div>
-          <div style="font-size:.62rem;color:var(--text3);">Overall</div>
-        </div>
-      </div>
-      <div class="fa-contract-row">
-        <div class="fa-contract-cell"><div class="fa-contract-lbl">Current cap</div><div class="fa-contract-val">${fmtCap(p.cap)}</div></div>
-        <div class="fa-contract-cell"><div class="fa-contract-lbl">Fair AAV 1yr</div><div class="fa-contract-val" style="color:${ac};">${p.aav_1yr?fmtCap(p.aav_1yr):'\u2013'}</div></div>
-        <div class="fa-contract-cell"><div class="fa-contract-lbl">Fair AAV 3yr</div><div class="fa-contract-val" style="color:${ac};">${p.aav_3yr?fmtCap(p.aav_3yr):'\u2013'}</div></div>
-        <div class="fa-contract-cell"><div class="fa-contract-lbl">Fair AAV 7yr</div><div class="fa-contract-val" style="color:${ac};">${p.aav_7yr?fmtCap(p.aav_7yr):'\u2013'}</div></div>
-        <div class="fa-contract-cell"><div class="fa-contract-lbl">25\u201326 value</div><div class="fa-contract-val">${p.value?'$'+Math.round(p.value).toLocaleString():'\u2013'}</div></div>
-        <div class="fa-contract-cell"><div class="fa-contract-lbl">Surplus</div><div class="fa-contract-val" style="color:${sv>=0?'var(--teal)':'var(--coral)'};">${fmtSurplus(sv)}</div></div>
-      </div>
-    </div>`;
+
+  const countEl = document.getElementById('fa-count');
+  if (countEl) countEl.textContent = `${pool.length} players`;
+  const tbody = document.getElementById('fa-list');
+  if (!tbody) return;
+  if (!pool.length) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text3);">No players match the current filters.</td></tr>';
+    return;
+  }
+
+  const fmtM = v => v ? '$' + (v/1000000).toFixed(2) + 'M' : '–';
+
+  tbody.innerHTML = pool.map((p, i) => {
+    const ov      = p.overall_pct ?? 0;
+    const surplus = p.surplus || 0;
+    const sClr    = surplus > 0 ? 'var(--teal)' : surplus < 0 ? 'var(--coral)' : 'var(--text3)';
+    const ovClr   = barColor(ov);
+    const typeLabel = p.expiry_type || '–';
+    const typeClr = typeLabel === 'UFA' ? 'var(--blue)' : 'var(--teal)';
+    const attrVal = isAttrSort ? getPlayer4yrAttr(p, attrName) : null;
+    const mono = "font-family:'DM Mono',monospace;font-size:.82rem;";
+    return `<tr style="cursor:pointer;" data-name="${p.name}">
+      <td class="lb-rank">${i+1}</td>
+      <td style="font-weight:500;">${p.name}${attrVal!=null?` <span style="font-size:.68rem;color:${barColor(attrVal)};font-family:'DM Mono',monospace;">${attrVal}</span>`:''}</td>
+      <td style="color:var(--text3);font-size:.82rem;">${p._type||p.pos||'–'}</td>
+      <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
+      <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
+      <td style="${mono}font-weight:600;color:${ovClr};">${ov}</td>
+      <td style="${mono}">${fmtM(p.cap)}</td>
+      <td style="${mono}">${fmtM(p.value)}</td>
+      <td style="${mono}color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
+      <td style="${mono}">${fmtM(p.aav_1yr)}</td>
+      <td style="${mono}">${fmtM(p.aav_4yr)}</td>
+      <td style="${mono}">${fmtM(p.aav_7yr)}</td>
+    </tr>`;
   }).join('');
-  el.querySelectorAll('.award-card').forEach(card=>{
-    card.addEventListener('click',()=>{const found=ALL_PLAYERS.find(x=>x.name===card.dataset.name);if(found)showPlayer(found);});
+
+  tbody.querySelectorAll('tr[data-name]').forEach(row => {
+    row.addEventListener('click', () => {
+      const p = ALL_PLAYERS.find(x => x.name === row.dataset.name);
+      if (p) showPlayer(p);
+    });
   });
 }
 
@@ -3107,14 +3139,19 @@ function renderExtCandidates() {
     return true;
   });
 
-  const sortFn = {
-    overall: (a, b) => (b.overall_pct || 0) - (a.overall_pct || 0),
-    surplus: (a, b) => (b.surplus || 0) - (a.surplus || 0),
-    value:   (a, b) => (b.value || 0) - (a.value || 0),
-    aav1:    (a, b) => (b.aav_1yr || 0) - (a.aav_1yr || 0),
-    cap:     (a, b) => (b.cap || 0) - (a.cap || 0),
-  };
-  pool.sort(sortFn[sortVal] || sortFn.overall);
+  const isExtAttr = sortVal.startsWith('attr_');
+  const extAttrName = isExtAttr ? sortVal.slice(5) : null;
+  if (isExtAttr) {
+    pool.sort((a,b) => (getPlayer4yrAttr(b,extAttrName)??-1)-(getPlayer4yrAttr(a,extAttrName)??-1));
+  } else {
+    const sortFn = {
+      overall: (a,b)=>(b.overall_pct||0)-(a.overall_pct||0),
+      surplus: (a,b)=>(b.surplus||0)-(a.surplus||0),
+      aav1:    (a,b)=>(b.aav_1yr||0)-(a.aav_1yr||0),
+      cap:     (a,b)=>(b.cap||0)-(a.cap||0),
+    };
+    pool.sort(sortFn[sortVal] || sortFn.overall);
+  }
 
   const tbody = document.getElementById('ext-tbody');
   if (!tbody) return;
@@ -3134,7 +3171,7 @@ function renderExtCandidates() {
     const veClr = p.norm_at_expiry ? barColor(p.norm_at_expiry) : 'var(--text3)';
     return `<tr style="cursor:pointer;" data-name="${p.name}">
       <td class="lb-rank">${i+1}</td>
-      <td style="font-weight:500;">${p.name}</td>
+      <td style="font-weight:500;">${p.name}${isExtAttr&&getPlayer4yrAttr(p,extAttrName)!=null?` <span style="font-size:.68rem;color:${barColor(getPlayer4yrAttr(p,extAttrName))};font-family:'DM Mono',monospace;">${getPlayer4yrAttr(p,extAttrName)}</span>`:''}</td>
       <td style="color:var(--text3);font-size:.82rem;">${p._type||p.pos||'–'}</td>
       <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
       <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
@@ -3143,7 +3180,7 @@ function renderExtCandidates() {
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.value)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_1yr)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_3yr)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_4yr)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_7yr)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${veClr};">${fmtM(p.value_at_expiry)}</td>
     </tr>`;
@@ -3336,6 +3373,151 @@ function renderCombos(newSortKey) {
 }
 
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CONTRACT CALCULATOR
+// ══════════════════════════════════════════════════════════════════════════════
+let calcPlayer = null;
+let calcTerm   = 1;
+
+function renderCalcResult() {
+  const p = calcPlayer;
+  if (!p) return;
+  const panel = document.getElementById('calc-panel');
+  if (!panel) return;
+  panel.style.display = 'block';
+
+  // ── Player header ──────────────────────────────────────────────────────────
+  const pid = nhlIdCache[p.name];
+  const hsUrl = nhlHeadshotCache[p.name] || (pid ? `https://assets.nhle.com/mugs/nhl/20252026/${pid}.png` : '');
+  const ov    = p.overall_pct ?? 0;
+  const comp  = p.t1_composite != null ? Math.round(p.t1_composite) : '–';
+  const expLbl = p.exp_year ? `${p.exp_year} ${p.expiry_type||''}`.trim() : '–';
+
+  document.getElementById('calc-hs').innerHTML = hsUrl
+    ? `<img src="${hsUrl}" onerror="this.outerHTML='<div class=calc-init-box>${initials(p.name)}</div>'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">`
+    : `<div class="calc-init-box">${initials(p.name)}</div>`;
+  document.getElementById('calc-name').textContent = p.name;
+  document.getElementById('calc-meta1').textContent =
+    `${p.current_team||p.team||'–'} · ${p.pos||p._type||'–'} · Age ${p.age?Math.floor(p.age):'–'} · ${p.height||'–'} / ${p.weight||'–'} lb`;
+  document.getElementById('calc-meta2').textContent =
+    `${p.role||'–'} · ${p.actual_role||'–'} · ${p.playstyle||'–'} · Exp: ${expLbl}`;
+  document.getElementById('calc-ov').textContent  = ov;
+  document.getElementById('calc-ov').style.color  = barColor(ov);
+  document.getElementById('calc-cmp').textContent = comp;
+  document.getElementById('calc-cmp').style.color = barColor(typeof comp==='number'?comp:50);
+
+  // ── Production bars ────────────────────────────────────────────────────────
+  const prog = p.progression || {};
+  const lastVal = arr => (arr && arr.length) ? arr[arr.length-1].pct : null;
+  const prodDefs = [
+    {id:'calc-offprod',  key:'off_prod',       label:'Off Production'},
+    {id:'calc-defprod',  key:'def_prod',        label:'Def Production'},
+    {id:'calc-offanal',  key:'off_analytics',   label:'Off Analytics'},
+    {id:'calc-defanal',  key:'def_analytics',   label:'Def Analytics'},
+  ];
+  prodDefs.forEach(({id, key, label}) => {
+    const val = lastVal(prog[key]);
+    const el  = document.getElementById(id);
+    if (!el) return;
+    if (val == null) { el.style.display='none'; return; }
+    el.style.display = '';
+    const clr = barColor(val);
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:2px;">
+        <span style="color:var(--text2);">${label}</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:600;color:${clr};">${val}</span>
+      </div>
+      <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;border-radius:3px;background:${clr};width:${val}%;transition:width .3s;"></div>
+      </div>`;
+  });
+
+  // ── Term selector ──────────────────────────────────────────────────────────
+  const termEl = document.getElementById('calc-term-btns');
+  if (termEl) {
+    const maxTerm = 7; // 8yr pending 26-27 workbook
+    termEl.innerHTML = Array.from({length:maxTerm},(_,i)=>i+1).map(t => {
+      const hasVal = !!p[`aav_${t}yr`];
+      return `<button class="calc-term-btn${t===calcTerm?' active':''}" data-term="${t}" ${hasVal?'':'style="opacity:.35;"'}>${t}yr</button>`;
+    }).join('');
+    termEl.querySelectorAll('.calc-term-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        calcTerm = +btn.dataset.term;
+        termEl.querySelectorAll('.calc-term-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        updateCalcAAV();
+        updateCalcChart();
+      });
+    });
+  }
+
+  updateCalcAAV();
+  updateCalcChart();
+}
+
+function updateCalcAAV() {
+  const p = calcPlayer;
+  if (!p) return;
+  const fmtM = v => v ? '$'+(v/1e6).toFixed(2)+'M' : '–';
+  const aav   = p[`aav_${calcTerm}yr`];
+  const total = aav ? aav * calcTerm : null;
+  const el    = document.getElementById('calc-aav-result');
+  if (!el) return;
+  if (!aav) {
+    el.innerHTML = `<span style="color:var(--text3);">No FV data for ${calcTerm}-yr term</span>`;
+    return;
+  }
+  const clr = barColor(p.overall_pct||50);
+  el.innerHTML = `
+    <div style="font-size:1.5rem;font-weight:600;font-family:'DM Mono',monospace;color:${clr};">${fmtM(aav)}<span style="font-size:.85rem;color:var(--text3);">/yr</span></div>
+    <div style="font-size:.8rem;color:var(--text3);margin-top:.15rem;">Fair Value AAV · ${calcTerm}-year deal · Total: ${fmtM(total)}</div>
+    <div style="font-size:.72rem;color:var(--text3);margin-top:.1rem;">vs current cap hit: ${fmtM(p.cap)} · Proj surplus/yr: ${fmtM(aav&&p.cap?aav-p.cap:null)}</div>`;
+}
+
+function updateCalcChart() {
+  const p = calcPlayer;
+  const el = document.getElementById('calc-chart');
+  if (!p || !el) return;
+  const projYears = p.proj_years || [];
+  if (!projYears.length) { el.innerHTML='<div style="color:var(--text3);font-size:.8rem;">No projection data</div>'; return; }
+
+  // Offset: proj_years[0] = 2025-26 (current), [1] = 2026-27 (first year after FA expiry)
+  // General: offset = exp_year - 2025 (FA=1, Extension=2, etc.)
+  const expYear = parseInt(p.exp_year) || 2026;
+  const offset  = Math.max(1, expYear - 2025);
+  const bars    = projYears.slice(offset);
+  if (!bars.length) { el.innerHTML='<div style="color:var(--text3);font-size:.8rem;">No data at this expiry</div>'; return; }
+
+  // Season labels
+  const startSeason = expYear;
+  const labels = bars.map((_,i) => {
+    const yr = startSeason + i;
+    return `'${String(yr).slice(-2)}-${String(yr+1).slice(-2)}`;
+  });
+
+  const maxVal = Math.max(...bars.filter(Boolean));
+  const fmtM   = v => v ? '$'+(v/1e6).toFixed(1)+'M' : '–';
+  // Highlight bars covered by selected term
+  const inTerm = (i) => i < calcTerm;
+
+  el.innerHTML = `
+    <div style="font-size:.75rem;color:var(--text2);font-weight:600;margin-bottom:.75rem;">Projected Value by Year (new deal starting ${expYear}-${String(expYear+1).slice(-2)})</div>
+    <div style="display:flex;align-items:flex-end;gap:4px;height:100px;padding-bottom:20px;position:relative;">
+      ${bars.map((v, i) => {
+        const h = maxVal ? Math.round(((v||0)/maxVal)*100) : 0;
+        const hilite = inTerm(i);
+        const clr = hilite ? barColor(Math.round((v/maxVal)*100)) : 'var(--surface3)';
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
+          <div style="font-size:.6rem;color:var(--text3);margin-bottom:2px;">${fmtM(v)}</div>
+          <div style="width:100%;height:${h}px;background:${clr};border-radius:3px 3px 0 0;transition:background .2s;" title="${labels[i]}: ${fmtM(v)}"></div>
+          <div style="position:absolute;bottom:-18px;font-size:.58rem;color:${hilite?'var(--text2)':'var(--text3)'};">${labels[i]}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="font-size:.68rem;color:var(--text3);margin-top:.75rem;">Highlighted bars = years covered by selected term · Values = model implied fair market value</div>`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   if (window.location.protocol === 'file:') {
@@ -3500,6 +3682,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[id^="nav-compare"]').forEach(el=>el.classList.add('active'));
     populateCmpTeams();
   };
+  const goCalc = window.goCalc = () => {
+    showView('calcview');
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-contract"]').forEach(el=>el.classList.add('active'));
+    const inp = document.getElementById('calc-search');
+    if (inp) setTimeout(()=>inp.focus(), 50);
+  };
   const goCombos = window.goCombos = () => {
     showView('linecombos');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
@@ -3611,13 +3800,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Team Compare run button
   document.getElementById('cmp-run')?.addEventListener('click',renderTeamCompare);
   // FA Tracker filters
-  ['fa-type','fa-pos','fa-team','fa-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFATracker));
-  ['ext-pos','ext-type','ext-team','ext-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderExtCandidates));
+  ['fa-type','fa-pos','fa-team','fa-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>renderFATracker()));
+  document.getElementById('fa-search')?.addEventListener('input',()=>renderFATracker());
+  ['ext-pos','ext-type','ext-team','ext-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>renderExtCandidates()));
   ['lc-sort','lc-team','lc-min-toi','lc-min-toi-gp'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>renderCombos()));
   document.getElementById('lc-player-search')?.addEventListener('input',()=>renderCombos());
   document.getElementById('lc-tab-fwd')?.addEventListener('click',()=>{lcTab='fwd';lcLastSort='';lcSortDir=1;lcPinnedAttr=null;document.getElementById('lc-tab-fwd').classList.add('active');document.getElementById('lc-tab-dman').classList.remove('active');renderCombos();});
   document.getElementById('lc-tab-dman')?.addEventListener('click',()=>{lcTab='dman';lcLastSort='';lcSortDir=1;lcPinnedAttr=null;document.getElementById('lc-tab-dman').classList.add('active');document.getElementById('lc-tab-fwd').classList.remove('active');renderCombos();});
-  document.getElementById('fa-search')?.addEventListener('input',renderFATracker);
+  // fa-search wired above
 
   // Populate global nav registry so navGoView (global fn) can reach these closures
   window._NAV = {
@@ -3631,6 +3821,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fa:          goFA,
     ext:         goExt,
     combos:      goCombos,
+    calc:        goCalc,
     players:     goPlayers,
     goalies:     goGoalies,
   };
@@ -3639,6 +3830,41 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nav-logo-lc')?.addEventListener('click', () => showView('landing'));
   document.getElementById('nav-players-lc')?.addEventListener('click', goPlayers);
   document.getElementById('nav-goalies-lc')?.addEventListener('click', goGoalies);
+
+  // calcview internal nav
+  document.getElementById('nav-logo-cc')?.addEventListener('click', () => showView('landing'));
+  document.getElementById('nav-players-cc')?.addEventListener('click', goPlayers);
+  document.getElementById('nav-goalies-cc')?.addEventListener('click', goGoalies);
+
+  // Contract Calculator search wiring
+  const calcSrch = document.getElementById('calc-search');
+  const calcDD   = document.getElementById('calc-dd');
+  if (calcSrch && calcDD) {
+    wireSearch(calcSrch, calcDD, () => 'all');
+    calcDD.addEventListener('mousedown', e => {
+      const item = e.target.closest('.dd-item');
+      if (item) {
+        e.preventDefault();
+        const results = searchPlayers(calcSrch.value, 'all');
+        const p = results[+item.dataset.idx];
+        if (p) {
+          calcPlayer = p;
+          calcTerm   = 1;
+          calcSrch.value = p.name;
+          calcDD.innerHTML = '';
+          renderCalcResult();
+          // Fetch headshot/ID
+          fetchNHLPlayerData(p.name, (_, pid) => {
+            const imgEl = document.getElementById('calc-hs');
+            if (imgEl && pid) {
+              const url = nhlHeadshotCache[p.name] || `https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`;
+              imgEl.innerHTML = `<img src="${url}" onerror="this.outerHTML='<div class=calc-init-box>${initials(p.name)}</div>'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">`;
+            }
+          });
+        }
+      }
+    });
+  }
 
   // Wire ext candidates internal nav
   document.getElementById('nav-logo-ext')?.addEventListener('click', () => showView('landing'));
@@ -3681,6 +3907,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-go">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -3729,6 +3956,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-aw">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -3773,6 +4001,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-gcv">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -3810,6 +4039,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-cs">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -3879,6 +4109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-cmp">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -3928,39 +4159,81 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-contract-fa">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-fa">
-          <div class="nav-dd-item active" data-view="fa">Free Agents</div>
+          <div class="nav-dd-item active" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
   </nav>
   <div class="lb-content">
-    <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
-      <input type="text" id="fa-search" placeholder="Search players…" style="flex:1;min-width:150px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.45rem .75rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.85rem;outline:none;">
-      <select class="lb-select" id="fa-type">
-        <option value="both">UFA + RFA</option>
-        <option value="UFA">UFA only</option>
-        <option value="RFA">RFA only</option>
-      </select>
+    <div style="margin-bottom:.5rem;">
+      <div style="font-size:1.1rem;font-weight:600;margin-bottom:.25rem;">Free Agents</div>
+      <div style="font-size:.78rem;color:var(--text3);">2026 contract expiry — UFA &amp; RFA · Fair AAV from model aging curve · Click any player to open their card</div>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;">
       <select class="lb-select" id="fa-pos">
         <option value="all">All positions</option>
         <option value="F">Forwards</option>
         <option value="D">Defensemen</option>
       </select>
+      <select class="lb-select" id="fa-type">
+        <option value="both">UFA &amp; RFA</option>
+        <option value="UFA">UFA only</option>
+        <option value="RFA">RFA only</option>
+      </select>
       <select class="lb-select" id="fa-team"><option value="all">All teams</option></select>
       <select class="lb-select" id="fa-sort">
-        <option value="value">Model value</option>
-        <option value="overall">Overall rating</option>
-        <option value="surplus">Surplus</option>
-        <option value="cap">Cap hit ↑</option>
-        <option value="age">Age ↑</option>
+        <optgroup label="By stat">
+          <option value="overall">Overall rating</option>
+          <option value="surplus">Surplus</option>
+          <option value="cap">Cap hit ↑</option>
+          <option value="age">Age ↑</option>
+        </optgroup>
+        <optgroup label="Overall">
+          <option value="attr_Overall Rating">Overall Rating</option>
+        </optgroup>
+        <optgroup label="Attributes (4yr avg)">
+          <option value="attr_Speed">Speed</option>
+          <option value="attr_Endurance">Endurance</option>
+          <option value="attr_Physicality">Physicality</option>
+          <option value="attr_Goalscoring">Goalscoring</option>
+          <option value="attr_Finishing">Finishing</option>
+          <option value="attr_Shot speed">Shot speed</option>
+          <option value="attr_Shot volume">Shot volume</option>
+          <option value="attr_Shot quality">Shot quality</option>
+          <option value="attr_Playdriving">Playdriving</option>
+          <option value="attr_Passing">Passing</option>
+          <option value="attr_Rush offense">Rush offense</option>
+          <option value="attr_Forecheck offense">Forecheck offense</option>
+          <option value="attr_Cycle offense">Cycle offense</option>
+          <option value="attr_Net-front presence">Net-front presence</option>
+          <option value="attr_Shot suppression">Shot suppression</option>
+          <option value="attr_Takeaways">Takeaways</option>
+          <option value="attr_Giveaways">Giveaways</option>
+          <option value="attr_Entry defense">Entry defense</option>
+          <option value="attr_Exits">Exits</option>
+          <option value="attr_Quality of comp.">Quality of competition</option>
+          <option value="attr_Power play">Power play</option>
+          <option value="attr_Penalty kill">Penalty kill</option>
+          <option value="attr_Faceoffs">Faceoffs</option>
+        </optgroup>
       </select>
-      <span id="fa-count" style="font-size:.8rem;color:var(--text3);margin-left:auto;"></span>
+      <input type="text" id="fa-search" placeholder="Search players…" style="flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.35rem .75rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.82rem;outline:none;">
+      <span id="fa-count" style="font-size:.78rem;color:var(--text3);"></span>
     </div>
-    <div style="font-size:.75rem;color:var(--text3);margin-bottom:1rem;padding:.5rem .75rem;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);">
-      <strong style="color:var(--text2);">2025–26 Summer Free Agents</strong> · Fair AAV from model aging curve. Click any player to open their full card.
+    <div class="lb-table-wrap">
+      <table class="lb-table">
+        <thead><tr>
+          <th class="lb-rank">#</th>
+          <th>Player</th><th>Pos</th><th>Team</th><th>Type</th>
+          <th>Overall</th><th>Cap Hit</th><th>Value</th><th>Surplus</th>
+          <th>1-Yr AAV</th><th>4-Yr AAV</th><th>7-Yr AAV</th>
+        </tr></thead>
+        <tbody id="fa-list"></tbody>
+      </table>
     </div>
-    <div id="fa-list"></div>
-    <div class="lb-footer">Billy Puck Grades · Free Agent Tracker · 2025–26 UFA/RFA · Data: NST · EH · CapFriendly · MoneyPuck</div>
+    <div class="lb-footer">Billy Puck Grades · Free Agents · 2026 expiry · Fair AAV from model aging curve</div>
   </div>
 </div>
 
@@ -3995,6 +4268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-bk">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -4042,6 +4316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-tr">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -4160,11 +4435,40 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="all">All teams</option>
       </select>
       <select class="lb-select" id="ext-sort">
-        <option value="overall">Overall rating</option>
-        <option value="surplus">Surplus value</option>
-        <option value="value">Model value</option>
-        <option value="aav1">1-yr ext AAV</option>
-        <option value="cap">Cap hit</option>
+        <optgroup label="By stat">
+          <option value="overall">Overall rating</option>
+          <option value="surplus">Surplus</option>
+          <option value="aav1">1-yr ext AAV</option>
+          <option value="cap">Cap hit</option>
+        </optgroup>
+        <optgroup label="Overall">
+          <option value="attr_Overall Rating">Overall Rating</option>
+        </optgroup>
+        <optgroup label="Attributes (4yr avg)">
+          <option value="attr_Speed">Speed</option>
+          <option value="attr_Endurance">Endurance</option>
+          <option value="attr_Physicality">Physicality</option>
+          <option value="attr_Goalscoring">Goalscoring</option>
+          <option value="attr_Finishing">Finishing</option>
+          <option value="attr_Shot speed">Shot speed</option>
+          <option value="attr_Shot volume">Shot volume</option>
+          <option value="attr_Shot quality">Shot quality</option>
+          <option value="attr_Playdriving">Playdriving</option>
+          <option value="attr_Passing">Passing</option>
+          <option value="attr_Rush offense">Rush offense</option>
+          <option value="attr_Forecheck offense">Forecheck offense</option>
+          <option value="attr_Cycle offense">Cycle offense</option>
+          <option value="attr_Net-front presence">Net-front presence</option>
+          <option value="attr_Shot suppression">Shot suppression</option>
+          <option value="attr_Takeaways">Takeaways</option>
+          <option value="attr_Giveaways">Giveaways</option>
+          <option value="attr_Entry defense">Entry defense</option>
+          <option value="attr_Exits">Exits</option>
+          <option value="attr_Quality of comp.">Quality of competition</option>
+          <option value="attr_Power play">Power play</option>
+          <option value="attr_Penalty kill">Penalty kill</option>
+          <option value="attr_Faceoffs">Faceoffs</option>
+        </optgroup>
       </select>
     </div>
     <div class="lb-table-wrap">
@@ -4180,7 +4484,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <th>25-26 Value</th>
           <th>Surplus</th>
           <th>1-Yr Ext</th>
-          <th>3-Yr Ext</th>
+          <th>4-Yr Ext</th>
           <th>7-Yr Ext</th>
           <th>Value@Exp</th>
         </tr></thead>
@@ -4222,6 +4526,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-lc">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -4315,6 +4620,96 @@ document.addEventListener('DOMContentLoaded', () => {
       </table>
     </div>
     <div class="lb-footer">Billy Puck Grades · Line Combinations · Source: Evolving Hockey · Attributes: model avg of individual player scores</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ CONTRACT CALCULATOR VIEW ════════════════════════════════ -->
+<div id="calcview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-cc">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-cc">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-cc">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-cc">
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
+        </div>
+      </div>
+      <div class="nav-link" id="nav-lines-cc" onclick="goCombos()">Lines</div>
+      <div class="nav-link" id="nav-goalies-cc">Goalies</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-cc">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-cc">
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-contract-cc">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-cc">
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item active" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="lb-content" style="max-width:760px;">
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:1.1rem;font-weight:600;margin-bottom:.25rem;">Contract Calculator</div>
+      <div style="font-size:.78rem;color:var(--text3);">Search any skater · Select a contract term · See the model's implied fair value AAV and projected value over the deal</div>
+    </div>
+
+    <!-- Search -->
+    <div style="position:relative;margin-bottom:1.25rem;">
+      <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text3);" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+      <input type="text" id="calc-search" placeholder="Search for any player…"
+        style="width:100%;padding:.55rem .75rem .55rem 2.25rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'Karla',sans-serif;font-size:.92rem;outline:none;box-sizing:border-box;">
+      <div id="calc-dd" class="dropdown"></div>
+    </div>
+
+    <!-- Player panel (hidden until player selected) -->
+    <div id="calc-panel" style="display:none;">
+      <!-- Header -->
+      <div class="calc-card" style="display:flex;gap:1rem;align-items:flex-start;margin-bottom:.75rem;">
+        <div id="calc-hs" style="flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:1.15rem;font-weight:600;" id="calc-name"></div>
+          <div style="font-size:.78rem;color:var(--text3);margin-top:.15rem;" id="calc-meta1"></div>
+          <div style="font-size:.78rem;color:var(--text3);margin-top:.1rem;" id="calc-meta2"></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Overall</div>
+          <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;" id="calc-ov"></div>
+          <div style="font-size:.62rem;color:var(--text3);margin-top:.25rem;">Composite</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.9rem;" id="calc-cmp"></div>
+        </div>
+      </div>
+
+      <!-- Production bars -->
+      <div class="calc-card" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+        <div id="calc-offprod"></div>
+        <div id="calc-defprod"></div>
+        <div id="calc-offanal"></div>
+        <div id="calc-defanal"></div>
+      </div>
+
+      <!-- Contract Calculator -->
+      <div class="calc-card">
+        <div style="font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:.65rem;">Fair Value Contract Estimate</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.85rem;" id="calc-term-btns"></div>
+        <div id="calc-aav-result" style="margin-bottom:1.25rem;"></div>
+        <div id="calc-chart"></div>
+      </div>
+    </div>
+
+    <div class="lb-footer" style="margin-top:1rem;">Billy Puck Grades · Contract Calculator · FV AAV based on model aging curve · Projections not guaranteed</div>
   </div>
 </div>
 
