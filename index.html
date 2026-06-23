@@ -3163,9 +3163,10 @@ function renderExtCandidates() {
 // LINE COMBINATIONS
 // ══════════════════════════════════════════════════════════════════════════════
 window.COMBOS_DATA = window.COMBOS_DATA || {fwd: [], dman: []};
-let lcTab = 'fwd';  // 'fwd' | 'dman'
+let lcTab     = 'fwd';
+let lcSortDir = -1;   // -1 = desc (best first), +1 = asc (worst first)
+let lcLastSort = '';
 
-// Case-insensitive player lookup with fallback
 function findPlayer(name) {
   if (!name) return null;
   const nl = name.toLowerCase();
@@ -3178,143 +3179,181 @@ function getCatPctForPlayer(p, grp, name) {
 }
 
 function getAttrScore(players, attrName) {
-  // Returns {avg, scores: [{name, val}]} using category lookup across all groups
-  const CAT_GROUPS = [
-    'Usage','Athletic & Compete','Scoring','Offense','Defense','Special teams','Analytics'
-  ];
+  if (attrName === 'Overall Rating') {
+    const scores = players.map(name => {
+      const p = findPlayer(name);
+      return {name, val: p?.overall_pct ?? null};
+    });
+    const valids = scores.filter(s => s.val != null);
+    const avg = valids.length ? Math.round(valids.reduce((s,x)=>s+x.val,0)/valids.length) : null;
+    return {avg, scores};
+  }
+  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special teams','Analytics'];
   const scores = players.map(name => {
-    const p = findPlayer(name);
-    let val = null;
-    for (const grp of CAT_GROUPS) {
-      const found = getCatPctForPlayer(p, grp, attrName);
-      if (found != null) { val = found; break; }
-    }
+    const p = findPlayer(name); let val = null;
+    for (const grp of CAT_GROUPS) { const f=getCatPctForPlayer(p,grp,attrName); if(f!=null){val=f;break;} }
     return {name, val};
   });
   const valids = scores.filter(s => s.val != null);
-  const avg = valids.length ? Math.round(valids.reduce((s, x) => s + x.val, 0) / valids.length) : null;
+  const avg = valids.length ? Math.round(valids.reduce((s,x)=>s+x.val,0)/valids.length) : null;
   return {avg, scores};
+}
+
+function lineStatColor(val, lo, hi, invert) {
+  if (val == null) return 'var(--text3)';
+  const t = Math.max(0, Math.min(1, (val-lo)/(hi-lo)));
+  return barColor(Math.round((invert?1-t:t)*100));
 }
 
 function populateLCTeams() {
   const sel = document.getElementById('lc-team');
   if (!sel || sel.options.length > 1) return;
-  const fwdTeams = [...new Set((window.COMBOS_DATA.fwd || []).map(c => c.team))].sort();
-  fwdTeams.forEach(t => {
-    const o = document.createElement('option');
-    o.value = t; o.textContent = t; sel.appendChild(o);
-  });
+  const allTeams = [...new Set([
+    ...(window.COMBOS_DATA.fwd||[]).map(c=>c.team),
+    ...(window.COMBOS_DATA.dman||[]).map(c=>c.team),
+  ])].filter(Boolean).sort();
+  allTeams.forEach(t => { const o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o); });
 }
 
-function renderCombos() {
-  const sortKey  = document.getElementById('lc-sort')?.value || 'toi';
-  const teamVal  = document.getElementById('lc-team')?.value || 'all';
-  const minTOI   = parseFloat(document.getElementById('lc-min-toi')?.value || '50');
-  const search   = (document.getElementById('lc-player-search')?.value || '').toLowerCase().trim();
+function renderCombos(newSortKey) {
+  let sortKey = newSortKey || document.getElementById('lc-sort')?.value || 'toi';
+  if (newSortKey) {
+    if (newSortKey === lcLastSort) lcSortDir *= -1; else lcSortDir = -1;
+    lcLastSort = newSortKey;
+    const sel = document.getElementById('lc-sort');
+    if (sel) { const opt=[...sel.options].find(o=>o.value===newSortKey); if(opt) sel.value=newSortKey; }
+  } else {
+    if (sortKey !== lcLastSort) { lcSortDir=-1; lcLastSort=sortKey; }
+  }
+
+  const teamVal  = document.getElementById('lc-team')?.value    || 'all';
+  const minTOI   = parseFloat(document.getElementById('lc-min-toi')?.value    || '0');
+  const minTOIGP = parseFloat(document.getElementById('lc-min-toi-gp')?.value || '0');
+  const search   = (document.getElementById('lc-player-search')?.value||'').toLowerCase().trim();
   const isAttr   = sortKey.startsWith('attr_');
   const attrName = isAttr ? sortKey.slice(5) : null;
-  const isDesc   = sortKey !== 'xga_60';  // xGA/60 lower is better
+  const isFwd    = lcTab === 'fwd';
 
-  const pool = (window.COMBOS_DATA[lcTab] || []).filter(c => {
-    if ((c.toi || 0) < minTOI) return false;
+  const pool = (window.COMBOS_DATA[lcTab]||[]).filter(c => {
+    if ((c.toi||0)    < minTOI)   return false;
+    if ((c.toi_gp||0) < minTOIGP) return false;
     if (teamVal !== 'all' && c.team !== teamVal) return false;
-    if (search) {
-      const match = c.players.some(p => p.toLowerCase().includes(search));
-      if (!match) return false;
-    }
+    if (search && !c.players.some(p=>p.toLowerCase().includes(search))) return false;
     return true;
   });
 
-  // Enrich with attribute score if needed
   const enriched = pool.map(c => {
     if (!isAttr) return c;
     const attr = getAttrScore(c.players, attrName);
-    return {...c, _attrAvg: attr.avg, _attrScores: attr.scores};
+    return {...c, _attrAvg:attr.avg, _attrScores:attr.scores};
   });
 
-  // Sort
-  enriched.sort((a, b) => {
-    let av, bv;
-    if (isAttr) { av = a._attrAvg ?? -1; bv = b._attrAvg ?? -1; }
-    else { av = a[sortKey] ?? (isDesc ? -Infinity : Infinity); bv = b[sortKey] ?? (isDesc ? -Infinity : Infinity); }
-    return isDesc ? bv - av : av - bv;
+  const ascKeys = new Set(['xga_60']);
+  enriched.sort((a,b) => {
+    let av = isAttr ? (a._attrAvg??-Infinity) : (a[sortKey]??-Infinity);
+    let bv = isAttr ? (b._attrAvg??-Infinity) : (b[sortKey]??-Infinity);
+    const base = ascKeys.has(sortKey) ? av-bv : bv-av;
+    return base * lcSortDir;
   });
 
-  // Update results count
   const resEl = document.getElementById('lc-results');
-  if (resEl) resEl.textContent = `${enriched.length} combinations`;
+  if (resEl) resEl.textContent = `${enriched.length} combination${enriched.length!==1?'s':''}${lcSortDir===1?' · ↑ worst first':''}`;
 
-  // Build header
+  const STAT_LABEL = {toi:'TOI',toi_gp:'TOI/GP',gp:'GP',xgf_pct:'xGF%',gf_pct:'GF%',
+    xgf_60:'xGF/60',xga_60:'xGA/60',xg_pm:'xG±/60',g_pm:'G±/60',
+    'Quality of Competition':'QoC'};
+  const sortLabel = STAT_LABEL[sortKey] || attrName || sortKey;
+  const alwaysShown = new Set(['xgf_pct','g_pm']);
+  const showSortCol = !alwaysShown.has(sortKey);
+
+  const thEl = (key, label, color) =>
+    `<th style="cursor:pointer;user-select:none;white-space:nowrap;${color?'color:'+color+';':''}" onclick="renderCombos('${key}')" title="Click to sort · click again to reverse">${label}${lcLastSort===key?(lcSortDir===-1?' ↓':' ↑'):''}</th>`;
+
+  const playerHdr = isFwd
+    ? `${thEl('attr_F1','F1')}${thEl('attr_F2','F2')}${thEl('attr_F3','F3')}`
+    : `${thEl('attr_D1','D1')}${thEl('attr_D2','D2')}`;
+
   const thead = document.getElementById('lc-thead');
-  const isFwd = lcTab === 'fwd';
-  const sortLabel = {toi:'TOI',toi_gp:'TOI/GP',gp:'GP',xgf_pct:'xGF%',gf_pct:'GF%',
-    xgf_60:'xGF/60',xga_60:'xGA/60',xg_pm:'xG±/60',g_pm:'G±/60'}[sortKey] || attrName;
   thead.querySelector('tr').innerHTML = `
-    <th class="lb-rank">#</th>
-    ${isFwd ? '<th>F1</th><th>F2</th><th>F3</th>' : '<th>D1</th><th>D2</th>'}
-    <th>Team</th><th>GP</th><th>TOI</th><th>TOI/GP</th>
-    <th style="color:var(--teal);">${sortLabel}</th>
-    ${isAttr ? (isFwd ? '<th style="font-size:.7rem;color:var(--text3);">F1 / F2 / F3</th>' : '<th style="font-size:.7rem;color:var(--text3);">D1 / D2</th>') : '<th>xGF%</th><th>xG±/60</th>'}
+    <th class="lb-rank">#</th>${playerHdr}
+    <th>Team</th>${thEl('gp','GP')}${thEl('toi','TOI')}${thEl('toi_gp','TOI/GP')}
+    ${showSortCol ? thEl(sortKey, sortLabel,'var(--teal)') : ''}
+    ${isAttr ? `<th style="font-size:.7rem;color:var(--text3);">${isFwd?'F1/F2/F3':'D1/D2'}</th>` : ''}
+    ${thEl('xgf_pct','xGF%')}${thEl('g_pm','G±/60')}
   `;
 
-  // Build rows
   const tbody = document.getElementById('lc-tbody');
+  const cols  = 4 + (isFwd?3:2) + (showSortCol?1:0) + (isAttr?1:0) + 2;
   if (!enriched.length) {
-    tbody.innerHTML = `<tr><td colspan="${isFwd?10:9}" style="text-align:center;padding:2rem;color:var(--text3);">No combinations match the selected filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;padding:2rem;color:var(--text3);">No combinations match.</td></tr>`;
     return;
   }
 
-  const fmtNum = (v, digits=2) => v != null ? v.toFixed(digits) : '–';
-  const fmtPm  = v => v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) : '–';
+  const fmtNum = (v,d=2) => v!=null ? (+v).toFixed(d) : '–';
+  const fmtPm  = v => v!=null ? (v>=0?'+':'')+v.toFixed(2) : '–';
+  const mono   = "font-family:'DM Mono',monospace;font-size:.8rem;";
+  const statClr = (key, val) => {
+    if (val==null) return 'var(--text3)';
+    const ranges={xgf_pct:[40,60],gf_pct:[35,65],xgf_60:[2,5],xga_60:[2,5],xg_pm:[-2,2],g_pm:[-3,3]};
+    const r=ranges[key]; if(!r) return 'var(--text)';
+    return lineStatColor(val, r[0], r[1], key==='xga_60');
+  };
 
-  tbody.innerHTML = enriched.slice(0, 200).map((c, i) => {
-    const sortVal = isAttr ? (c._attrAvg != null ? c._attrAvg : '–')
-      : (sortKey === 'toi' ? fmtNum(c.toi, 0) + ' min'
-        : sortKey === 'toi_gp' ? fmtNum(c.toi_gp)
-        : sortKey === 'gp' ? c.gp
-        : sortKey.includes('pct') ? fmtNum(c[sortKey]) + '%'
-        : fmtPm(c[sortKey]));
-    const sortClr = isAttr && c._attrAvg != null ? barColor(c._attrAvg) : 'var(--text)';
-
-    // Per-player attribute scores breakdown
-    let extraCell = '';
-    if (isAttr && c._attrScores) {
-      const parts = c._attrScores.map(s => s.val != null
-        ? `<span style="color:${barColor(s.val)};font-weight:500;">${s.val}</span>`
-        : '<span style="color:var(--text3);">–</span>');
-      extraCell = `<td style="font-size:.72rem;">${parts.join('<span style="color:var(--text3);"> / </span>')}</td>`;
-    } else {
-      extraCell = `<td style="font-family:'DM Mono',monospace;font-size:.78rem;">${fmtNum(c.xgf_pct)}%</td>
-        <td style="font-family:'DM Mono',monospace;font-size:.78rem;color:${(c.xg_pm||0)>=0?'var(--teal)':'var(--coral)'};">${fmtPm(c.xg_pm)}</td>`;
+  tbody.innerHTML = enriched.slice(0,200).map((c,i) => {
+    let sortTd='';
+    if (showSortCol) {
+      let sv,sc;
+      if (isAttr) {
+        sv=c._attrAvg!=null?c._attrAvg:'–';
+        sc=c._attrAvg!=null?barColor(c._attrAvg):'var(--text3)';
+      } else {
+        sv = sortKey==='toi'     ? fmtNum(c.toi,0)
+           : sortKey==='toi_gp'  ? fmtNum(c.toi_gp)
+           : sortKey==='gp'      ? c.gp
+           : sortKey.includes('pct') ? fmtNum(c[sortKey])+'%'
+           : fmtPm(c[sortKey]);
+        sc = statClr(sortKey, c[sortKey]);
+      }
+      sortTd=`<td style="${mono}font-weight:600;color:${sc};white-space:nowrap;">${sv}</td>`;
     }
 
-    const playerCells = c.players.map(name => {
-      const p = findPlayer(name);
-      return `<td style="cursor:pointer;font-size:.82rem;" data-pname="${name}">
-        <span style="font-weight:500;">${name}</span>${p ? ` <span style="font-size:.65rem;color:${barColor(p.overall_pct||0)};font-family:'DM Mono',monospace;">${p.overall_pct}</span>` : ''}
-      </td>`;
+    let attrTd='';
+    if (isAttr && c._attrScores) {
+      const parts=c._attrScores.map(s=>s.val!=null
+        ?`<span style="color:${barColor(s.val)};font-weight:600;">${s.val}</span>`
+        :'<span style="color:var(--text3);">–</span>');
+      attrTd=`<td style="font-size:.72rem;">${parts.join('<span style="color:var(--text3);"> / </span>')}</td>`;
+    }
+
+    const fixedTds=`
+      <td style="${mono}color:${statClr('xgf_pct',c.xgf_pct)};">${fmtNum(c.xgf_pct)}%</td>
+      <td style="${mono}color:${statClr('g_pm',c.g_pm)};">${fmtPm(c.g_pm)}</td>`;
+
+    const playerCells=c.players.map(name=>{
+      const p=findPlayer(name);
+      let badge='';
+      if (p) {
+        const bval=isAttr?(c._attrScores?.find(s=>s.name===name)?.val??p.overall_pct):p.overall_pct;
+        badge=` <span style="font-size:.65rem;color:${barColor(bval||0)};${mono}">${bval??'–'}</span>`;
+      }
+      return `<td style="cursor:pointer;font-size:.82rem;" data-pname="${name}"><span style="font-weight:500;">${name}</span>${badge}</td>`;
     }).join('');
 
     return `<tr>
-      <td class="lb-rank">${i+1}</td>
-      ${playerCells}
+      <td class="lb-rank">${i+1}</td>${playerCells}
       <td style="font-size:.8rem;color:var(--text2);">${c.team}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.8rem;">${c.gp}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.8rem;">${fmtNum(c.toi,0)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.8rem;">${fmtNum(c.toi_gp)}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:600;color:${sortClr};">${sortVal}</td>
-      ${extraCell}
+      <td style="${mono}white-space:nowrap;">${c.gp}</td>
+      <td style="${mono}white-space:nowrap;">${fmtNum(c.toi,0)}</td>
+      <td style="${mono}white-space:nowrap;">${fmtNum(c.toi_gp)}</td>
+      ${sortTd}${attrTd}${fixedTds}
     </tr>`;
   }).join('');
 
-  // Click player name → player card
-  tbody.querySelectorAll('td[data-pname]').forEach(td => {
-    td.addEventListener('click', () => {
-      const p = findPlayer(td.dataset.pname);
-      if (p) showPlayer(p);
-    });
+  tbody.querySelectorAll('td[data-pname]').forEach(td=>{
+    td.addEventListener('click',()=>{ const p=findPlayer(td.dataset.pname);if(p)showPlayer(p); });
   });
 }
+
 
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
@@ -3593,7 +3632,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // FA Tracker filters
   ['fa-type','fa-pos','fa-team','fa-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFATracker));
   ['ext-pos','ext-type','ext-team','ext-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderExtCandidates));
-  ['lc-sort','lc-team','lc-min-toi'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCombos));
+  ['lc-sort','lc-team','lc-min-toi','lc-min-toi-gp'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCombos));
   document.getElementById('lc-player-search')?.addEventListener('input',renderCombos);
   document.getElementById('lc-tab-fwd')?.addEventListener('click',()=>{lcTab='fwd';document.getElementById('lc-tab-fwd').classList.add('active');document.getElementById('lc-tab-dman').classList.remove('active');renderCombos();});
   document.getElementById('lc-tab-dman')?.addEventListener('click',()=>{lcTab='dman';document.getElementById('lc-tab-dman').classList.add('active');document.getElementById('lc-tab-fwd').classList.remove('active');renderCombos();});
@@ -4222,36 +4261,53 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="200">Min TOI: 200 min</option>
         <option value="300">Min TOI: 300 min</option>
       </select>
+      <select class="lb-select" id="lc-min-toi-gp" style="font-size:.78rem;">
+        <option value="0">Min TOI/GP: any</option>
+        <option value="5">Min TOI/GP: 5 min</option>
+        <option value="7">Min TOI/GP: 7 min</option>
+        <option value="10">Min TOI/GP: 10 min</option>
+      </select>
       <!-- Sort -->
       <select class="lb-select" id="lc-sort" style="font-size:.78rem;">
         <optgroup label="Usage">
           <option value="toi" selected>TOI (total)</option>
           <option value="toi_gp">TOI/GP</option>
           <option value="gp">GP together</option>
+          <option value="attr_Quality of Competition">Quality of Competition</option>
         </optgroup>
         <optgroup label="Line stats">
           <option value="xgf_pct">xGF%</option>
-          <option value="gf_pct">GF% (FWD only)</option>
+          <option value="gf_pct">GF%</option>
           <option value="xgf_60">xGF/60</option>
           <option value="xga_60">xGA/60 ↓</option>
           <option value="xg_pm">xG +/-/60</option>
           <option value="g_pm">G +/-/60</option>
         </optgroup>
         <optgroup label="Player attributes (avg)">
+          <option value="attr_Overall Rating">Overall Rating</option>
           <option value="attr_Speed">Speed</option>
           <option value="attr_Endurance">Endurance</option>
           <option value="attr_Physicality">Physicality</option>
           <option value="attr_Goalscoring">Goalscoring</option>
+          <option value="attr_Finishing">Finishing</option>
           <option value="attr_Shot speed">Shot speed</option>
           <option value="attr_Shot volume">Shot volume</option>
+          <option value="attr_Shot quality">Shot quality</option>
+          <option value="attr_Net-front presence">Net-front presence</option>
           <option value="attr_Playdriving">Playdriving</option>
           <option value="attr_Passing">Passing</option>
           <option value="attr_Rush offense">Rush offense</option>
           <option value="attr_Forecheck offense">Forecheck offense</option>
           <option value="attr_Cycle offense">Cycle offense</option>
+          <option value="attr_On-Ice Offense">On-Ice Offense</option>
+          <option value="attr_Exits">Exits</option>
           <option value="attr_Shot suppression">Shot suppression</option>
           <option value="attr_Takeaways">Takeaways</option>
+          <option value="attr_Giveaways">Giveaways</option>
           <option value="attr_Entry defense">Entry defense</option>
+          <option value="attr_On-Ice Defense">On-Ice Defense</option>
+          <option value="attr_Off. Zone Involvement">Off. Zone Involvement</option>
+          <option value="attr_Penalty Differential">Penalty Differential</option>
           <option value="attr_Power play">Power play</option>
           <option value="attr_Penalty kill">Penalty kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
@@ -4263,6 +4319,14 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
     <div id="lc-results" style="font-size:.8rem;color:var(--text3);margin-bottom:.5rem;"></div>
+    <div style="font-size:.73rem;color:var(--text3);margin-bottom:.5rem;line-height:1.5;max-width:700px;">
+      <strong style="color:var(--text2);">Reading this table:</strong>
+      Player name + colored number = overall rating (or selected attribute score when sorting by attribute).
+      F1/F2/F3 column shows each player's individual score for the selected attribute.
+      <strong>xGF%</strong> = expected goals share (50% is neutral; higher is better).
+      <strong>G±/60</strong> = actual goals per 60 min relative to opposition.
+      Click any column header to sort; click again to reverse.
+    </div>
     <div class="lb-table-wrap" id="lc-table-wrap">
       <table class="lb-table" id="lc-table">
         <thead id="lc-thead"><tr></tr></thead>
