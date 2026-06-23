@@ -341,6 +341,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -482,6 +483,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-tm">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-tm">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -551,7 +553,7 @@ let currentSeasonView = '2025-26';  // active season in season selector
 async function loadData() {
   const loading = document.getElementById('loading-msg');
   try {
-    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes, snapRes] = await Promise.all([
+    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes, snapRes, combosRes] = await Promise.all([
       fetch("players_fwd.json"),
       fetch("players_dman.json"),
       fetch("players_goalie.json"),
@@ -559,6 +561,7 @@ async function loadData() {
       fetch("comp_dman.json"),
       fetch("breakout.json"),
       fetch('roster_snapshots.json').catch(() => null),
+      fetch("combos.json").catch(() => null),
     ]);
     if (!fwdRes.ok || !dmanRes.ok) throw new Error('Failed to load player data');
     const [fwds, dmans, goalies, cfwd, cdman, bkData] = await Promise.all([
@@ -573,6 +576,10 @@ async function loadData() {
     COMP_FWD = cfwd;
     COMP_DMAN = cdman;
     BREAKOUT_DATA = bkData || {};
+    try {
+      const combosRaw = combosRes ? await combosRes.json().catch(()=>null) : null;
+      window.COMBOS_DATA = combosRaw || {fwd:[], dman:[]};
+    } catch(e) { window.COMBOS_DATA = {fwd:[], dman:[]}; }
     try {
       const snapRaw = snapRes ? await snapRes.json().catch(()=>null) : null;
       window.ROSTER_SNAPSHOTS = snapRaw?.snapshots || {};
@@ -593,6 +600,7 @@ async function loadData() {
     populateCmpTeams();
     populateSnapshotSelector();
     populateExtTeams();
+    populateLCTeams();
   } catch(e) {
     if (loading) loading.textContent = 'Error loading data: ' + e.message;
     console.error(e);
@@ -3147,6 +3155,164 @@ function renderExtCandidates() {
   });
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LINE COMBINATIONS
+// ══════════════════════════════════════════════════════════════════════════════
+window.COMBOS_DATA = window.COMBOS_DATA || {fwd: [], dman: []};
+let lcTab = 'fwd';  // 'fwd' | 'dman'
+
+// Case-insensitive player lookup with fallback
+function findPlayer(name) {
+  if (!name) return null;
+  const nl = name.toLowerCase();
+  return ALL_PLAYERS.find(p => p.name.toLowerCase() === nl) || null;
+}
+
+function getCatPctForPlayer(p, grp, name) {
+  if (!p) return null;
+  return ((p.categories || {})[grp] || []).find(c => c.name === name)?.pct ?? null;
+}
+
+function getAttrScore(players, attrName) {
+  // Returns {avg, scores: [{name, val}]} using category lookup across all groups
+  const CAT_GROUPS = [
+    'Usage','Athletic & Compete','Scoring','Offense','Defense','Special teams','Analytics'
+  ];
+  const scores = players.map(name => {
+    const p = findPlayer(name);
+    let val = null;
+    for (const grp of CAT_GROUPS) {
+      const found = getCatPctForPlayer(p, grp, attrName);
+      if (found != null) { val = found; break; }
+    }
+    return {name, val};
+  });
+  const valids = scores.filter(s => s.val != null);
+  const avg = valids.length ? Math.round(valids.reduce((s, x) => s + x.val, 0) / valids.length) : null;
+  return {avg, scores};
+}
+
+function populateLCTeams() {
+  const sel = document.getElementById('lc-team');
+  if (!sel || sel.options.length > 1) return;
+  const fwdTeams = [...new Set((window.COMBOS_DATA.fwd || []).map(c => c.team))].sort();
+  fwdTeams.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t; sel.appendChild(o);
+  });
+}
+
+function renderCombos() {
+  const sortKey  = document.getElementById('lc-sort')?.value || 'toi';
+  const teamVal  = document.getElementById('lc-team')?.value || 'all';
+  const minTOI   = parseFloat(document.getElementById('lc-min-toi')?.value || '50');
+  const search   = (document.getElementById('lc-player-search')?.value || '').toLowerCase().trim();
+  const isAttr   = sortKey.startsWith('attr_');
+  const attrName = isAttr ? sortKey.slice(5) : null;
+  const isDesc   = sortKey !== 'xga_60';  // xGA/60 lower is better
+
+  const pool = (window.COMBOS_DATA[lcTab] || []).filter(c => {
+    if ((c.toi || 0) < minTOI) return false;
+    if (teamVal !== 'all' && c.team !== teamVal) return false;
+    if (search) {
+      const match = c.players.some(p => p.toLowerCase().includes(search));
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Enrich with attribute score if needed
+  const enriched = pool.map(c => {
+    if (!isAttr) return c;
+    const attr = getAttrScore(c.players, attrName);
+    return {...c, _attrAvg: attr.avg, _attrScores: attr.scores};
+  });
+
+  // Sort
+  enriched.sort((a, b) => {
+    let av, bv;
+    if (isAttr) { av = a._attrAvg ?? -1; bv = b._attrAvg ?? -1; }
+    else { av = a[sortKey] ?? (isDesc ? -Infinity : Infinity); bv = b[sortKey] ?? (isDesc ? -Infinity : Infinity); }
+    return isDesc ? bv - av : av - bv;
+  });
+
+  // Update results count
+  const resEl = document.getElementById('lc-results');
+  if (resEl) resEl.textContent = `${enriched.length} combinations`;
+
+  // Build header
+  const thead = document.getElementById('lc-thead');
+  const isFwd = lcTab === 'fwd';
+  const sortLabel = {toi:'TOI',toi_gp:'TOI/GP',gp:'GP',xgf_pct:'xGF%',gf_pct:'GF%',
+    xgf_60:'xGF/60',xga_60:'xGA/60',xg_pm:'xG±/60',g_pm:'G±/60'}[sortKey] || attrName;
+  thead.querySelector('tr').innerHTML = `
+    <th class="lb-rank">#</th>
+    ${isFwd ? '<th>F1</th><th>F2</th><th>F3</th>' : '<th>D1</th><th>D2</th>'}
+    <th>Team</th><th>GP</th><th>TOI</th><th>TOI/GP</th>
+    <th style="color:var(--teal);">${sortLabel}</th>
+    ${isAttr ? (isFwd ? '<th style="font-size:.7rem;color:var(--text3);">F1 / F2 / F3</th>' : '<th style="font-size:.7rem;color:var(--text3);">D1 / D2</th>') : '<th>xGF%</th><th>xG±/60</th>'}
+  `;
+
+  // Build rows
+  const tbody = document.getElementById('lc-tbody');
+  if (!enriched.length) {
+    tbody.innerHTML = `<tr><td colspan="${isFwd?10:9}" style="text-align:center;padding:2rem;color:var(--text3);">No combinations match the selected filters.</td></tr>`;
+    return;
+  }
+
+  const fmtNum = (v, digits=2) => v != null ? v.toFixed(digits) : '–';
+  const fmtPm  = v => v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) : '–';
+
+  tbody.innerHTML = enriched.slice(0, 200).map((c, i) => {
+    const sortVal = isAttr ? (c._attrAvg != null ? c._attrAvg : '–')
+      : (sortKey === 'toi' ? fmtNum(c.toi, 0) + ' min'
+        : sortKey === 'toi_gp' ? fmtNum(c.toi_gp)
+        : sortKey === 'gp' ? c.gp
+        : sortKey.includes('pct') ? fmtNum(c[sortKey]) + '%'
+        : fmtPm(c[sortKey]));
+    const sortClr = isAttr && c._attrAvg != null ? barColor(c._attrAvg) : 'var(--text)';
+
+    // Per-player attribute scores breakdown
+    let extraCell = '';
+    if (isAttr && c._attrScores) {
+      const parts = c._attrScores.map(s => s.val != null
+        ? `<span style="color:${barColor(s.val)};font-weight:500;">${s.val}</span>`
+        : '<span style="color:var(--text3);">–</span>');
+      extraCell = `<td style="font-size:.72rem;">${parts.join('<span style="color:var(--text3);"> / </span>')}</td>`;
+    } else {
+      extraCell = `<td style="font-family:'DM Mono',monospace;font-size:.78rem;">${fmtNum(c.xgf_pct)}%</td>
+        <td style="font-family:'DM Mono',monospace;font-size:.78rem;color:${(c.xg_pm||0)>=0?'var(--teal)':'var(--coral)'};">${fmtPm(c.xg_pm)}</td>`;
+    }
+
+    const playerCells = c.players.map(name => {
+      const p = findPlayer(name);
+      return `<td style="cursor:pointer;font-size:.82rem;" data-pname="${name}">
+        <span style="font-weight:500;">${name}</span>${p ? ` <span style="font-size:.65rem;color:${barColor(p.overall_pct||0)};font-family:'DM Mono',monospace;">${p.overall_pct}</span>` : ''}
+      </td>`;
+    }).join('');
+
+    return `<tr>
+      <td class="lb-rank">${i+1}</td>
+      ${playerCells}
+      <td style="font-size:.8rem;color:var(--text2);">${c.team}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.8rem;">${c.gp}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.8rem;">${fmtNum(c.toi,0)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.8rem;">${fmtNum(c.toi_gp)}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:600;color:${sortClr};">${sortVal}</td>
+      ${extraCell}
+    </tr>`;
+  }).join('');
+
+  // Click player name → player card
+  tbody.querySelectorAll('td[data-pname]').forEach(td => {
+    td.addEventListener('click', () => {
+      const p = findPlayer(td.dataset.pname);
+      if (p) showPlayer(p);
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   if (window.location.protocol === 'file:') {
@@ -3311,6 +3477,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[id^="nav-compare"]').forEach(el=>el.classList.add('active'));
     populateCmpTeams();
   };
+  const goCombos = () => {
+    showView('linecombos');
+    document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-playerdata"]').forEach(el=>el.classList.add('active'));
+    renderCombos();
+  };
   const goExt = () => {
     showView('extcandidates');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
@@ -3418,6 +3590,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // FA Tracker filters
   ['fa-type','fa-pos','fa-team','fa-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFATracker));
   ['ext-pos','ext-type','ext-team','ext-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderExtCandidates));
+  ['lc-sort','lc-team','lc-min-toi'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCombos));
+  document.getElementById('lc-player-search')?.addEventListener('input',renderCombos);
+  document.getElementById('lc-tab-fwd')?.addEventListener('click',()=>{lcTab='fwd';document.getElementById('lc-tab-fwd').classList.add('active');document.getElementById('lc-tab-dman').classList.remove('active');renderCombos();});
+  document.getElementById('lc-tab-dman')?.addEventListener('click',()=>{lcTab='dman';document.getElementById('lc-tab-dman').classList.add('active');document.getElementById('lc-tab-fwd').classList.remove('active');renderCombos();});
   document.getElementById('fa-search')?.addEventListener('input',renderFATracker);
 
   // Populate global nav registry so navGoView (global fn) can reach these closures
@@ -3431,9 +3607,15 @@ document.addEventListener('DOMContentLoaded', () => {
     compare:     goCompare,
     fa:          goFA,
     ext:         goExt,
+    combos:      goCombos,
     players:     goPlayers,
     goalies:     goGoalies,
   };
+
+  // Line combos internal nav
+  document.getElementById('nav-logo-lc')?.addEventListener('click', () => showView('landing'));
+  document.getElementById('nav-players-lc')?.addEventListener('click', goPlayers);
+  document.getElementById('nav-goalies-lc')?.addEventListener('click', goGoalies);
 
   // Wire ext candidates internal nav
   document.getElementById('nav-logo-ext')?.addEventListener('click', () => showView('landing'));
@@ -3456,6 +3638,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-go">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-go">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -3503,6 +3686,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-aw">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-aw">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item active" data-view="awards">Awards</div>
@@ -3546,6 +3730,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-gcv">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-gcv">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -3582,6 +3767,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-cs">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-cs">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item active" data-view="stats">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -3650,6 +3836,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-cmp">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-cmp">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -3700,6 +3887,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-fa">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-fa">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -3764,6 +3952,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-bk">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-bk">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item active" data-view="breakout">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -3810,6 +3999,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-tr">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-tr">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -3903,6 +4093,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-ext">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-ext">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
@@ -3974,6 +4165,108 @@ document.addEventListener('DOMContentLoaded', () => {
       </table>
     </div>
     <div class="lb-footer">Billy Puck Grades · Extension Candidates · 2027 expiry · Extension AAV = implied fair value for deal starting 2026-27</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ LINE COMBINATIONS VIEW ══════════════════════════════════ -->
+<div id="linecombos" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-lc">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-lc">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-lc">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-lc">
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item active" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
+        </div>
+      </div>
+      <div class="nav-link" id="nav-goalies-lc">Goalies</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-lc">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-lc">
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-lc">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-lc">
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="lb-content">
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;align-items:center;">
+      <!-- Position sub-tabs -->
+      <div style="display:flex;border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;">
+        <button class="season-btn active" id="lc-tab-fwd" style="border-radius:0;border:none;padding:.3rem .9rem;">Forwards</button>
+        <button class="season-btn" id="lc-tab-dman" style="border-radius:0;border:none;padding:.3rem .9rem;">Defensemen</button>
+      </div>
+      <!-- Filters -->
+      <select class="lb-select" id="lc-team" style="font-size:.78rem;"><option value="all">All teams</option></select>
+      <select class="lb-select" id="lc-min-toi" style="font-size:.78rem;">
+        <option value="0">Min TOI: any</option>
+        <option value="50" selected>Min TOI: 50 min</option>
+        <option value="100">Min TOI: 100 min</option>
+        <option value="200">Min TOI: 200 min</option>
+        <option value="300">Min TOI: 300 min</option>
+      </select>
+      <!-- Sort -->
+      <select class="lb-select" id="lc-sort" style="font-size:.78rem;">
+        <optgroup label="Usage">
+          <option value="toi" selected>TOI (total)</option>
+          <option value="toi_gp">TOI/GP</option>
+          <option value="gp">GP together</option>
+        </optgroup>
+        <optgroup label="Line stats">
+          <option value="xgf_pct">xGF%</option>
+          <option value="gf_pct">GF% (FWD only)</option>
+          <option value="xgf_60">xGF/60</option>
+          <option value="xga_60">xGA/60 ↓</option>
+          <option value="xg_pm">xG +/-/60</option>
+          <option value="g_pm">G +/-/60</option>
+        </optgroup>
+        <optgroup label="Player attributes (avg)">
+          <option value="attr_Speed">Speed</option>
+          <option value="attr_Endurance">Endurance</option>
+          <option value="attr_Physicality">Physicality</option>
+          <option value="attr_Goalscoring">Goalscoring</option>
+          <option value="attr_Shot speed">Shot speed</option>
+          <option value="attr_Shot volume">Shot volume</option>
+          <option value="attr_Playdriving">Playdriving</option>
+          <option value="attr_Passing">Passing</option>
+          <option value="attr_Rush offense">Rush offense</option>
+          <option value="attr_Forecheck offense">Forecheck offense</option>
+          <option value="attr_Cycle offense">Cycle offense</option>
+          <option value="attr_Shot suppression">Shot suppression</option>
+          <option value="attr_Takeaways">Takeaways</option>
+          <option value="attr_Entry defense">Entry defense</option>
+          <option value="attr_Power play">Power play</option>
+          <option value="attr_Penalty kill">Penalty kill</option>
+          <option value="attr_Faceoffs">Faceoffs</option>
+        </optgroup>
+      </select>
+      <!-- Player search -->
+      <div style="position:relative;flex:1;min-width:160px;">
+        <input type="text" id="lc-player-search" placeholder="Filter by player name…" style="width:100%;padding:.35rem .75rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:.78rem;font-family:'Karla',sans-serif;">
+      </div>
+    </div>
+    <div id="lc-results" style="font-size:.8rem;color:var(--text3);margin-bottom:.5rem;"></div>
+    <div class="lb-table-wrap" id="lc-table-wrap">
+      <table class="lb-table" id="lc-table">
+        <thead id="lc-thead"><tr></tr></thead>
+        <tbody id="lc-tbody"></tbody>
+      </table>
+    </div>
+    <div class="lb-footer">Billy Puck Grades · Line Combinations · Source: Evolving Hockey · Attributes: model avg of individual player scores</div>
   </div>
 </div>
 
