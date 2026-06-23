@@ -322,7 +322,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <button class="landing-nav-btn" id="lnav-lb">Leaderboard</button>
     <button class="landing-nav-btn" id="lnav-stats">Stat Leaders</button>
     <button class="landing-nav-btn" id="lnav-goalies">Goalies</button>
-    <button class="landing-nav-btn" id="lnav-awards">Awards</button>
+    <button class="landing-nav-btn" id="lnav-lines">Lines</button>
     <button class="landing-nav-btn" id="lnav-teams">Teams</button>
     <button class="landing-nav-btn" id="lnav-compare">Matchup Tool</button>
     <button class="landing-nav-btn" id="lnav-fa">Free Agents</button>
@@ -3164,7 +3164,7 @@ function renderExtCandidates() {
 // ══════════════════════════════════════════════════════════════════════════════
 window.COMBOS_DATA = window.COMBOS_DATA || {fwd: [], dman: []};
 let lcTab     = 'fwd';
-let lcSortDir = -1;   // -1 = desc (best first), +1 = asc (worst first)
+let lcSortDir = 1;    // 1 = best first (desc for most stats), -1 = worst first
 let lcLastSort = '';
 
 function findPlayer(name) {
@@ -3218,7 +3218,7 @@ function populateLCTeams() {
 function renderCombos(newSortKey) {
   let sortKey = newSortKey || document.getElementById('lc-sort')?.value || 'toi';
   if (newSortKey) {
-    if (newSortKey === lcLastSort) lcSortDir *= -1; else lcSortDir = -1;
+    if (newSortKey === lcLastSort) lcSortDir *= -1; else lcSortDir = 1;
     lcLastSort = newSortKey;
     const sel = document.getElementById('lc-sort');
     if (sel) { const opt=[...sel.options].find(o=>o.value===newSortKey); if(opt) sel.value=newSortKey; }
@@ -3257,7 +3257,7 @@ function renderCombos(newSortKey) {
   });
 
   const resEl = document.getElementById('lc-results');
-  if (resEl) resEl.textContent = `${enriched.length} combination${enriched.length!==1?'s':''}${lcSortDir===1?' · ↑ worst first':''}`;
+  if (resEl) resEl.textContent = `${enriched.length} combination${enriched.length!==1?'s':''}${lcSortDir===-1?' · showing worst first':''}`;
 
   const STAT_LABEL = {toi:'TOI',toi_gp:'TOI/GP',gp:'GP',xgf_pct:'xGF%',gf_pct:'GF%',
     xgf_60:'xGF/60',xga_60:'xGA/60',xg_pm:'xG±/60',g_pm:'G±/60',
@@ -3558,7 +3558,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lnav-lb')?.addEventListener('click', goLeaderboard);
   document.getElementById('lnav-stats')?.addEventListener('click', goStats);
   document.getElementById('lnav-goalies')?.addEventListener('click', goGoalies);
-  document.getElementById('lnav-awards')?.addEventListener('click', goAwards);
+  document.getElementById('lnav-lines')?.addEventListener('click', goCombos);
   document.getElementById('lnav-teams')?.addEventListener('click', goTeams);
   document.getElementById('lnav-compare')?.addEventListener('click', goCompare);
   document.getElementById('lnav-fa')?.addEventListener('click', goFA);
@@ -3632,10 +3632,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // FA Tracker filters
   ['fa-type','fa-pos','fa-team','fa-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderFATracker));
   ['ext-pos','ext-type','ext-team','ext-sort'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderExtCandidates));
-  ['lc-sort','lc-team','lc-min-toi','lc-min-toi-gp'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderCombos));
-  document.getElementById('lc-player-search')?.addEventListener('input',renderCombos);
-  document.getElementById('lc-tab-fwd')?.addEventListener('click',()=>{lcTab='fwd';document.getElementById('lc-tab-fwd').classList.add('active');document.getElementById('lc-tab-dman').classList.remove('active');renderCombos();});
-  document.getElementById('lc-tab-dman')?.addEventListener('click',()=>{lcTab='dman';document.getElementById('lc-tab-dman').classList.add('active');document.getElementById('lc-tab-fwd').classList.remove('active');renderCombos();});
+  ['lc-sort','lc-team','lc-min-toi','lc-min-toi-gp'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>renderCombos()));
+  document.getElementById('lc-player-search')?.addEventListener('input',()=>renderCombos());
+  document.getElementById('lc-tab-fwd')?.addEventListener('click',()=>{lcTab='fwd';lcLastSort='';lcSortDir=1;document.getElementById('lc-tab-fwd').classList.add('active');document.getElementById('lc-tab-dman').classList.remove('active');renderCombos();});
+  document.getElementById('lc-tab-dman')?.addEventListener('click',()=>{lcTab='dman';lcLastSort='';lcSortDir=1;document.getElementById('lc-tab-dman').classList.add('active');document.getElementById('lc-tab-fwd').classList.remove('active');renderCombos();});
   document.getElementById('fa-search')?.addEventListener('input',renderFATracker);
 
   // Populate global nav registry so navGoView (global fn) can reach these closures
@@ -4321,10 +4321,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="lc-results" style="font-size:.8rem;color:var(--text3);margin-bottom:.5rem;"></div>
     <div style="font-size:.73rem;color:var(--text3);margin-bottom:.5rem;line-height:1.5;max-width:700px;">
       <strong style="color:var(--text2);">Reading this table:</strong>
-      Player name + colored number = overall rating (or selected attribute score when sorting by attribute).
+      Player name + colored number = overall rating.
       F1/F2/F3 column shows each player's individual score for the selected attribute.
       <strong>xGF%</strong> = expected goals share (50% is neutral; higher is better).
-      <strong>G±/60</strong> = actual goals per 60 min relative to opposition.
+      <strong>G±/60</strong> = Goal Differential per 60 min.
       Click any column header to sort; click again to reverse.
     </div>
     <div class="lb-table-wrap" id="lc-table-wrap">
