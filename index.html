@@ -2758,12 +2758,12 @@ function renderFATracker() {
       <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
       <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
       <td style="${mono}font-weight:600;color:${ovClr};">${ov}</td>
-      <td style="${mono}">${fmtM(p.cap)}</td>
-      <td style="${mono}">${fmtM(p.value)}</td>
-      <td style="${mono}color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
+      <td style="${mono}">${fmtM((p.proj_years||[])[0])}</td>
       <td style="${mono}">${fmtM(p.aav_1yr)}</td>
       <td style="${mono}">${fmtM(p.aav_4yr)}</td>
       <td style="${mono}">${fmtM(p.aav_7yr)}</td>
+      <td style="${mono}">${fmtM(p.cap)}</td>
+      <td style="${mono}color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
     </tr>`;
   }).join('');
 
@@ -3175,14 +3175,14 @@ function renderExtCandidates() {
       <td style="color:var(--text3);font-size:.82rem;">${p._type||p.pos||'–'}</td>
       <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
       <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
-      <td style="font-family:'DM Mono',monospace;font-weight:600;color:${ovClr};">${ov}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.cap)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.value)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:600;color:${ovClr};">${ov}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${veClr};">${fmtM(p.value_at_expiry)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_1yr)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_4yr)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_7yr)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${veClr};">${fmtM(p.value_at_expiry)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.cap)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.value)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
     </tr>`;
   }).join('');
 
@@ -3260,8 +3260,11 @@ function renderCombos(newSortKey) {
     const sel = document.getElementById('lc-sort');
     if (sel) { const opt=[...sel.options].find(o=>o.value===newSortKey); if(opt) sel.value=newSortKey; }
   } else {
-    if (sortKey !== lcLastSort) { lcSortDir=1; lcLastSort=sortKey; }
-    lcPinnedAttr = sortKey.startsWith('attr_') ? sortKey.slice(5) : null;
+    if (sortKey !== lcLastSort) {
+      lcSortDir=1; lcLastSort=sortKey;
+      lcPinnedAttr = sortKey.startsWith('attr_') ? sortKey.slice(5) : null;
+    }
+    // key unchanged (synced from header click) — lcPinnedAttr stays
   }
 
   const teamVal   = document.getElementById('lc-team')?.value    || 'all';
@@ -3401,7 +3404,7 @@ function renderCalcResult() {
   document.getElementById('calc-meta1').textContent =
     `${p.current_team||p.team||'–'} · ${p.pos||p._type||'–'} · Age ${p.age?Math.floor(p.age):'–'} · ${p.height||'–'} / ${p.weight||'–'} lb`;
   document.getElementById('calc-meta2').textContent =
-    `${p.role||'–'} · ${p.actual_role||'–'} · ${p.playstyle||'–'} · Exp: ${expLbl}`;
+    `${p.actual_role||'–'} · ${p.playstyle||'–'} · Exp: ${expLbl}`;
   document.getElementById('calc-ov').textContent  = ov;
   document.getElementById('calc-ov').style.color  = barColor(ov);
   document.getElementById('calc-cmp').textContent = comp;
@@ -3439,8 +3442,8 @@ function renderCalcResult() {
     const maxTerm = 7; // 8yr pending 26-27 workbook
     termEl.innerHTML = Array.from({length:maxTerm},(_,i)=>i+1).map(t => {
       const hasVal = !!p[`aav_${t}yr`];
-      return `<button class="calc-term-btn${t===calcTerm?' active':''}" data-term="${t}" ${hasVal?'':'style="opacity:.35;"'}>${t}yr</button>`;
-    }).join('');
+      return `<button class="calc-term-btn${t===calcTerm?' active':''}" data-term="${t}"${hasVal?'':' disabled title="Not modeled in current workbook" style="opacity:.35;cursor:default;"'}>${t}yr</button>`;
+    }).join('') + '<span style="font-size:.63rem;color:var(--text3);margin-left:.5rem;align-self:center;">1/3/7yr available now · all terms with 26-27 update</span>';
     termEl.querySelectorAll('.calc-term-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         calcTerm = +btn.dataset.term;
@@ -3502,14 +3505,14 @@ function updateCalcChart() {
   const inTerm = (i) => i < calcTerm;
 
   el.innerHTML = `
-    <div style="font-size:.75rem;color:var(--text2);font-weight:600;margin-bottom:.75rem;">Projected Value by Year (new deal starting ${expYear}-${String(expYear+1).slice(-2)})</div>
-    <div style="display:flex;align-items:flex-end;gap:4px;height:100px;padding-bottom:20px;position:relative;">
+    <div style="font-size:.75rem;color:var(--text2);font-weight:600;margin-bottom:.5rem;">Projected Value — deal starting ${expYear}–${String(expYear+1).slice(-2)}</div>
+    <div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding-bottom:20px;padding-top:24px;position:relative;">
       ${bars.map((v, i) => {
         const h = maxVal ? Math.round(((v||0)/maxVal)*100) : 0;
         const hilite = inTerm(i);
         const clr = hilite ? barColor(Math.round((v/maxVal)*100)) : 'var(--surface3)';
         return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
-          <div style="font-size:.6rem;color:var(--text3);margin-bottom:2px;">${fmtM(v)}</div>
+          <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:.58rem;color:var(--text3);white-space:nowrap;">${fmtM(v)}</div>
           <div style="width:100%;height:${h}px;background:${clr};border-radius:3px 3px 0 0;transition:background .2s;" title="${labels[i]}: ${fmtM(v)}"></div>
           <div style="position:absolute;bottom:-18px;font-size:.58rem;color:${hilite?'var(--text2)':'var(--text3)'};">${labels[i]}</div>
         </div>`;
@@ -3840,28 +3843,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const calcSrch = document.getElementById('calc-search');
   const calcDD   = document.getElementById('calc-dd');
   if (calcSrch && calcDD) {
-    wireSearch(calcSrch, calcDD, () => 'all');
+    // Custom calc search — does NOT call showPlayer; uses its own mousedown
+    let _calcResults = [];
+    calcSrch.addEventListener('input', () => {
+      const q = calcSrch.value.trim();
+      if (q.length < 2) { calcDD.innerHTML=''; return; }
+      _calcResults = searchPlayers(q,'all').filter(p=>p._type!=='G');
+      calcDD.innerHTML = _calcResults.map((p,i)=>`<div class="dd-item" data-idx="${i}"><div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.current_team||''} · ${p.actual_role||p.role||''}</div></div><div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--teal);">${p.overall_pct??'–'}</div></div>`).join('');
+      calcDD.querySelectorAll('.dd-item').forEach((item,i)=>{
+        item.addEventListener('mousedown', e=>{
+          e.preventDefault(); e.stopPropagation();
+          const p=_calcResults[i]; if(!p) return;
+          calcPlayer=p; calcTerm=1;
+          calcSrch.value=p.name; calcDD.innerHTML='';
+          renderCalcResult();
+          fetchNHLPlayerData(p.name,(_,pid)=>{
+            if(!pid) return;
+            const imgEl=document.getElementById('calc-hs');
+            const url=nhlHeadshotCache[p.name]||`https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`;
+            if(imgEl) imgEl.innerHTML=`<img src="${url}" onerror="this.style.display='none'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">`;
+          });
+        });
+      });
+    });
+    calcSrch.addEventListener('blur',()=>setTimeout(()=>{calcDD.innerHTML='';},200));
     calcDD.addEventListener('mousedown', e => {
       const item = e.target.closest('.dd-item');
       if (item) {
         e.preventDefault();
-        const results = searchPlayers(calcSrch.value, 'all');
-        const p = results[+item.dataset.idx];
-        if (p) {
-          calcPlayer = p;
-          calcTerm   = 1;
-          calcSrch.value = p.name;
-          calcDD.innerHTML = '';
-          renderCalcResult();
-          // Fetch headshot/ID
-          fetchNHLPlayerData(p.name, (_, pid) => {
-            const imgEl = document.getElementById('calc-hs');
-            if (imgEl && pid) {
-              const url = nhlHeadshotCache[p.name] || `https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`;
-              imgEl.innerHTML = `<img src="${url}" onerror="this.outerHTML='<div class=calc-init-box>${initials(p.name)}</div>'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">`;
-            }
-          });
-        }
+        const results = _calcResults;
+        /* handled by item mousedown above */
       }
     });
   }
@@ -4227,8 +4238,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <thead><tr>
           <th class="lb-rank">#</th>
           <th>Player</th><th>Pos</th><th>Team</th><th>Type</th>
-          <th>Overall</th><th>Cap Hit</th><th>Value</th><th>Surplus</th>
-          <th>1-Yr AAV</th><th>4-Yr AAV</th><th>7-Yr AAV</th>
+          <th>Overall</th><th>Avg Value</th>
+          <th>1-Yr FV</th><th>4-Yr FV</th><th>7-Yr FV</th>
+          <th>25-26 Cap</th><th>25-26 Surplus</th>
         </tr></thead>
         <tbody id="fa-list"></tbody>
       </table>
@@ -4411,6 +4423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-ct-ext">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item active" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
     </div>
@@ -4480,13 +4493,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <th>Team</th>
           <th>Type</th>
           <th>Overall</th>
-          <th>Cap Hit</th>
-          <th>25-26 Value</th>
-          <th>Surplus</th>
+          <th>Val@Expiry</th>
           <th>1-Yr Ext</th>
           <th>4-Yr Ext</th>
           <th>7-Yr Ext</th>
-          <th>Value@Exp</th>
+          <th>25-26 Cap</th>
+          <th>25-26 Value</th>
+          <th>25-26 Surplus</th>
         </tr></thead>
         <tbody id="ext-tbody"></tbody>
       </table>
