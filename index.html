@@ -2763,6 +2763,7 @@ function renderFATracker() {
       <td style="${mono}">${fmtM(p.aav_4yr)}</td>
       <td style="${mono}">${fmtM(p.aav_7yr)}</td>
       <td style="${mono}">${fmtM(p.cap)}</td>
+      <td style="${mono}">${fmtM(p.value)}</td>
       <td style="${mono}color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
     </tr>`;
   }).join('');
@@ -3847,15 +3848,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let _calcResults = [];
     calcSrch.addEventListener('input', () => {
       const q = calcSrch.value.trim();
-      if (q.length < 2) { calcDD.innerHTML=''; return; }
+      if (q.length < 2) { calcDD.className='dropdown'; calcDD.innerHTML=''; return; }
       _calcResults = searchPlayers(q,'all').filter(p=>p._type!=='G');
+      if (!_calcResults.length) { calcDD.className='dropdown'; calcDD.innerHTML=''; return; }
+      calcDD.className='dropdown open';
       calcDD.innerHTML = _calcResults.map((p,i)=>`<div class="dd-item" data-idx="${i}"><div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.current_team||''} · ${p.actual_role||p.role||''}</div></div><div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--teal);">${p.overall_pct??'–'}</div></div>`).join('');
       calcDD.querySelectorAll('.dd-item').forEach((item,i)=>{
         item.addEventListener('mousedown', e=>{
           e.preventDefault(); e.stopPropagation();
           const p=_calcResults[i]; if(!p) return;
           calcPlayer=p; calcTerm=1;
-          calcSrch.value=p.name; calcDD.innerHTML='';
+          calcSrch.value=p.name; calcDD.className='dropdown'; calcDD.innerHTML='';
           renderCalcResult();
           fetchNHLPlayerData(p.name,(_,pid)=>{
             if(!pid) return;
@@ -3866,7 +3869,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
     });
-    calcSrch.addEventListener('blur',()=>setTimeout(()=>{calcDD.innerHTML='';},200));
+    calcSrch.addEventListener('blur',()=>setTimeout(()=>{calcDD.className='dropdown';calcDD.innerHTML='';},200));
     calcDD.addEventListener('mousedown', e => {
       const item = e.target.closest('.dd-item');
       if (item) {
@@ -4240,7 +4243,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <th>Player</th><th>Pos</th><th>Team</th><th>Type</th>
           <th>Overall</th><th>Avg Value</th>
           <th>1-Yr FV</th><th>4-Yr FV</th><th>7-Yr FV</th>
-          <th>25-26 Cap</th><th>25-26 Surplus</th>
+          <th>25-26 Cap</th><th>25-26 Value</th><th>25-26 Surplus</th>
         </tr></thead>
         <tbody id="fa-list"></tbody>
       </table>
