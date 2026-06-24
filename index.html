@@ -352,7 +352,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata">Team Data <span class="dd-arrow">▾</span></button>
@@ -434,7 +434,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-lb" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-lb">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-lb"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-lb">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-lb">Team Data <span class="dd-arrow">▾</span></button>
@@ -497,7 +497,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-tm" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-tm">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-tm"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-tm">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-teamdata-tm">Team Data <span class="dd-arrow">▾</span></button>
@@ -514,6 +514,9 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-gm-lb" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-gm-tm" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -563,7 +566,7 @@ let currentSeasonView = '2025-26';  // active season in season selector
 async function loadData() {
   const loading = document.getElementById('loading-msg');
   try {
-    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes, snapRes, combosRes] = await Promise.all([
+    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes, snapRes, combosRes, chemRes] = await Promise.all([
       fetch("players_fwd.json"),
       fetch("players_dman.json"),
       fetch("players_goalie.json"),
@@ -572,6 +575,7 @@ async function loadData() {
       fetch("breakout.json"),
       fetch('roster_snapshots.json').catch(() => null),
       fetch("combos.json").catch(() => null),
+      fetch("player_chemistry.json").catch(() => null),
     ]);
     if (!fwdRes.ok || !dmanRes.ok) throw new Error('Failed to load player data');
     const [fwds, dmans, goalies, cfwd, cdman, bkData] = await Promise.all([
@@ -590,6 +594,10 @@ async function loadData() {
       const combosRaw = combosRes ? await combosRes.json().catch(()=>null) : null;
       window.COMBOS_DATA = combosRaw || {fwd:[], dman:[]};
     } catch(e) { window.COMBOS_DATA = {fwd:[], dman:[]}; }
+    try {
+      const chemRaw = chemRes ? await chemRes.json().catch(()=>null) : null;
+      window.CHEM_DATA = chemRaw || {};
+    } catch(e) { window.CHEM_DATA = {}; }
     try {
       const snapRaw = snapRes ? await snapRes.json().catch(()=>null) : null;
       window.ROSTER_SNAPSHOTS = snapRaw?.snapshots || {};
@@ -3522,6 +3530,843 @@ function updateCalcChart() {
     <div style="font-size:.68rem;color:var(--text3);margin-top:.75rem;">Highlighted bars = years covered by selected term · Values = model implied fair market value</div>`;
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PLAYER CHEMISTRY
+// ══════════════════════════════════════════════════════════════════════════════
+window.CHEM_DATA = window.CHEM_DATA || {};
+
+function renderPlayerChem(player) {
+  const panel = document.getElementById('pc-panel');
+  if (!panel) return;
+  panel.style.display = 'block';
+
+  const rec  = window.CHEM_DATA[player.name];
+  const mono = "font-family:'DM Mono',monospace;font-size:.8rem;";
+  const ov   = player.overall_pct ?? 0;
+
+  // ── Header ──────────────────────────────────────────────────────────────────
+  document.getElementById('pc-name').textContent = player.name;
+  document.getElementById('pc-meta').textContent =
+    `${player.current_team||player.team||'–'} · ${player.pos||player._type||'–'} · ${player.actual_role||player.role||'–'}`;
+  const ovEl = document.getElementById('pc-ov');
+  ovEl.textContent = ov; ovEl.style.color = barColor(ov);
+
+  if (!rec || rec.n < 3) {
+    document.getElementById('pc-body').innerHTML =
+      `<div style="color:var(--text3);padding:1rem;">Not enough historical line data for ${player.name}.</div>`;
+    return;
+  }
+
+  // ── Attribute correlation bars ──────────────────────────────────────────────
+  const attrR = rec.attr_r || {};
+  const attrD = rec.attr_d || {};
+  // Sort by absolute correlation, show top 12
+  const sorted = Object.entries(attrR)
+    .sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0,12);
+
+  const maxAbs = Math.max(...sorted.map(([,r]) => Math.abs(r)), 0.01);
+  const barRows = sorted.map(([attr, r]) => {
+    const pct  = Math.round(Math.abs(r)/maxAbs*100);
+    const clr  = r > 0 ? 'var(--teal)' : 'var(--coral)';
+    const diff = attrD[attr];
+    const diffStr = diff != null ? `(Δ${diff > 0?'+':''}${diff.toFixed(1)})` : '';
+    return `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+      <div style="width:130px;font-size:.73rem;color:var(--text2);text-align:right;flex-shrink:0;">${attr}</div>
+      <div style="flex:1;background:var(--surface3);border-radius:3px;height:10px;overflow:hidden;">
+        <div style="height:100%;border-radius:3px;background:${clr};width:${pct}%;"></div>
+      </div>
+      <div style="width:80px;font-size:.7rem;${mono}color:${clr};">${r>0?'+':''}${r.toFixed(2)} ${diffStr}</div>
+    </div>`;
+  }).join('');
+
+  // ── Model chemistry needs ───────────────────────────────────────────────────
+  const seekHtml = (rec.seek||[]).map(a =>
+    `<span style="padding:.15rem .5rem;border-radius:999px;border:1px solid var(--teal);color:var(--teal);font-size:.72rem;">${a}</span>`
+  ).join(' ');
+  const avoidHtml = (rec.avoid||[]).map(a =>
+    `<span style="padding:.15rem .5rem;border-radius:999px;border:1px solid var(--coral);color:var(--coral);font-size:.72rem;">${a}</span>`
+  ).join(' ');
+
+  // ── Best / worst combos ─────────────────────────────────────────────────────
+  const fmtCombo = (c, good) => {
+    const clr = good ? 'var(--teal)' : 'var(--coral)';
+    const names = c.p.join(' + ');
+    return `<tr>
+      <td style="font-size:.78rem;font-weight:500;">${names}</td>
+      <td style="font-size:.72rem;color:var(--text3);">${c.s}</td>
+      <td style="${mono}">${c.toi} min</td>
+      <td style="${mono}font-weight:600;color:${clr};">${c.xgf}%</td>
+    </tr>`;
+  };
+
+  document.getElementById('pc-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+      <div class="calc-card">
+        <div style="font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:.6rem;">
+          Linemate attribute correlation with xGF%
+          <span style="font-weight:400;color:var(--text3);"> · ${rec.n} historical combos</span>
+        </div>
+        <div style="font-size:.68rem;color:var(--text3);margin-bottom:.5rem;">
+          Green = better lines when linemate has this attribute · Red = worse lines
+        </div>
+        ${barRows}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.75rem;">
+        ${seekHtml||avoidHtml ? `<div class="calc-card">
+          <div style="font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:.5rem;">Model-implied chemistry</div>
+          ${seekHtml ? `<div style="margin-bottom:.4rem;"><span style="font-size:.7rem;color:var(--text3);">Seek in linemates: </span>${seekHtml}</div>` : ''}
+          ${avoidHtml ? `<div><span style="font-size:.7rem;color:var(--text3);">Caution: </span>${avoidHtml}</div>` : ''}
+        </div>` : ''}
+        <div class="calc-card" style="flex:1;">
+          <div style="font-size:.75rem;font-weight:600;color:var(--teal);margin-bottom:.4rem;">Best combos</div>
+          <table style="width:100%;border-collapse:collapse;">
+            ${(rec.best||[]).map(c=>fmtCombo(c,true)).join('')}
+          </table>
+        </div>
+        <div class="calc-card" style="flex:1;">
+          <div style="font-size:.75rem;font-weight:600;color:var(--coral);margin-bottom:.4rem;">Worst combos</div>
+          <table style="width:100%;border-collapse:collapse;">
+            ${(rec.worst||[]).map(c=>fmtCombo(c,false)).join('')}
+          </table>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GM MODE
+// ══════════════════════════════════════════════════════════════════════════════
+const GM_CAP    = 104_000_000;   // 2026-27 salary cap
+const GM_SEASON = 2027;          // first season of new contracts
+
+// Complementarity model (from regression analysis)
+const GM_COMP_FWD = {
+  'Playdriving':       ['Shot quality','Passing'],
+  'Forecheck offense': ['Passing','Shot quality'],
+  'Passing':           ['Shot quality','Forecheck offense'],
+  'Shot quality':      ['Passing','Playdriving'],
+  'Entry defense':     ['Playdriving'],
+  'Physicality':       ['Passing','Playdriving'],
+  'Speed':             ['Playdriving'],
+  'Endurance':         ['Forecheck offense'],
+};
+const GM_COMP_DMAN = {
+  'Entry defense':         ['Playdriving'],
+  'Playdriving':           ['Entry defense','Passing'],
+  'Passing':               ['Shot quality','Playdriving'],
+  'Shot quality':          ['Passing'],
+  'D zone exits':          ['Playdriving'],
+  'Transition offense':    ['Entry defense'],
+  'Off. Zone Involvement': ['Penalty kill','Entry defense'],
+};
+const GM_ATTR_THRESHOLD = 70;
+
+let gmState = {
+  teamCode: null,
+  baseRoster: [],    // original players from team
+  roster: [],        // current modified roster [{...player, gmRole, gmCap, gmTerm}]
+  logs: [],          // action log entries
+};
+
+function gmTradeValue(p) {
+  if (!p) return 0;
+  const pyrs = p.proj_years || [];
+  if (!pyrs.length) return p.value || 0;
+  const ey = parseInt(p.exp_year) || 2026;
+  const offset = Math.max(1, ey - 2025);
+  const bars = pyrs.slice(offset).filter(Boolean);
+  return bars.length ? Math.round(bars.reduce((s,v)=>s+v,0)/bars.length) : (p.value||0);
+}
+
+function gmProjPts(roster) {
+  if (!roster.length) return 0;
+  const skaters = roster.filter(r => r.p._type !== 'G');
+  const goalies  = roster.filter(r => r.p._type === 'G');
+  if (!skaters.length) return 0;
+  // TOI-weighted avg overall
+  let ws=0, wt=0;
+  skaters.forEach(r => {
+    const p = r.p;
+    const tstr = p.toi_per_gp||'0:00';
+    const parts = tstr.split(':');
+    const toi = parts.length===2 ? parseFloat(parts[0])+parseFloat(parts[1])/60 : 0;
+    const w = (toi>0 && p.gp) ? toi*p.gp : 1;
+    ws += (p.overall_pct||50)*w; wt += w;
+  });
+  const avgOv = wt>0 ? ws/wt : 50;
+  let goalieScore = 50;
+  if (goalies.length) {
+    const gGP = goalies.reduce((s,r)=>s+(r.p.gp||0),0);
+    goalieScore = gGP>0
+      ? goalies.reduce((s,r)=>s+(r.p.overall_2526||r.p.comp_value_norm||50)*(r.p.gp||0),0)/gGP
+      : 50;
+  }
+  return Math.round(PTS_COEF_SKATER*avgOv + PTS_COEF_GOALIE*(goalieScore/100) + PTS_INTERCEPT);
+}
+
+function gmCapUsed(roster) {
+  return roster.reduce((s,r) => s+(r.gmCap||r.p.cap||0), 0);
+}
+
+// linemates = array of roster entries (r.p) that this player actually plays with
+// For FWD: the other 2 players in the same line; for D: their partner
+function gmChemBadge(player, linemates) {
+  if (!linemates || linemates.length === 0)
+    return {label:'–', color:'var(--text3)', title:'No linemate data'};
+  const model = player._type==='D' ? GM_COMP_DMAN : GM_COMP_FWD;
+  const cats = player.categories || {};
+  let seekFound=0, seekTotal=0;
+  for (const [attr, needed] of Object.entries(model)) {
+    const pAttr = Object.values(cats).flat().find(c=>c.name===attr);
+    if (!pAttr || pAttr.pct < GM_ATTR_THRESHOLD) continue;
+    seekTotal += needed.length;
+    for (const neededAttr of needed) {
+      const hasIt = linemates.some(lm => {
+        const lmCats = (lm.p||lm)?.categories || {};
+        return Object.values(lmCats).flat().find(c=>c.name===neededAttr && c.pct>=GM_ATTR_THRESHOLD);
+      });
+      if (hasIt) seekFound++;
+    }
+  }
+  if (seekTotal===0) return {label:'–', color:'var(--text3)', title:'No strong attribute signals'};
+  const ratio = seekFound/seekTotal;
+  if (ratio>=0.6) return {label:'⚡ Good fit', color:'var(--teal)',  title:'Complementary attribute signals with linemates'};
+  if (ratio>=0.3) return {label:'~ Neutral',  color:'var(--text2)', title:'Some complementarity, some gaps'};
+  return     {label:'⚠ Poor fit', color:'var(--coral)', title:'Missing key complementary linemate attributes'};
+}
+
+// ── Depth chart builder ──────────────────────────────────────────────────────
+function buildDepthChart(roster) {
+  const parseTOI = s => {
+    if (!s) return 0;
+    const pts = s.split(':');
+    return pts.length===2 ? parseInt(pts[0])+parseInt(pts[1])/60 : 0;
+  };
+  const byTOI = (a,b) => parseTOI(b.p.toi_per_gp) - parseTOI(a.p.toi_per_gp);
+
+  const fwds = roster.filter(r=>r.p._type==='F').sort(byTOI);
+  const dmen = roster.filter(r=>r.p._type==='D').sort(byTOI);
+  const gols = roster.filter(r=>r.p._type==='G').sort(byTOI);
+
+  // Classify forwards by position
+  const isC  = r => /^C/.test(r.p.pos||'');
+  const isLW = r => /^L/.test(r.p.pos||'') && !isC(r);
+  const isRW = r => /^R/.test(r.p.pos||'') && !isC(r);
+
+  let centers = fwds.filter(isC);
+  let lwings  = fwds.filter(isLW);
+  let rwings  = fwds.filter(isRW);
+  let flex    = fwds.filter(r=>!isC(r)&&!isLW(r)&&!isRW(r));  // 'D' etc. rare
+
+  // Build 4 lines: each gets [C, LW, RW]
+  const lines = Array.from({length:4}, ()=>({c:null,lw:null,rw:null}));
+  lines.forEach(line => {
+    if (centers.length) { line.c  = centers.shift(); }
+    else if (flex.length) { line.c = flex.shift(); }
+    if (lwings.length)  { line.lw = lwings.shift(); }
+    else if (flex.length) { line.lw = flex.shift(); }
+    if (rwings.length)  { line.rw = rwings.shift(); }
+    else if (flex.length) { line.rw = flex.shift(); }
+  });
+  // Remaining forwards (>12) go to scratch
+  const used = new Set([...centers,...lwings,...rwings,...flex].filter(r=>r).map(r=>r.p.name));
+  // (centers/lwings/rwings were already shifted, so just check flex remainder)
+  const extraFwd = [...centers,...lwings,...rwings,...flex];
+
+  // D pairs: top 6 by TOI
+  const pairs = [
+    [dmen[0],dmen[1]].filter(Boolean),
+    [dmen[2],dmen[3]].filter(Boolean),
+    [dmen[4],dmen[5]].filter(Boolean),
+  ].filter(p=>p.length>0);
+  const extraD = dmen.slice(6);
+
+  const activeNames = new Set([
+    ...lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(r=>r.p.name),
+    ...pairs.flat().map(r=>r.p.name),
+    ...gols.slice(0,2).map(r=>r.p.name),
+  ]);
+  const scratches = roster.filter(r=>!activeNames.has(r.p.name));
+
+  return {lines, pairs, goalies:gols.slice(0,2), scratches};
+}
+
+// ── Sanity check vs actual 2025-26 combos ────────────────────────────────────
+function gmSanityCheck(depthChart) {
+  const combos = window.COMBOS_DATA?.fwd || [];
+  if (!combos.length) return null;
+  let exact=0, twoOf3=0, total=0;
+  for (const line of depthChart.lines) {
+    const members = [line.c,line.lw,line.rw].filter(Boolean);
+    if (members.length < 2) continue;
+    total++;
+    const names = new Set(members.map(r=>r.p.name.toLowerCase()));
+    const bestMatch = combos.reduce((best,c)=>{
+      const overlap = c.players.filter(n=>names.has(n.toLowerCase())).length;
+      return Math.max(best,overlap);
+    },0);
+    if (bestMatch===3) exact++;
+    else if (bestMatch===2) twoOf3++;
+  }
+  return {exact, twoOf3, total};
+}
+
+function gmFairnessCheck(outPlayers, inPlayers) {
+  const outVal = outPlayers.reduce((s,p)=>s+gmTradeValue(p),0);
+  const inVal  = inPlayers.reduce((s,p)=>s+gmTradeValue(p),0);
+  const total  = Math.max(outVal, inVal);
+  if (!total) return {ok:true, msg:'No value to compare'};
+  const diff = Math.abs(outVal-inVal)/total;
+  const fmtM = v => '$'+(v/1e6).toFixed(1)+'M';
+  const msg = `Out: ${fmtM(outVal)} avg trade value | In: ${fmtM(inVal)} avg trade value (${(diff*100).toFixed(0)}% difference)`;
+  return {ok: diff<=0.10, outVal, inVal, diff, msg};
+}
+
+// ── Render functions ─────────────────────────────────────────────────────────
+
+function renderGMTeamSelect() {
+  const wrap = document.getElementById('gm-content');
+  if (!wrap) return;
+  const fmtM = v => v ? '$'+(v/1e6).toFixed(1)+'M' : '–';
+
+  const teamRows = NHL_TEAM_CODES.map(tc => {
+    const prof = getTeamProfile(tc, 'all', null);
+    if (!prof) return null;
+    const cap = ALL_PLAYERS.filter(p=>p.current_team===tc||p.current_team==={'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'}[tc])
+                           .reduce((s,p)=>s+(p.cap||0),0);
+    return {tc, prof, cap};
+  }).filter(Boolean).sort((a,b)=>b.prof.projPts-a.prof.projPts);
+
+  wrap.innerHTML = `
+    <div style="font-size:.85rem;color:var(--text3);margin-bottom:1.25rem;">
+      Choose your team to begin. Your session roster will be built from the current season's data.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.5rem;">
+      ${teamRows.map(({tc,prof,cap}) => `
+        <div onclick="gmSelectTeam('${tc}')" style="cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .85rem;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div>
+            <div style="font-weight:600;font-size:.9rem;">${tc}</div>
+            <div style="font-size:.7rem;color:var(--text3);">${fmtM(cap)} cap · ${prof.projPts} proj pts</div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:${prof.projClr};">${prof.projPts}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function gmSelectTeam(tc) {
+  const players = ALL_PLAYERS.filter(p => {
+    const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+    return p.current_team===tc || p.current_team===DOTTED[tc];
+  });
+  gmState.teamCode = tc;
+  gmState.baseRoster = players;
+  gmState.roster = players.map(p => ({p, gmRole:'current', gmCap:p.cap||0, gmTerm:null}));
+  gmState.logs = [`Started session as GM of ${tc}.`];
+  renderGMDashboard();
+}
+
+function renderGMDashboard() {
+  const tc   = gmState.teamCode;
+  const wrap = document.getElementById('gm-content');
+  if (!wrap || !tc) return;
+
+  const roster  = gmState.roster;
+  const capUsed = gmCapUsed(roster);
+  const capLeft = GM_CAP - capUsed;
+  const projPts = gmProjPts(roster);
+  const basePts = gmProjPts(gmState.baseRoster.map(p=>({p})));
+  const ptsDiff = projPts - basePts;
+  const ptsDiffStr = ptsDiff===0?'':(ptsDiff>0
+    ?`<span style="color:var(--teal);font-size:.8rem;">+${ptsDiff} pts</span>`
+    :`<span style="color:var(--coral);font-size:.8rem;">${ptsDiff} pts</span>`);
+  const fmtM  = v => v!=null?'$'+(Math.abs(v)/1e6).toFixed(2)+'M':'–';
+  const capClr = capLeft<0?'var(--coral)':capLeft<5e6?'#f5a623':'var(--teal)';
+  const mono  = "font-family:'DM Mono',monospace;font-size:.82rem;";
+
+  // Build depth chart — used for chemistry and display
+  const dc = buildDepthChart(roster);
+  // Map player name → linemates for chemistry lookup
+  const linemateMap = {};
+  dc.lines.forEach(line => {
+    const members = [line.c,line.lw,line.rw].filter(Boolean);
+    members.forEach(r => {
+      linemateMap[r.p.name] = members.filter(x=>x!==r);
+    });
+  });
+  dc.pairs.forEach(pair => {
+    pair.forEach(r => {
+      linemateMap[r.p.name] = pair.filter(x=>x!==r);
+    });
+  });
+
+  // Sanity check
+  const sanity = gmSanityCheck(dc);
+
+  const myFAs  = roster.filter(r=>r.p.exp_year==='2026'&&r.gmRole==='current');
+
+  // Depth chart HTML helper
+  const lineSlot = (r, label) => {
+    if (!r) return `<td style="width:33%;padding:.3rem .5rem;color:var(--text3);font-size:.72rem;">${label} TBD</td>`;
+    const linemates = linemateMap[r.p.name]||[];
+    const badge = gmChemBadge(r.p, linemates);
+    const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
+    const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
+    return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
+      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
+      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'–'} · ${fmtM(r.gmCap||r.p.cap)}</div>
+      <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
+    </td>`;
+  };
+
+  const dPairSlot = (r, label) => {
+    if (!r) return `<td style="width:50%;padding:.3rem .5rem;color:var(--text3);font-size:.72rem;">${label} TBD</td>`;
+    const partner = (linemateMap[r.p.name]||[]);
+    const badge = gmChemBadge(r.p, partner);
+    const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
+    const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
+    return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
+      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
+      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'D'} · ${fmtM(r.gmCap||r.p.cap)}</div>
+      <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
+    </td>`;
+  };
+
+  const linesHtml = dc.lines.map((line,i) => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:.3rem .5rem;font-size:.72rem;color:var(--text3);font-weight:600;white-space:nowrap;">Line ${i+1}</td>
+      ${lineSlot(line.c,'C')}${lineSlot(line.lw,'LW')}${lineSlot(line.rw,'RW')}
+    </tr>`).join('');
+
+  const pairsHtml = dc.pairs.map((pair,i) => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:.3rem .5rem;font-size:.72rem;color:var(--text3);font-weight:600;white-space:nowrap;">Pair ${i+1}</td>
+      ${dPairSlot(pair[0],'LD/D')}${dPairSlot(pair[1],'RD/D')}
+    </tr>`).join('');
+
+  const scratchHtml = dc.scratches.length
+    ? dc.scratches.map(r=>`<span style="font-size:.72rem;color:var(--text3);margin-right:.5rem;">${r.p.name} (${r.p.pos||'–'})</span>`).join('')
+    : '<span style="color:var(--text3);font-size:.72rem;">None</span>';
+
+  const sanityHtml = sanity
+    ? `<div style="font-size:.7rem;color:var(--text3);margin-top:.4rem;">
+        Sanity check vs 2025-26 line data: <strong style="color:var(--text2);">${sanity.exact} exact</strong> + ${sanity.twoOf3} partial match of ${sanity.total} projected lines
+        ${sanity.exact+sanity.twoOf3>=2?'<span style="color:var(--teal);">✓ reasonable projection</span>':'<span style="color:var(--text3);">(new combinations)</span>'}
+      </div>` : '';
+
+  wrap.innerHTML = `
+    <!-- Cap + projection bar -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem;margin-bottom:.85rem;">
+      <div class="calc-card" style="text-align:center;">
+        <div style="font-size:.63rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Proj Points</div>
+        <div style="${mono}font-size:1.5rem;font-weight:600;color:${projPts>=100?'var(--teal)':projPts>=88?'var(--text)':'var(--coral)'};">${projPts}</div>
+        <div>${ptsDiffStr}</div>
+      </div>
+      <div class="calc-card" style="text-align:center;">
+        <div style="font-size:.63rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Cap Used</div>
+        <div style="${mono}font-size:1.3rem;font-weight:600;">${fmtM(capUsed)}</div>
+        <div style="font-size:.7rem;color:var(--text3);">of $104.0M</div>
+      </div>
+      <div class="calc-card" style="text-align:center;">
+        <div style="font-size:.63rem;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;">Cap Space</div>
+        <div style="${mono}font-size:1.3rem;font-weight:600;color:${capClr};">${capLeft<0?'-':''}${fmtM(Math.abs(capLeft))}</div>
+        <div style="font-size:.7rem;color:var(--text3);">${capLeft<0?'OVER CAP':'available'}</div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.85rem;">
+      <button class="calc-term-btn" onclick="gmOpenResign()">Re-sign FA</button>
+      <button class="calc-term-btn" onclick="gmOpenSignUFA()">Sign External UFA</button>
+      <button class="calc-term-btn" onclick="gmOpenTrade()">Make Trade</button>
+      <button class="calc-term-btn" style="margin-left:auto;" onclick="gmAnalyse()">📊 Analyse Roster</button>
+    </div>
+
+    ${myFAs.length?`<div style="font-size:.75rem;color:var(--coral);margin-bottom:.6rem;padding:.4rem .75rem;background:rgba(239,68,68,.08);border-radius:4px;border-left:3px solid var(--coral);">⚠ ${myFAs.length} pending free agent${myFAs.length>1?'s':''}: ${myFAs.map(r=>r.p.name).join(', ')} — will not return unless re-signed.</div>`:''}
+
+    <!-- Depth chart -->
+    <div class="calc-card" style="margin-bottom:.75rem;">
+      <div style="font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:.5rem;">
+        Projected Depth Chart
+        <span style="font-weight:400;color:var(--text3);font-size:.7rem;"> · sorted by TOI/GP · left-colored border = expiry warning · ⚡/~/⚠ = linemate chemistry</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr>
+          <th style="width:60px;padding:.25rem .5rem;font-size:.68rem;color:var(--text3);text-align:left;"></th>
+          <th style="font-size:.68rem;color:var(--text3);text-align:left;">C</th>
+          <th style="font-size:.68rem;color:var(--text3);text-align:left;">LW</th>
+          <th style="font-size:.68rem;color:var(--text3);text-align:left;">RW</th>
+        </tr></thead>
+        <tbody>${linesHtml}</tbody>
+      </table>
+      <div style="height:.5rem;"></div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr>
+          <th style="width:60px;padding:.25rem .5rem;font-size:.68rem;color:var(--text3);text-align:left;"></th>
+          <th style="font-size:.68rem;color:var(--text3);text-align:left;">D1</th>
+          <th style="font-size:.68rem;color:var(--text3);text-align:left;">D2</th>
+        </tr></thead>
+        <tbody>${pairsHtml}</tbody>
+      </table>
+      ${dc.goalies.length?`<div style="margin-top:.5rem;font-size:.72rem;color:var(--text3);">Goalies: ${dc.goalies.map(r=>r.p.name).join(' / ')}</div>`:''}
+      ${dc.scratches.length?`<div style="margin-top:.35rem;font-size:.7rem;color:var(--text3);">Press box: ${scratchHtml}</div>`:''}
+      ${sanityHtml}
+    </div>
+
+    <!-- Flat roster table for management -->
+    <div style="margin-bottom:.75rem;">
+      <div style="font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:.35rem;">Roster Management (${roster.length} players)</div>
+      <div class="lb-table-wrap">
+        <table class="lb-table">
+          <thead><tr>
+            <th>Player</th><th>Pos</th><th>Role</th><th>Exp</th>
+            <th>Cap Hit</th><th>Trade Value</th><th></th>
+          </tr></thead>
+          <tbody>${roster.map(r=>gmRosterRow(r,linemateMap[r.p.name]||[])).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Action area -->
+    <div id="gm-action-area"></div>
+
+    <!-- Log -->
+    <div class="calc-card" style="margin-top:.75rem;">
+      <div style="font-size:.72rem;font-weight:600;color:var(--text2);margin-bottom:.35rem;">Session log</div>
+      ${gmState.logs.slice(-8).reverse().map(l=>`<div style="font-size:.7rem;color:var(--text3);margin-bottom:.15rem;">${l}</div>`).join('')}
+    </div>`;
+}
+function gmRosterRow(r, linemates) {  // linemates = roster entries for this player's line
+  const p = r.p;
+  const fmtM = v => v!=null?'$'+(v/1e6).toFixed(2)+'M':'–';
+  const mono = "font-family:'DM Mono',monospace;font-size:.78rem;";
+  const roleClr = {current:'var(--text2)', signed:'var(--teal)', traded_in:'#a78bfa', resigned:'var(--blue)'}[r.gmRole]||'var(--text2)';
+  const roleLbl = {current:'Roster',signed:'Signed',traded_in:'Acquired',resigned:'Re-signed'}[r.gmRole]||r.gmRole;
+  const tv = gmTradeValue(p);
+  const badge = gmChemBadge(p, linemates);
+  const expClr = p.exp_year==='2026'?'var(--coral)':p.exp_year==='2027'?'#f5a623':'var(--text3)';
+  const capClr = r.gmRole==='resigned'||r.gmRole==='signed'?'var(--teal)':'var(--text)';
+
+  return `<tr data-pname="${p.name}">
+    <td style="font-weight:500;font-size:.82rem;cursor:pointer;" onclick="showPlayer(ALL_PLAYERS.find(x=>x.name==='${p.name.replace(/'/g,"\\'")}'))">${p.name}</td>
+    <td style="color:var(--text3);font-size:.78rem;">${p.pos||p._type||'–'}</td>
+    <td><span style="font-size:.68rem;font-weight:600;color:${roleClr};">${roleLbl}</span></td>
+    <td style="font-size:.75rem;color:${expClr};">${p.exp_year||'–'} ${p.expiry_type||''}</td>
+    <td style="${mono}color:${capClr};">${fmtM(r.gmCap)}</td>
+    <td style="${mono}color:var(--text2);">${fmtM(tv)}</td>
+    <td><button onclick="gmRemovePlayer('${p.name.replace(/'/g,"\\'")}',event)" style="font-size:.65rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.1rem .35rem;cursor:pointer;">✕</button></td>
+  </tr>`;
+}
+
+function gmRemovePlayer(name, e) {
+  e.stopPropagation();
+  gmState.roster = gmState.roster.filter(r=>r.p.name!==name);
+  gmState.logs.push(`Removed ${name} from roster.`);
+  renderGMDashboard();
+}
+
+// ── Re-sign FA ────────────────────────────────────────────────────────────────
+function gmOpenResign() {
+  const area = document.getElementById('gm-action-area');
+  if (!area) return;
+  const fas = gmState.roster.filter(r=>r.p.exp_year==='2026' && r.gmRole==='current');
+  if (!fas.length) { area.innerHTML='<div class="calc-card" style="color:var(--text3);">No pending free agents on your roster.</div>'; return; }
+  area.innerHTML = `
+    <div class="calc-card" style="border:1px solid var(--teal);">
+      <div style="font-weight:600;font-size:.85rem;margin-bottom:.6rem;">Re-sign a Free Agent</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+        <select class="lb-select" id="gm-resign-player">
+          ${fas.map(r=>`<option value="${r.p.name}">${r.p.name} (${r.p._type})</option>`).join('')}
+        </select>
+        <div id="gm-resign-terms" style="display:flex;gap:.35rem;flex-wrap:wrap;"></div>
+        <button class="calc-term-btn" onclick="gmConfirmResign()">Confirm Re-sign</button>
+        <button class="calc-term-btn" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
+      </div>
+      <div id="gm-resign-preview" style="font-size:.78rem;color:var(--teal);margin-top:.5rem;font-family:'DM Mono',monospace;"></div>
+    </div>`;
+  gmUpdateResignTerms();
+  document.getElementById('gm-resign-player').addEventListener('change', gmUpdateResignTerms);
+}
+
+function gmUpdateResignTerms() {
+  const name = document.getElementById('gm-resign-player')?.value;
+  const p = gmState.roster.find(r=>r.p.name===name)?.p;
+  const termsDiv = document.getElementById('gm-resign-terms');
+  if (!p || !termsDiv) return;
+  const fmtM = v => v?'$'+(v/1e6).toFixed(2)+'M':'N/A';
+  termsDiv.innerHTML = [1,2,3,4,5,6,7].map(t => {
+    const aav = p[`aav_${t}yr`];
+    return `<button class="calc-term-btn${t===gmState._resignTerm?' active':''}" onclick="gmSetResignTerm(${t})" ${aav?'':'disabled title="No FV data"'} style="${aav?'':'opacity:.35;cursor:default;'}">
+      ${t}yr ${aav?fmtM(aav):'–'}
+    </button>`;
+  }).join('');
+  if (!gmState._resignTerm) gmSetResignTerm(1);
+}
+
+function gmSetResignTerm(t) {
+  gmState._resignTerm = t;
+  const name = document.getElementById('gm-resign-player')?.value;
+  const p = gmState.roster.find(r=>r.p.name===name)?.p;
+  const fmtM = v => v?'$'+(v/1e6).toFixed(2)+'M':'–';
+  const aav = p?.[`aav_${t}yr`];
+  const prev = document.getElementById('gm-resign-preview');
+  if (prev && p) prev.textContent = aav
+    ? `${p.name} — ${t}-yr deal at ${fmtM(aav)}/yr · Total: ${fmtM(aav*t)} · Cap space after: ${fmtM(GM_CAP-gmCapUsed(gmState.roster)-(aav-(p.cap||0)))}`
+    : 'No FV AAV available for this term';
+  // Refresh button styles
+  document.querySelectorAll('#gm-resign-terms .calc-term-btn').forEach(b=>{
+    b.classList.toggle('active', +b.textContent[0]===t);
+  });
+}
+
+function gmConfirmResign() {
+  const name = document.getElementById('gm-resign-player')?.value;
+  const term = gmState._resignTerm || 1;
+  const idx  = gmState.roster.findIndex(r=>r.p.name===name);
+  if (idx<0) return;
+  const p   = gmState.roster[idx].p;
+  const aav = p[`aav_${term}yr`];
+  if (!aav) { alert('No FV AAV data for this term.'); return; }
+  gmState.roster[idx] = {...gmState.roster[idx], gmRole:'resigned', gmCap:aav, gmTerm:term};
+  const fmtM = v=>'$'+(v/1e6).toFixed(2)+'M';
+  gmState.logs.push(`Re-signed ${name} — ${term}yr at ${fmtM(aav)}/yr.`);
+  delete gmState._resignTerm;
+  renderGMDashboard();
+}
+
+// ── Sign External UFA ─────────────────────────────────────────────────────────
+function gmOpenSignUFA() {
+  const area = document.getElementById('gm-action-area');
+  if (!area) return;
+  const myNames = new Set(gmState.roster.map(r=>r.p.name));
+  const ufas = ALL_PLAYERS.filter(p=>p.exp_year==='2026'&&p.expiry_type==='UFA'&&!myNames.has(p.name))
+                           .sort((a,b)=>(b.overall_pct||0)-(a.overall_pct||0));
+  const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
+  area.innerHTML = `
+    <div class="calc-card" style="border:1px solid var(--teal);">
+      <div style="font-weight:600;font-size:.85rem;margin-bottom:.6rem;">Sign External UFA (${ufas.length} available)</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem;">
+        <input id="gm-ufa-search" placeholder="Filter by name…" style="background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.35rem .65rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.82rem;outline:none;width:160px;">
+        <select class="lb-select" id="gm-ufa-pos">
+          <option value="all">All positions</option><option value="F">Forwards</option><option value="D">Defense</option>
+        </select>
+      </div>
+      <div id="gm-ufa-list" style="max-height:240px;overflow-y:auto;"></div>
+      <div id="gm-ufa-sign-area" style="margin-top:.5rem;"></div>
+      <button class="calc-term-btn" style="margin-top:.5rem;" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
+    </div>`;
+
+  function renderUFAList() {
+    const q   = document.getElementById('gm-ufa-search')?.value.toLowerCase()||'';
+    const pos = document.getElementById('gm-ufa-pos')?.value||'all';
+    const filtered = ufas.filter(p=>{
+      if (q && !p.name.toLowerCase().includes(q)) return false;
+      if (pos==='F' && p._type!=='F') return false;
+      if (pos==='D' && p._type!=='D') return false;
+      return true;
+    }).slice(0,40);
+    document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
+      <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p._type} · ${p.actual_role||p.role||'–'}</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--teal);">${p.overall_pct}</span>
+      </div>`).join('') || '<div style="color:var(--text3);padding:.5rem;">No matches</div>';
+  }
+  renderUFAList();
+  document.getElementById('gm-ufa-search').addEventListener('input', renderUFAList);
+  document.getElementById('gm-ufa-pos').addEventListener('change', renderUFAList);
+}
+
+function gmSelectUFA(name, el) {
+  document.querySelectorAll('#gm-ufa-list div').forEach(d=>d.style.background='');
+  if (el) el.style.background='var(--surface3)';
+  const p = ALL_PLAYERS.find(x=>x.name===name);
+  if (!p) return;
+  const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
+  const capLeft = GM_CAP - gmCapUsed(gmState.roster);
+  document.getElementById('gm-ufa-sign-area').innerHTML = `
+    <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">
+      <strong style="font-size:.82rem;">${name}</strong>
+      ${[1,2,3,4,5,6,7].map(t=>{
+        const aav=p[`aav_${t}yr`];
+        const fits=(aav||0)<=capLeft;
+        return `<button class="calc-term-btn" onclick="gmConfirmSignUFA('${name.replace(/'/g,"\\'")}',${t})" ${aav&&fits?'':'disabled'} style="${aav&&fits?'':'opacity:.35;cursor:default;'}" title="${!aav?'No FV data':!fits?'Insufficient cap space':'Sign'}">${t}yr ${fmtM(aav)}</button>`;
+      }).join('')}
+    </div>
+    <div style="font-size:.72rem;color:var(--text3);margin-top:.25rem;">Cap space: ${fmtM(capLeft)}</div>`;
+}
+
+function gmConfirmSignUFA(name, term) {
+  const p = ALL_PLAYERS.find(x=>x.name===name);
+  if (!p) return;
+  const aav = p[`aav_${term}yr`];
+  if (!aav) return;
+  gmState.roster.push({p, gmRole:'signed', gmCap:aav, gmTerm:term});
+  const fmtM=v=>'$'+(v/1e6).toFixed(2)+'M';
+  gmState.logs.push(`Signed UFA ${name} — ${term}yr at ${fmtM(aav)}/yr.`);
+  document.getElementById('gm-action-area').innerHTML='';
+  renderGMDashboard();
+}
+
+// ── Trade ─────────────────────────────────────────────────────────────────────
+function gmOpenTrade() {
+  const area = document.getElementById('gm-action-area');
+  if (!area) return;
+  const myNames = new Set(gmState.roster.map(r=>r.p.name));
+  const allLeague = ALL_PLAYERS.filter(p=>!myNames.has(p.name))
+                               .sort((a,b)=>(b.overall_pct||0)-(a.overall_pct||0));
+  const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
+  const myRoster = gmState.roster.filter(r=>r.p._type!=='G');
+
+  area.innerHTML = `
+    <div class="calc-card" style="border:1px solid var(--teal);">
+      <div style="font-weight:600;font-size:.85rem;margin-bottom:.6rem;">Make a Trade</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+        <div>
+          <div style="font-size:.75rem;font-weight:600;color:var(--coral);margin-bottom:.35rem;">Send out (your players)</div>
+          <div id="gm-trade-out" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
+          <div style="margin-top:.4rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-out-list">
+            ${myRoster.map(r=>`<div onclick="gmToggleTradeOut('${r.p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
+              <span>${r.p.name} <span style="color:var(--text3);">${r.p._type}</span></span>
+              <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.75rem;font-weight:600;color:var(--teal);margin-bottom:.35rem;">Receive (league players)</div>
+          <div id="gm-trade-in" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
+          <input id="gm-trade-in-search" placeholder="Search league players…" style="width:100%;margin:.4rem 0;background:var(--surface3);border:1px solid var(--border2);border-radius:4px;padding:.3rem .6rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.78rem;outline:none;box-sizing:border-box;">
+          <div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-in-list"></div>
+        </div>
+      </div>
+      <div id="gm-trade-fairness" style="font-size:.78rem;margin:.6rem 0;padding:.4rem .6rem;border-radius:4px;background:var(--surface3);"></div>
+      <div style="display:flex;gap:.5rem;">
+        <button class="calc-term-btn" onclick="gmConfirmTrade()">Confirm Trade</button>
+        <button class="calc-term-btn" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
+      </div>
+    </div>`;
+
+  window._gmTradeOut = new Set();
+  window._gmTradeIn  = new Set();
+
+  function renderTradeInList() {
+    const q = document.getElementById('gm-trade-in-search')?.value.toLowerCase()||'';
+    const filtered = allLeague.filter(p=>!q||p.name.toLowerCase().includes(q)).slice(0,30);
+    document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
+      <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
+        <span>${p.name} <span style="color:var(--text3);">${p._type} · ${p.current_team||p.team||'–'}</span></span>
+        <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(p))}</span>
+      </div>`).join('');
+  }
+  renderTradeInList();
+  document.getElementById('gm-trade-in-search').addEventListener('input', renderTradeInList);
+}
+
+function gmToggleTradeOut(name, el) {
+  if (window._gmTradeOut.has(name)) { window._gmTradeOut.delete(name); el.style.background=''; }
+  else { window._gmTradeOut.add(name); el.style.background='var(--surface2)'; }
+  gmUpdateTradeSummary();
+}
+function gmToggleTradeIn(name, el) {
+  if (window._gmTradeIn.has(name)) { window._gmTradeIn.delete(name); el.style.background=''; }
+  else { window._gmTradeIn.add(name); el.style.background='var(--surface2)'; }
+  gmUpdateTradeSummary();
+}
+
+function gmUpdateTradeSummary() {
+  const fmtM = v=>'$'+(v/1e6).toFixed(2)+'M';
+  const outPlayers = [...window._gmTradeOut].map(n=>gmState.roster.find(r=>r.p.name===n)?.p).filter(Boolean);
+  const inPlayers  = [...window._gmTradeIn].map(n=>ALL_PLAYERS.find(p=>p.name===n)).filter(Boolean);
+
+  document.getElementById('gm-trade-out').innerHTML = outPlayers.length
+    ? outPlayers.map(p=>`<span style="display:inline-block;background:var(--coral);color:#fff;border-radius:3px;padding:.1rem .4rem;margin:.15rem;font-size:.72rem;">${p.name} ${fmtM(gmTradeValue(p))}</span>`).join('')
+    : '<span style="color:var(--text3);">Select players to send</span>';
+  document.getElementById('gm-trade-in').innerHTML = inPlayers.length
+    ? inPlayers.map(p=>`<span style="display:inline-block;background:var(--teal);color:#fff;border-radius:3px;padding:.1rem .4rem;margin:.15rem;font-size:.72rem;">${p.name} ${fmtM(gmTradeValue(p))}</span>`).join('')
+    : '<span style="color:var(--text3);">Select players to receive</span>';
+
+  const fairDiv = document.getElementById('gm-trade-fairness');
+  if (!outPlayers.length || !inPlayers.length) {
+    fairDiv.innerHTML='<span style="color:var(--text3);">Select players on both sides to check fairness.</span>';
+    return;
+  }
+  const {ok, msg} = gmFairnessCheck(outPlayers, inPlayers);
+  fairDiv.innerHTML = `<span style="color:${ok?'var(--teal)':'var(--coral)'};">${ok?'✓ Fair trade':'✗ Imbalanced trade (>10%)'}</span> — ${msg}`;
+  fairDiv.style.borderColor = ok?'var(--teal)':'var(--coral)';
+}
+
+function gmConfirmTrade() {
+  const outPlayers = [...(window._gmTradeOut||[])].map(n=>gmState.roster.find(r=>r.p.name===n)?.p).filter(Boolean);
+  const inPlayers  = [...(window._gmTradeIn||[])].map(n=>ALL_PLAYERS.find(p=>p.name===n)).filter(Boolean);
+  if (!outPlayers.length||!inPlayers.length) { alert('Select players on both sides.'); return; }
+  const {ok} = gmFairnessCheck(outPlayers, inPlayers);
+  if (!ok) { alert('Trade is too imbalanced (>10% difference). Adjust the trade.'); return; }
+  // Apply: remove outgoing, add incoming
+  const outNames = new Set(outPlayers.map(p=>p.name));
+  gmState.roster = gmState.roster.filter(r=>!outNames.has(r.p.name));
+  inPlayers.forEach(p => gmState.roster.push({p, gmRole:'traded_in', gmCap:p.cap||0, gmTerm:null}));
+  const fmtM=v=>'$'+(v/1e6).toFixed(2)+'M';
+  gmState.logs.push(`Trade: sent ${outPlayers.map(p=>p.name).join(', ')} | received ${inPlayers.map(p=>p.name).join(', ')}`);
+  window._gmTradeOut = new Set(); window._gmTradeIn = new Set();
+  document.getElementById('gm-action-area').innerHTML='';
+  renderGMDashboard();
+}
+
+// ── Final Analysis ────────────────────────────────────────────────────────────
+function gmAnalyse() {
+  const roster  = gmState.roster;
+  const projPts = gmProjPts(roster);
+  const basePts = gmProjPts(gmState.baseRoster.map(p=>({p})));
+  const capUsed = gmCapUsed(roster);
+  const capLeft = GM_CAP - capUsed;
+  const fmtM = v=>'$'+(Math.abs(v)/1e6).toFixed(2)+'M';
+
+  // Rank against all teams
+  const allPts = NHL_TEAM_CODES.map(tc => {
+    const prof = getTeamProfile(tc,'all',null);
+    return prof?.projPts||0;
+  }).sort((a,b)=>b-a);
+  const rank = allPts.findIndex(pts=>projPts>=pts)+1 || allPts.length;
+
+  // Chemistry summary using depth chart linemates
+  const dc2 = buildDepthChart(roster);
+  const linemateMap2 = {};
+  dc2.lines.forEach(line => {
+    const members = [line.c,line.lw,line.rw].filter(Boolean);
+    members.forEach(r => { linemateMap2[r.p.name] = members.filter(x=>x!==r); });
+  });
+  dc2.pairs.forEach(pair => {
+    pair.forEach(r => { linemateMap2[r.p.name] = pair.filter(x=>x!==r); });
+  });
+  const chemIssues = roster.filter(r=>r.p._type!=='G').filter(r=>{
+    const lm = linemateMap2[r.p.name]||[];
+    const b = gmChemBadge(r.p, lm);
+    return b.label.includes('Poor');
+  }).map(r=>r.p.name);
+
+  const area = document.getElementById('gm-action-area');
+  if (!area) return;
+  area.innerHTML = `
+    <div class="calc-card" style="border:1px solid var(--teal);margin-top:.75rem;">
+      <div style="font-weight:600;font-size:.95rem;margin-bottom:.75rem;">📊 Roster Analysis — ${gmState.teamCode}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+        <div>
+          <div style="font-size:.7rem;color:var(--text3);">Projected Points</div>
+          <div style="font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:600;color:${projPts>=100?'var(--teal)':projPts>=88?'var(--text)':'var(--coral)'};">${projPts} pts</div>
+          <div style="font-size:.78rem;color:var(--text3);">vs original: ${projPts>basePts?'+':''}<span style="color:${projPts>=basePts?'var(--teal)':'var(--coral)'};">${projPts-basePts} pts</span></div>
+          <div style="font-size:.78rem;color:var(--text3);margin-top:.2rem;">Estimated rank: <strong style="color:var(--text)">#${rank} of 32</strong> (±9 pts MAE)</div>
+        </div>
+        <div>
+          <div style="font-size:.7rem;color:var(--text3);">Cap situation</div>
+          <div style="font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:600;">${fmtM(capUsed)} used</div>
+          <div style="font-size:.78rem;color:${capLeft<0?'var(--coral)':'var(--teal)'};">${capLeft<0?'OVER CAP by '+fmtM(Math.abs(capLeft)):fmtM(capLeft)+' space remaining'}</div>
+        </div>
+      </div>
+      ${chemIssues.length ? `<div style="font-size:.78rem;margin-bottom:.5rem;"><span style="color:var(--coral);">⚠ Chemistry concerns:</span> ${chemIssues.join(', ')} — missing complementary linemate attributes.</div>` : '<div style="font-size:.78rem;color:var(--teal);margin-bottom:.5rem;">✓ No major chemistry concerns flagged.</div>'}
+      <div style="font-size:.7rem;color:var(--text3);">Points model: R²=0.457, MAE=±9 pts. Chemistry flags based on attribute complementarity regression findings.</div>
+    </div>`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   if (window.location.protocol === 'file:') {
@@ -3686,6 +4531,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[id^="nav-compare"]').forEach(el=>el.classList.add('active'));
     populateCmpTeams();
   };
+  const goGM = window.goGM = () => {
+    showView('gmview');
+    document.querySelectorAll('.nav-link,.nav-dd-btn').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-gm"]').forEach(el=>el.classList.add('active'));
+    if (!gmState.teamCode) renderGMTeamSelect(); else renderGMDashboard();
+  };
+  const goPlayerChem = window.goPlayerChem = () => {
+    showView('playerchem');
+    document.querySelectorAll('.nav-link,.nav-dd-btn').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-lines"]').forEach(el=>el.classList.add('active'));
+    const inp = document.getElementById('pc-search');
+    if (inp) setTimeout(()=>inp.focus(),50);
+  };
   const goCalc = window.goCalc = () => {
     showView('calcview');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
@@ -3826,6 +4684,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ext:         goExt,
     combos:      goCombos,
     calc:        goCalc,
+    playerchem:  goPlayerChem,
+    gm:          goGM,
     players:     goPlayers,
     goalies:     goGoalies,
   };
@@ -3835,7 +4695,42 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nav-players-lc')?.addEventListener('click', goPlayers);
   document.getElementById('nav-goalies-lc')?.addEventListener('click', goGoalies);
 
+  // Player Chemistry search wiring
+  (function wirePCSearch() {
+    const inp = document.getElementById('pc-search');
+    const dd  = document.getElementById('pc-dd');
+    if (!inp || !dd) return;
+    let _pcResults = [];
+    inp.addEventListener('input', () => {
+      const q = inp.value.trim();
+      if (q.length < 2) { dd.className='dropdown'; dd.innerHTML=''; return; }
+      _pcResults = searchPlayers(q,'all').filter(p=>p._type!=='G');
+      if (!_pcResults.length) { dd.className='dropdown'; dd.innerHTML=''; return; }
+      dd.className='dropdown open';
+      dd.innerHTML = _pcResults.map((p,i)=>`<div class="dd-item" data-idx="${i}">
+        <div><div class="dd-name">${p.name}</div>
+        <div class="dd-meta">${p.current_team||''} · ${p.actual_role||p.role||''}</div></div>
+        <div style="margin-left:auto;${mono}color:var(--teal);">${p.overall_pct??'–'}</div>
+      </div>`).join('');
+      dd.querySelectorAll('.dd-item').forEach((item,i)=>{
+        item.addEventListener('mousedown', e=>{
+          e.preventDefault(); e.stopPropagation();
+          const p=_pcResults[i]; if(!p) return;
+          inp.value=p.name; dd.className='dropdown'; dd.innerHTML='';
+          renderPlayerChem(p);
+        });
+      });
+    });
+    inp.addEventListener('blur',()=>setTimeout(()=>{dd.className='dropdown';dd.innerHTML='';},200));
+  })();
+
   // calcview internal nav
+  document.getElementById('nav-logo-gm')?.addEventListener('click', () => showView('landing'));
+  document.getElementById('nav-players-gm')?.addEventListener('click', goPlayers);
+  document.getElementById('nav-goalies-gm')?.addEventListener('click', goGoalies);
+  document.getElementById('nav-logo-pc')?.addEventListener('click', () => showView('landing'));
+  document.getElementById('nav-players-pc')?.addEventListener('click', goPlayers);
+  document.getElementById('nav-goalies-pc')?.addEventListener('click', goGoalies);
   document.getElementById('nav-logo-cc')?.addEventListener('click', () => showView('landing'));
   document.getElementById('nav-players-cc')?.addEventListener('click', goPlayers);
   document.getElementById('nav-goalies-cc')?.addEventListener('click', goGoalies);
@@ -3906,7 +4801,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-go" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-go">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-go"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link active" id="nav-goalies-go">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-go">Team Data <span class="dd-arrow">▾</span></button>
@@ -3923,6 +4818,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-go" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -3955,7 +4851,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item active" data-view="awards">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-aw" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-aw">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-aw"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-aw">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-aw">Team Data <span class="dd-arrow">▾</span></button>
@@ -3972,6 +4868,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-aw" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4000,7 +4897,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-gcv" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-gcv">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-gcv"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link active" id="nav-goalies-gcv">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-gcv">Team Data <span class="dd-arrow">▾</span></button>
@@ -4017,6 +4914,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-gcv" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4038,7 +4936,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-cs" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-cs">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-cs"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-cs">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-cs">Team Data <span class="dd-arrow">▾</span></button>
@@ -4055,6 +4953,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-cs" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4108,7 +5007,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-cmp" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-cmp">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-cmp"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-cmp">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-teamdata-cmp">Team Data <span class="dd-arrow">▾</span></button>
@@ -4125,6 +5024,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-cmp" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4160,7 +5060,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-fa" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-fa">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-fa"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-fa">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-fa">Team Data <span class="dd-arrow">▾</span></button>
@@ -4177,6 +5077,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-fa" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4268,7 +5169,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-bk" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-bk">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-bk"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-bk">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-bk">Team Data <span class="dd-arrow">▾</span></button>
@@ -4285,6 +5186,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-bk" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4316,7 +5218,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-tr" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-tr">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-tr"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-tr">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-teamdata-tr">Team Data <span class="dd-arrow">▾</span></button>
@@ -4333,6 +5235,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-tr" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4411,7 +5314,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-ext" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-ext">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-ext"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-ext">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-ext">Team Data <span class="dd-arrow">▾</span></button>
@@ -4428,6 +5331,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item active" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-ext" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4527,7 +5431,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link active" id="nav-lines-lc" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-lines-lc">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-lc"><div class="nav-dd-item active" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-lc">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-lc">Team Data <span class="dd-arrow">▾</span></button>
@@ -4544,6 +5448,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-lc" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4656,7 +5561,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
-      <div class="nav-link" id="nav-lines-cc" onclick="goCombos()">Lines</div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-cc">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-cc"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
       <div class="nav-link" id="nav-goalies-cc">Goalies</div>
       <div class="nav-dropdown">
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-cc">Team Data <span class="dd-arrow">▾</span></button>
@@ -4673,6 +5578,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item active" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      <div class="nav-link" id="nav-gm-cc" onclick="goGM()">GM Mode</div>
       </div>
     </div>
   </nav>
@@ -4726,6 +5632,136 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <div class="lb-footer" style="margin-top:1rem;">Billy Puck Grades · Contract Calculator · FV AAV based on model aging curve · Projections not guaranteed</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ PLAYER CHEMISTRY VIEW ═══════════════════════════════════ -->
+<div id="playerchem" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-pc">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-pc">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-pc">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-pc">
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-lines-pc">Lines <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-lines-pc">
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
+          <div class="nav-dd-item active" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div>
+        </div>
+      </div>
+      <div class="nav-link" id="nav-goalies-pc">Goalies</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-pc">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-pc">
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-pc">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-pc">
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
+        </div>
+      <div class="nav-link" id="nav-gm-pc" onclick="goGM()">GM Mode</div>
+      </div>
+    </div>
+  </nav>
+  <div class="lb-content" style="max-width:900px;">
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:1.1rem;font-weight:600;margin-bottom:.2rem;">Player Chemistry</div>
+      <div style="font-size:.78rem;color:var(--text3);">Search any skater to see which linemate attributes have historically correlated with their best and worst line combinations, plus model-implied chemistry needs.</div>
+    </div>
+    <div style="position:relative;margin-bottom:1.25rem;">
+      <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text3);" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+      <input type="text" id="pc-search" placeholder="Search for any skater…"
+        style="width:100%;padding:.55rem .75rem .55rem 2.25rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'Karla',sans-serif;font-size:.92rem;outline:none;box-sizing:border-box;">
+      <div id="pc-dd" class="dropdown"></div>
+    </div>
+    <div id="pc-panel" style="display:none;">
+      <div class="calc-card" style="display:flex;gap:.75rem;align-items:center;margin-bottom:.75rem;">
+        <div style="flex:1;">
+          <div style="font-size:1.05rem;font-weight:600;" id="pc-name"></div>
+          <div style="font-size:.78rem;color:var(--text3);margin-top:.1rem;" id="pc-meta"></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:.6rem;color:var(--text3);">OVERALL</div>
+          <div style="font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:600;" id="pc-ov"></div>
+        </div>
+      </div>
+      <div id="pc-body"></div>
+    </div>
+    <div class="lb-footer" style="margin-top:1rem;">Billy Puck Grades · Player Chemistry · Based on historical line combination performance 2021-22 to 2025-26</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ GM MODE VIEW ════════════════════════════════════════════ -->
+<div id="gmview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-gm">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-gm">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-gm">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-gm">
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-gm">Lines <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-lines-gm">
+          <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
+          <div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div>
+        </div>
+      </div>
+      <div class="nav-link" id="nav-goalies-gm">Goalies</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-gm">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-gm">
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-gm">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-gm">
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
+        </div>
+      </div>
+      <div class="nav-link active" id="nav-gm-gm" onclick="goGM()">GM Mode</div>
+    </div>
+  </nav>
+  <div class="lb-content" style="max-width:960px;">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.5rem 1rem;margin-bottom:1rem;font-size:.78rem;color:var(--text3);display:flex;justify-content:space-between;align-items:center;">
+      <span>⚠ <strong style="color:var(--text2);">Session not saved</strong> — refreshing or navigating away will reset your roster.</span>
+      <button onclick="if(confirm('Reset the GM session and choose a new team?')){{gmState={teamCode:null,baseRoster:[],roster:[],logs:[]};renderGMTeamSelect();}}" style="font-size:.7rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.15rem .5rem;cursor:pointer;">Reset</button>
+    </div>
+    <div style="margin-bottom:.75rem;">
+      <div style="font-size:1.1rem;font-weight:600;margin-bottom:.15rem;">GM Mode
+        <span id="gm-team-badge" style="font-size:.8rem;font-weight:400;color:var(--teal);margin-left:.5rem;"></span>
+      </div>
+      <div style="font-size:.78rem;color:var(--text3);">Simulate roster moves — re-sign free agents, sign UFAs, and make trades. Cap: $104M (2026-27).</div>
+    </div>
+    <div id="gm-content"></div>
   </div>
 </div>
 
