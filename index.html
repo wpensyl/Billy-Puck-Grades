@@ -3758,17 +3758,15 @@ function buildDepthChart(roster) {
     const pts = s.split(':');
     return pts.length===2 ? parseInt(pts[0])+parseInt(pts[1])/60 : 0;
   };
-  const getQoC = p => {
-    const cats = Object.values(p.categories||{}).flat();
-    return cats.find(c=>c.name==="Quality of comp.")?.pct ?? 50;
-  };
+  // Depth score: 50% TOI percentile + 30% GP% + 20% QoC percentile
+  // Uses the same attribute percentile scores from the player model
+  const getAttrPct = (p, grp, name) =>
+    ((p.categories||{})[grp]||[]).find(c=>c.name===name)?.pct ?? 50;
   const gmDepthScore = r => {
     const p = r.p;
-    const toiMin = parseTOI(p.toi_per_gp);
-    const maxTOI = p._type==='D' ? 25 : 20;
-    const toiPct = toiMin > 0 ? Math.min(1, toiMin / maxTOI) : 0;
+    const toiPct = getAttrPct(p, 'Usage', 'Time on ice') / 100;
     const gpPct  = Math.min(1, (p.gp||0) / 82);
-    const qocPct = getQoC(p) / 100;
+    const qocPct = getAttrPct(p, 'Usage', 'Quality of comp.') / 100;
     return 0.5*toiPct + 0.3*gpPct + 0.2*qocPct;
   };
   const byScore = (a,b) => gmDepthScore(b) - gmDepthScore(a);
@@ -3976,7 +3974,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'D'} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'D'} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -4071,7 +4069,7 @@ function renderGMDashboard() {
       <div class="lb-table-wrap">
         <table class="lb-table">
           <thead><tr>
-            <th>Player</th><th>Pos</th><th>Role</th><th>Exp</th>
+            <th>Player</th><th>Pos</th><th>Age</th><th>Role</th><th>Exp</th>
             <th>Cap Hit</th><th>Trade Value</th><th></th>
           </tr></thead>
           <tbody>${roster.map(r=>gmRosterRow(r,linemateMap[r.p.name]||[])).join('')}</tbody>
@@ -4100,6 +4098,7 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
   return `<tr data-pname="${p.name}">
     <td style="font-weight:500;font-size:.82rem;cursor:pointer;" onclick="showPlayer(ALL_PLAYERS.find(x=>x.name==='${p.name.replace(/'/g,"\\'")}'))">${p.name}</td>
     <td style="color:var(--text3);font-size:.78rem;">${p.pos||p._type||'–'}</td>
+    <td style="color:var(--text3);font-size:.78rem;">${p.age?p.age.toFixed(0)+'y':'–'}</td>
     <td><span style="font-size:.68rem;font-weight:600;color:${roleClr};">${roleLbl}</span></td>
     <td style="font-size:.75rem;color:${expClr};">${p.exp_year||'–'} ${p.expiry_type||''}</td>
     <td style="${mono}color:${capClr};">${fmtM(r.gmCap)}</td>
@@ -4142,7 +4141,7 @@ function gmOpenResign() {
       <div style="font-weight:600;font-size:.85rem;margin-bottom:.6rem;">Re-sign a Free Agent</div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
         <select class="lb-select" id="gm-resign-player">
-          ${fas.map(r=>`<option value="${r.p.name}">${r.p.name} (${r.p._type})</option>`).join('')}
+          ${fas.map(r=>`<option value="${r.p.name}">${r.p.name} — ${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''}</option>`).join('')}
         </select>
         <div id="gm-resign-terms" style="display:flex;gap:.35rem;flex-wrap:wrap;"></div>
         <button class="calc-term-btn" onclick="gmConfirmResign()">Confirm Re-sign</button>
@@ -4214,7 +4213,10 @@ function gmOpenSignUFA() {
       <div style="font-weight:600;font-size:.85rem;margin-bottom:.6rem;">Sign External UFA (${ufas.length} available)</div>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem;">
         <input id="gm-ufa-search" placeholder="Name…" style="background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.35rem .65rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.82rem;outline:none;width:120px;">
-        <select id="gm-ufa-type" class="lb-select" style="font-size:.72rem;"><option value="all">UFA &amp; RFA</option><option value="UFA">UFA only</option><option value="RFA">RFA only</option></select>
+        <select id="gm-ufa-team" class="lb-select" style="font-size:.72rem;">
+              <option value="all">All teams</option>
+              ${NHL_TEAM_CODES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+            </select>
         <select id="gm-ufa-pos" class="lb-select" style="font-size:.72rem;"><option value="all">All pos</option><option value="C">C</option><option value="L">LW</option><option value="R">RW</option><option value="LD">LD</option><option value="RD">RD</option></select>
       </div>
       <div id="gm-ufa-list" style="max-height:240px;overflow-y:auto;"></div>
@@ -4224,12 +4226,11 @@ function gmOpenSignUFA() {
 
   function renderUFAList() {
     const q   = document.getElementById('gm-ufa-search')?.value.toLowerCase()||'';
-    const tp  = document.getElementById('gm-ufa-type')?.value||'all';
+    const tc  = document.getElementById('gm-ufa-team')?.value||'all';
     const pos = document.getElementById('gm-ufa-pos')?.value||'all';
     const filtered = ufas.filter(p=>{
       if (q && !p.name.toLowerCase().includes(q)) return false;
-      if (tp==='UFA' && p.expiry_type!=='UFA') return false;
-      if (tp==='RFA' && !p.expiry_type?.startsWith('RFA')) return false;
+      if (tc!=='all' && p.current_team!==tc && p.team!==tc) return false;
       if (pos!=='all') {
         const pp=p.pos||'';
         if (pos==='C' && !pp.startsWith('C')) return false;
@@ -4249,7 +4250,7 @@ function gmOpenSignUFA() {
   renderUFAList();
   document.getElementById('gm-ufa-search').addEventListener('input', renderUFAList);
   document.getElementById('gm-ufa-pos').addEventListener('change', renderUFAList);
-  document.getElementById('gm-ufa-type')?.addEventListener('change', renderUFAList);
+  document.getElementById('gm-ufa-team')?.addEventListener('change', renderUFAList);
 }
 
 function gmSelectUFA(name, el) {
@@ -4346,6 +4347,8 @@ function gmOpenTrade() {
   }
   renderTradeInList();
   document.getElementById('gm-trade-in-search').addEventListener('input', renderTradeInList);
+  document.getElementById('gm-trade-in-team')?.addEventListener('change', renderTradeInList);
+  document.getElementById('gm-trade-in-pos')?.addEventListener('change', renderTradeInList);
 }
 
 function gmToggleTradeOut(name, el) {
