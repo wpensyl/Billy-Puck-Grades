@@ -3758,12 +3758,15 @@ function buildDepthChart(roster) {
     const pts = s.split(':');
     return pts.length===2 ? parseInt(pts[0])+parseInt(pts[1])/60 : 0;
   };
-  const getQoC = p => ((p.categories?.['Usage']||[]).find(c=>c.name==="Quality of comp.")?.pct ?? 50);
+  const getQoC = p => {
+    const cats = Object.values(p.categories||{}).flat();
+    return cats.find(c=>c.name==="Quality of comp.")?.pct ?? 50;
+  };
   const gmDepthScore = r => {
     const p = r.p;
     const toiMin = parseTOI(p.toi_per_gp);
-    const maxTOI = p._type==='D' ? 26 : 22;
-    const toiPct = Math.min(1, toiMin / maxTOI);
+    const maxTOI = p._type==='D' ? 25 : 20;
+    const toiPct = toiMin > 0 ? Math.min(1, toiMin / maxTOI) : 0;
     const gpPct  = Math.min(1, (p.gp||0) / 82);
     const qocPct = getQoC(p) / 100;
     return 0.5*toiPct + 0.3*gpPct + 0.2*qocPct;
@@ -4105,6 +4108,16 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
   </tr>`;
 }
 
+function gmLetWalkFromResign() {
+  const sel = document.getElementById('gm-resign-player');
+  const name = sel?.value;
+  if (!name) return;
+  if (!confirm('Let ' + name + ' walk? They will leave as a free agent.')) return;
+  gmState.roster = gmState.roster.filter(r => r.p.name !== name);
+  gmState.logs.push(name + ' let walk in free agency.');
+  document.getElementById('gm-action-area').innerHTML = '';
+  renderGMDashboard();
+}
 function gmLetWalk(name) {
   if (!confirm('Let ' + name + ' walk in free agency? They will be removed from the roster.')) return;
   gmState.roster = gmState.roster.filter(r => r.p.name !== name);
@@ -4133,6 +4146,7 @@ function gmOpenResign() {
         </select>
         <div id="gm-resign-terms" style="display:flex;gap:.35rem;flex-wrap:wrap;"></div>
         <button class="calc-term-btn" onclick="gmConfirmResign()">Confirm Re-sign</button>
+        <button class="calc-term-btn" style="color:var(--coral);border-color:var(--coral);" onclick="gmLetWalkFromResign()">Let Walk</button>
         <button class="calc-term-btn" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
       </div>
       <div id="gm-resign-preview" style="font-size:.78rem;color:var(--teal);margin-top:.5rem;font-family:'DM Mono',monospace;"></div>
@@ -4288,7 +4302,7 @@ function gmOpenTrade() {
           <div id="gm-trade-out" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
           <div style="margin-top:.4rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-out-list">
             ${myRoster.map(r=>`<div onclick="gmToggleTradeOut('${r.p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
-              <span>${r.p.name} <span style="color:var(--text3);">${r.p._type}</span></span>
+              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span>
               <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
             </div>`).join('')}
           </div>
@@ -4326,7 +4340,7 @@ function gmOpenTrade() {
     const filtered = allLeague.filter(p=>!q||p.name.toLowerCase().includes(q)).slice(0,30);
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
       <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
-        <span>${p.name} <span style="color:var(--text3);">${p._type} · ${p.current_team||p.team||'–'}</span></span>
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span>
         <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(p))}</span>
       </div>`).join('');
   }
@@ -4335,13 +4349,32 @@ function gmOpenTrade() {
 }
 
 function gmToggleTradeOut(name, el) {
-  if (window._gmTradeOut.has(name)) { window._gmTradeOut.delete(name); el.style.background=''; }
-  else { window._gmTradeOut.add(name); el.style.background='var(--surface2)'; }
+  if (window._gmTradeOut.has(name)) {
+    window._gmTradeOut.delete(name);
+    el.style.background=''; el.style.outline='';
+  } else {
+    window._gmTradeOut.add(name);
+    el.style.background='var(--surface2)'; el.style.outline='1px solid var(--coral)';
+  }
   gmUpdateTradeSummary();
 }
 function gmToggleTradeIn(name, el) {
-  if (window._gmTradeIn.has(name)) { window._gmTradeIn.delete(name); el.style.background=''; }
-  else { window._gmTradeIn.add(name); el.style.background='var(--surface2)'; }
+  if (window._gmTradeIn.has(name)) {
+    window._gmTradeIn.delete(name);
+    el.style.background=''; el.style.outline='';
+    if (window._gmTradeIn.size === 0) {
+      const tf = document.getElementById('gm-trade-in-team');
+      if (tf) { tf.value='all'; tf.disabled=false; renderTradeInList(); }
+    }
+  } else {
+    window._gmTradeIn.add(name);
+    el.style.background='var(--surface2)'; el.style.outline='1px solid var(--teal)';
+    const p = (window.ALL_PLAYERS||[]).find(x=>x.name===name);
+    if (p) {
+      const tf = document.getElementById('gm-trade-in-team');
+      if (tf && tf.value==='all') { tf.value=p.current_team||p.team||'all'; tf.disabled=true; renderTradeInList(); }
+    }
+  }
   gmUpdateTradeSummary();
 }
 
