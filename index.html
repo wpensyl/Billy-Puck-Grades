@@ -370,12 +370,13 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
+      <div class="nav-link" id="nav-gm" onclick="goGM()">GM Mode</div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
       <input type="text" class="card-search-input" id="card-search" placeholder="Search player..." autocomplete="off" spellcheck="false">
-      <div id="card-dd" class="dropdown"></div>
-    </div>
+      <div id="card-dd" class="dropdown"></div>      
+</div>
   </nav>
   <div class="card-content">
     <div class="player-header" id="player-header"></div>
@@ -452,12 +453,12 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
+      <div class="nav-link" id="nav-gm-lb" onclick="goGM()">GM Mode</div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-      <input type="text" class="card-search-input" id="lb-search" placeholder="Filter players..." autocomplete="off" spellcheck="false">
-      <div class="nav-link" id="nav-gm-lb" onclick="goGM()">GM Mode</div>
-    </div>
+      <input type="text" class="card-search-input" id="lb-search" placeholder="Filter players..." autocomplete="off" spellcheck="false">      
+</div>
   </nav>
   <div class="lb-content">
     <div class="lb-controls"><span style="font-size:.8rem;font-weight:500;color:var(--text2);padding:.3rem .5rem;white-space:nowrap;">2025–26 season</span>
@@ -515,10 +516,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      <div class="nav-link" id="nav-gm" onclick="goGM()">GM Mode</div>
-      
-      <div class="nav-link" id="nav-gm-tm" onclick="goGM()">GM Mode</div>
       </div>
+      <div class="nav-link" id="nav-gm-tm" onclick="goGM()">GM Mode</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -3773,7 +3772,8 @@ function buildDepthChart(roster) {
 
   const fwds = roster.filter(r=>r.p._type==='F').sort(byScore);
   const dmen = roster.filter(r=>r.p._type==='D').sort(byScore);
-  const gols = roster.filter(r=>r.p._type==='G').sort(byTOI);
+  const parseTOIg = s => { if(!s) return 0; const p=s.split(':'); return p.length===2?parseInt(p[0])+parseInt(p[1])/60:0; };
+  const gols = roster.filter(r=>r.p._type==='G').sort((a,b)=>parseTOIg(b.p.toi_per_gp)-parseTOIg(a.p.toi_per_gp));
 
   // Classify forwards by position
   const isC  = r => /^C/.test(r.p.pos||'');
