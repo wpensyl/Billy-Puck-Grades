@@ -3583,10 +3583,10 @@ function renderPlayerChem(player) {
 
   // ── Model chemistry needs ───────────────────────────────────────────────────
   const seekHtml = (rec.seek||[]).map(a =>
-    `<span style="padding:.15rem .5rem;border-radius:999px;border:1px solid var(--teal);color:var(--teal);font-size:.72rem;">${a}</span>`
+    `<span style="padding:.15rem .5rem;border-radius:999px;border:1px solid var(--teal);color:var(--teal);font-size:.72rem;white-space:nowrap;">${a}</span>`
   ).join(' ');
   const avoidHtml = (rec.avoid||[]).map(a =>
-    `<span style="padding:.15rem .5rem;border-radius:999px;border:1px solid var(--coral);color:var(--coral);font-size:.72rem;">${a}</span>`
+    `<span style="padding:.15rem .5rem;border-radius:999px;border:1px solid var(--coral);color:var(--coral);font-size:.72rem;white-space:nowrap;">${a}</span>`
   ).join(' ');
 
   // ── Best / worst combos ─────────────────────────────────────────────────────
@@ -3782,19 +3782,24 @@ function buildDepthChart(roster) {
   const isRW = r => /^R/.test(r.p.pos||'') && !isC(r);
 
   let centers = fwds.filter(isC);
-  let lwings  = fwds.filter(isLW);
-  let rwings  = fwds.filter(isRW);
-  let flex    = fwds.filter(r=>!isC(r)&&!isLW(r)&&!isRW(r));  // 'D' etc. rare
+  // Wings are interchangeable — pool them together, prefer natural side
+  let wings   = fwds.filter(r=>!isC(r));
 
   // Build 4 lines: each gets [C, LW, RW]
   const lines = Array.from({length:4}, ()=>({c:null,lw:null,rw:null}));
   lines.forEach(line => {
-    if (centers.length) { line.c  = centers.shift(); }
-    else if (flex.length) { line.c = flex.shift(); }
-    if (lwings.length)  { line.lw = lwings.shift(); }
-    else if (flex.length) { line.lw = flex.shift(); }
-    if (rwings.length)  { line.rw = rwings.shift(); }
-    else if (flex.length) { line.rw = flex.shift(); }
+    // Fill center
+    const cIdx = centers.length ? 0 : -1;
+    if (cIdx >= 0) { line.c = centers.shift(); }
+    else { const w = wings.shift(); if (w) line.c = w; }
+    // Fill LW — prefer natural LW, fall back to any wing
+    const lwIdx = wings.findIndex(r => isLW(r));
+    if (lwIdx >= 0) { line.lw = wings.splice(lwIdx,1)[0]; }
+    else if (wings.length) { line.lw = wings.shift(); }
+    // Fill RW — prefer natural RW, fall back to any wing
+    const rwIdx = wings.findIndex(r => isRW(r));
+    if (rwIdx >= 0) { line.rw = wings.splice(rwIdx,1)[0]; }
+    else if (wings.length) { line.rw = wings.shift(); }
   });
   // Remaining forwards (>12) go to scratch
   const used = new Set([...centers,...lwings,...rwings,...flex].filter(r=>r).map(r=>r.p.name));
@@ -4345,12 +4350,32 @@ function gmOpenTrade() {
         <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(p))}</span>
       </div>`).join('');
   }
+  window._renderTradeInList = renderTradeInList;  // expose for gmToggleTradeIn
   renderTradeInList();
   document.getElementById('gm-trade-in-search').addEventListener('input', renderTradeInList);
   document.getElementById('gm-trade-in-team')?.addEventListener('change', renderTradeInList);
   document.getElementById('gm-trade-in-pos')?.addEventListener('change', renderTradeInList);
 }
 
+function gmRemoveTradeOut(name) {
+  window._gmTradeOut.delete(name);
+  // un-highlight the list item
+  document.querySelectorAll('#gm-trade-out-list [data-name]').forEach(el => {
+    if (el.dataset.name === name) { el.style.background=''; el.style.outline=''; }
+  });
+  gmUpdateTradeSummary();
+}
+function gmRemoveTradeIn(name) {
+  window._gmTradeIn.delete(name);
+  if (window._gmTradeIn.size === 0) {
+    const tf = document.getElementById('gm-trade-in-team');
+    if (tf) { tf.value='all'; tf.disabled=false; if(window._renderTradeInList) window._renderTradeInList(); }
+  }
+  document.querySelectorAll('#gm-trade-in-list [data-name]').forEach(el => {
+    if (el.dataset.name === name) { el.style.background=''; el.style.outline=''; }
+  });
+  gmUpdateTradeSummary();
+}
 function gmToggleTradeOut(name, el) {
   if (window._gmTradeOut.has(name)) {
     window._gmTradeOut.delete(name);
@@ -4367,7 +4392,7 @@ function gmToggleTradeIn(name, el) {
     el.style.background=''; el.style.outline='';
     if (window._gmTradeIn.size === 0) {
       const tf = document.getElementById('gm-trade-in-team');
-      if (tf) { tf.value='all'; tf.disabled=false; renderTradeInList(); }
+      if (tf) { tf.value='all'; tf.disabled=false; if(window._renderTradeInList) window._renderTradeInList(); }
     }
   } else {
     window._gmTradeIn.add(name);
@@ -4375,7 +4400,7 @@ function gmToggleTradeIn(name, el) {
     const p = (window.ALL_PLAYERS||[]).find(x=>x.name===name);
     if (p) {
       const tf = document.getElementById('gm-trade-in-team');
-      if (tf && tf.value==='all') { tf.value=p.current_team||p.team||'all'; tf.disabled=true; renderTradeInList(); }
+      if (tf && tf.value==='all') { tf.value=p.current_team||p.team||'all'; tf.disabled=true; if(window._renderTradeInList) window._renderTradeInList(); }
     }
   }
   gmUpdateTradeSummary();
@@ -4387,10 +4412,16 @@ function gmUpdateTradeSummary() {
   const inPlayers  = [...window._gmTradeIn].map(n=>ALL_PLAYERS.find(p=>p.name===n)).filter(Boolean);
 
   document.getElementById('gm-trade-out').innerHTML = outPlayers.length
-    ? outPlayers.map(p=>`<span style="display:inline-block;background:var(--coral);color:#fff;border-radius:3px;padding:.1rem .4rem;margin:.15rem;font-size:.72rem;">${p.name} ${fmtM(gmTradeValue(p))}</span>`).join('')
+    ? outPlayers.map(p=>`<span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--coral);color:#fff;border-radius:3px;padding:.1rem .4rem;margin:.15rem;font-size:.72rem;">
+        ${p.name} ${fmtM(gmTradeValue(p))}
+        <button onmousedown="event.stopPropagation();gmRemoveTradeOut('${p.name.replace(/'/g,"\'")}')" style="background:none;border:none;color:#fff;cursor:pointer;padding:0;margin-left:.15rem;font-size:.8rem;line-height:1;">✕</button>
+      </span>`).join('')
     : '<span style="color:var(--text3);">Select players to send</span>';
   document.getElementById('gm-trade-in').innerHTML = inPlayers.length
-    ? inPlayers.map(p=>`<span style="display:inline-block;background:var(--teal);color:#fff;border-radius:3px;padding:.1rem .4rem;margin:.15rem;font-size:.72rem;">${p.name} ${fmtM(gmTradeValue(p))}</span>`).join('')
+    ? inPlayers.map(p=>`<span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--teal);color:#fff;border-radius:3px;padding:.1rem .4rem;margin:.15rem;font-size:.72rem;">
+        ${p.name} ${fmtM(gmTradeValue(p))}
+        <button onmousedown="event.stopPropagation();gmRemoveTradeIn('${p.name.replace(/'/g,"\'")}')" style="background:none;border:none;color:#fff;cursor:pointer;padding:0;margin-left:.15rem;font-size:.8rem;line-height:1;">✕</button>
+      </span>`).join('')
     : '<span style="color:var(--text3);">Select players to receive</span>';
 
   const fairDiv = document.getElementById('gm-trade-fairness');
@@ -4546,7 +4577,7 @@ window._calcSearch = (function() {
       if (!p || !inp || !dd) return;
       inp.value = p.name;
       dd.className='dropdown'; dd.innerHTML='';
-      if (typeof renderCalcResult === 'function') { window.calcPlayer=p; renderCalcResult(); }
+      if (typeof renderCalcResult === 'function') { calcPlayer=p; renderCalcResult(); }
     },
     blur() { setTimeout(()=>{ const dd=document.getElementById('calc-dd');
       if(dd){dd.className='dropdown';dd.innerHTML='';} }, 200); }
