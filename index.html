@@ -3801,10 +3801,7 @@ function buildDepthChart(roster) {
     if (rwIdx >= 0) { line.rw = wings.splice(rwIdx,1)[0]; }
     else if (wings.length) { line.rw = wings.shift(); }
   });
-  // Remaining forwards (>12) go to scratch
-  const used = new Set([...centers,...lwings,...rwings,...flex].filter(r=>r).map(r=>r.p.name));
-  // (centers/lwings/rwings were already shifted, so just check flex remainder)
-  const extraFwd = [...centers,...lwings,...rwings,...flex];
+  // Remaining wings that didn't fit into 4 lines are handled by leftoverFwd below
 
   // Fill any remaining empty line slots with leftover forwards
   const usedFwdNames = new Set(lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(r=>r.p.name));
