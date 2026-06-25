@@ -54,7 +54,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .search-pos-filter{display:flex;gap:.5rem;margin-top:.75rem;justify-content:center;}
 .pos-btn{padding:.35rem 1rem;border-radius:999px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'Karla',sans-serif;font-size:.8rem;letter-spacing:.06em;cursor:pointer;transition:all .15s;}
 .pos-btn.active,.pos-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
-.dropdown{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);max-height:320px;overflow-y:auto;z-index:100;display:none;}
+.dropdown{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);max-height:320px;overflow-y:auto;z-index:500;display:none;}
 .dropdown.open{display:block;}
 .dd-item{padding:.65rem 1.25rem;cursor:pointer;display:flex;align-items:center;gap:.75rem;border-bottom:1px solid var(--border);transition:background .12s;}
 .dd-item:last-child{border-bottom:none;}
@@ -514,6 +514,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm" onclick="goGM()">GM Mode</div>
       <div class="nav-link" id="nav-gm-lb" onclick="goGM()">GM Mode</div>
       <div class="nav-link" id="nav-gm-tm" onclick="goGM()">GM Mode</div>
@@ -3732,9 +3733,23 @@ function gmChemBadge(player, linemates) {
   }
   if (seekTotal===0) return {label:'–', color:'var(--text3)', title:'No strong attribute signals'};
   const ratio = seekFound/seekTotal;
-  if (ratio>=0.6) return {label:'⚡ Good fit', color:'var(--teal)',  title:'Complementary attribute signals with linemates'};
-  if (ratio>=0.3) return {label:'~ Neutral',  color:'var(--text2)', title:'Some complementarity, some gaps'};
-  return     {label:'⚠ Poor fit', color:'var(--coral)', title:'Missing key complementary linemate attributes'};
+  // Build detailed title
+  const detailLines = [];
+  for (const [attr, needed] of Object.entries(model)) {
+    const pAttr = Object.values(cats).flat().find(c=>c.name===attr);
+    if (!pAttr || pAttr.pct < GM_ATTR_THRESHOLD) continue;
+    const haveAttrs = needed.filter(n => linemates.some(lm => {
+      const lmCats = (lm.p||lm)?.categories || {};
+      return Object.values(lmCats).flat().find(c=>c.name===n && c.pct>=GM_ATTR_THRESHOLD);
+    }));
+    const missingAttrs = needed.filter(n => !haveAttrs.includes(n));
+    if (haveAttrs.length) detailLines.push('✓ ' + attr + ' → ' + haveAttrs.join(', '));
+    if (missingAttrs.length) detailLines.push('✗ ' + attr + ' needs: ' + missingAttrs.join(', '));
+  }
+  const title = detailLines.length ? detailLines.join(' | ') : 'No complementarity data';
+  if (ratio>=0.6) return {label:'⚡ Good fit', color:'var(--teal)',  title};
+  if (ratio>=0.3) return {label:'~ Neutral',  color:'var(--text2)', title};
+  return     {label:'⚠ Poor fit', color:'var(--coral)', title};
 }
 
 // ── Depth chart builder ──────────────────────────────────────────────────────
@@ -3744,10 +3759,20 @@ function buildDepthChart(roster) {
     const pts = s.split(':');
     return pts.length===2 ? parseInt(pts[0])+parseInt(pts[1])/60 : 0;
   };
-  const byTOI = (a,b) => parseTOI(b.p.toi_per_gp) - parseTOI(a.p.toi_per_gp);
+  const getQoC = p => ((p.categories?.['Usage']||[]).find(c=>c.name==="Quality of comp.")?.pct ?? 50);
+  const gmDepthScore = r => {
+    const p = r.p;
+    const toiMin = parseTOI(p.toi_per_gp);
+    const maxTOI = p._type==='D' ? 26 : 22;
+    const toiPct = Math.min(1, toiMin / maxTOI);
+    const gpPct  = Math.min(1, (p.gp||0) / 82);
+    const qocPct = getQoC(p) / 100;
+    return 0.5*toiPct + 0.3*gpPct + 0.2*qocPct;
+  };
+  const byScore = (a,b) => gmDepthScore(b) - gmDepthScore(a);
 
-  const fwds = roster.filter(r=>r.p._type==='F').sort(byTOI);
-  const dmen = roster.filter(r=>r.p._type==='D').sort(byTOI);
+  const fwds = roster.filter(r=>r.p._type==='F').sort(byScore);
+  const dmen = roster.filter(r=>r.p._type==='D').sort(byScore);
   const gols = roster.filter(r=>r.p._type==='G').sort(byTOI);
 
   // Classify forwards by position
@@ -3775,7 +3800,18 @@ function buildDepthChart(roster) {
   // (centers/lwings/rwings were already shifted, so just check flex remainder)
   const extraFwd = [...centers,...lwings,...rwings,...flex];
 
-  // D pairs: top 6 by TOI
+  // Fill any remaining empty line slots with leftover forwards
+  const usedFwdNames = new Set(lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(r=>r.p.name));
+  const leftoverFwd  = fwds.filter(r=>!usedFwdNames.has(r.p.name));
+  lines.forEach(line => {
+    if (!line.lw && leftoverFwd.length) line.lw = leftoverFwd.shift();
+    if (!line.rw && leftoverFwd.length) line.rw = leftoverFwd.shift();
+    if (!line.c  && leftoverFwd.length) line.c  = leftoverFwd.shift();
+  });
+  // Extra forwards beyond 12 go to scratches
+  const stillLeft = fwds.filter(r => !new Set(lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(x=>x.p.name)).has(r.p.name));
+
+  // D pairs: top 6 by score
   const pairs = [
     [dmen[0],dmen[1]].filter(Boolean),
     [dmen[2],dmen[3]].filter(Boolean),
@@ -3914,8 +3950,8 @@ function renderGMDashboard() {
     const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
-      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'–'} · ${fmtM(r.gmCap||r.p.cap)}</div>
+      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
+      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'–'} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -3927,8 +3963,8 @@ function renderGMDashboard() {
     const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
-      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'D'} · ${fmtM(r.gmCap||r.p.cap)}</div>
+      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
+      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'D'} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -3975,12 +4011,15 @@ function renderGMDashboard() {
       </div>
     </div>
 
+    <!-- Action area — appears here so user sees it immediately -->
+    <div id="gm-action-area" style="margin-bottom:.75rem;"></div>
+
     <!-- Action buttons -->
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.85rem;">
       <button class="calc-term-btn" onclick="gmOpenResign()">Re-sign FA</button>
       <button class="calc-term-btn" onclick="gmOpenSignUFA()">Sign External UFA</button>
       <button class="calc-term-btn" onclick="gmOpenTrade()">Make Trade</button>
-      <button class="calc-term-btn" style="margin-left:auto;" onclick="gmAnalyse()">📊 Analyse Roster</button>
+      <button class="calc-term-btn" style="margin-left:auto;" onclick="gmAnalyze()">📊 Analyze Roster</button>
     </div>
 
     ${myFAs.length?`<div style="font-size:.75rem;color:var(--coral);margin-bottom:.6rem;padding:.4rem .75rem;background:rgba(239,68,68,.08);border-radius:4px;border-left:3px solid var(--coral);">⚠ ${myFAs.length} pending free agent${myFAs.length>1?'s':''}: ${myFAs.map(r=>r.p.name).join(', ')} — will not return unless re-signed.</div>`:''}
@@ -4028,8 +4067,6 @@ function renderGMDashboard() {
       </div>
     </div>
 
-    <!-- Action area -->
-    <div id="gm-action-area"></div>
 
     <!-- Log -->
     <div class="calc-card" style="margin-top:.75rem;">
@@ -4055,10 +4092,16 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
     <td style="font-size:.75rem;color:${expClr};">${p.exp_year||'–'} ${p.expiry_type||''}</td>
     <td style="${mono}color:${capClr};">${fmtM(r.gmCap)}</td>
     <td style="${mono}color:var(--text2);">${fmtM(tv)}</td>
-    <td><button onclick="gmRemovePlayer('${p.name.replace(/'/g,"\\'")}',event)" style="font-size:.65rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.1rem .35rem;cursor:pointer;">✕</button></td>
+    <td>${p.exp_year==='2026'&&r.gmRole==='current'?'<button onclick="gmLetWalk(\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:.65rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.1rem .4rem;cursor:pointer;">Let Walk</button>':'<span style="color:var(--text3);font-size:.68rem;">Trade to move</span>'}</td>
   </tr>`;
 }
 
+function gmLetWalk(name) {
+  if (!confirm('Let ' + name + ' walk in free agency? They will be removed from the roster.')) return;
+  gmState.roster = gmState.roster.filter(r => r.p.name !== name);
+  gmState.logs.push(name + ' let walk — will not return.');
+  renderGMDashboard();
+}
 function gmRemovePlayer(name, e) {
   e.stopPropagation();
   gmState.roster = gmState.roster.filter(r=>r.p.name!==name);
@@ -4146,11 +4189,10 @@ function gmOpenSignUFA() {
   area.innerHTML = `
     <div class="calc-card" style="border:1px solid var(--teal);">
       <div style="font-weight:600;font-size:.85rem;margin-bottom:.6rem;">Sign External UFA (${ufas.length} available)</div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem;">
-        <input id="gm-ufa-search" placeholder="Filter by name…" style="background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.35rem .65rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.82rem;outline:none;width:160px;">
-        <select class="lb-select" id="gm-ufa-pos">
-          <option value="all">All positions</option><option value="F">Forwards</option><option value="D">Defense</option>
-        </select>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem;">
+        <input id="gm-ufa-search" placeholder="Name…" style="background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.35rem .65rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.82rem;outline:none;width:120px;">
+        <select id="gm-ufa-type" class="lb-select" style="font-size:.72rem;"><option value="all">UFA &amp; RFA</option><option value="UFA">UFA only</option><option value="RFA">RFA only</option></select>
+        <select id="gm-ufa-pos" class="lb-select" style="font-size:.72rem;"><option value="all">All pos</option><option value="C">C</option><option value="L">LW</option><option value="R">RW</option><option value="LD">LD</option><option value="RD">RD</option></select>
       </div>
       <div id="gm-ufa-list" style="max-height:240px;overflow-y:auto;"></div>
       <div id="gm-ufa-sign-area" style="margin-top:.5rem;"></div>
@@ -4159,22 +4201,32 @@ function gmOpenSignUFA() {
 
   function renderUFAList() {
     const q   = document.getElementById('gm-ufa-search')?.value.toLowerCase()||'';
+    const tp  = document.getElementById('gm-ufa-type')?.value||'all';
     const pos = document.getElementById('gm-ufa-pos')?.value||'all';
     const filtered = ufas.filter(p=>{
       if (q && !p.name.toLowerCase().includes(q)) return false;
-      if (pos==='F' && p._type!=='F') return false;
-      if (pos==='D' && p._type!=='D') return false;
+      if (tp==='UFA' && p.expiry_type!=='UFA') return false;
+      if (tp==='RFA' && !p.expiry_type?.startsWith('RFA')) return false;
+      if (pos!=='all') {
+        const pp=p.pos||'';
+        if (pos==='C' && !pp.startsWith('C')) return false;
+        if (pos==='L' && (!pp.startsWith('L')||pp.startsWith('LD'))) return false;
+        if (pos==='R' && (!pp.startsWith('R')||pp.startsWith('RD'))) return false;
+        if (pos==='LD' && pp!=='LD'&&pp!=='D') return false;
+        if (pos==='RD' && pp!=='RD') return false;
+      }
       return true;
     }).slice(0,40);
     document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
       <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
-        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p._type} · ${p.actual_role||p.role||'–'}</span></span>
-        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--teal);">${p.overall_pct}</span>
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.actual_role||p.role||'–'} · ${p.expiry_type||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:${barColor(p.overall_pct||0)};">${p.overall_pct}</span>
       </div>`).join('') || '<div style="color:var(--text3);padding:.5rem;">No matches</div>';
   }
   renderUFAList();
   document.getElementById('gm-ufa-search').addEventListener('input', renderUFAList);
   document.getElementById('gm-ufa-pos').addEventListener('change', renderUFAList);
+  document.getElementById('gm-ufa-type')?.addEventListener('change', renderUFAList);
 }
 
 function gmSelectUFA(name, el) {
@@ -4235,8 +4287,19 @@ function gmOpenTrade() {
         <div>
           <div style="font-size:.75rem;font-weight:600;color:var(--teal);margin-bottom:.35rem;">Receive (league players)</div>
           <div id="gm-trade-in" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
-          <input id="gm-trade-in-search" placeholder="Search league players…" style="width:100%;margin:.4rem 0;background:var(--surface3);border:1px solid var(--border2);border-radius:4px;padding:.3rem .6rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.78rem;outline:none;box-sizing:border-box;">
-          <div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-in-list"></div>
+          <div style="display:flex;gap:.3rem;margin:.4rem 0;">
+            <input id="gm-trade-in-search" placeholder="Name…" style="flex:1;background:var(--surface3);border:1px solid var(--border2);border-radius:4px;padding:.3rem .5rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.78rem;outline:none;">
+            <select id="gm-trade-in-team" class="lb-select" style="font-size:.72rem;">
+              <option value="all">All teams</option>
+              ${NHL_TEAM_CODES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+            </select>
+            <select id="gm-trade-in-pos" class="lb-select" style="font-size:.72rem;">
+              <option value="all">All pos</option><option value="C">C</option>
+              <option value="L">LW</option><option value="R">RW</option>
+              <option value="LD">LD</option><option value="RD">RD</option>
+            </select>
+          </div>
+          <div style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-in-list"></div>
         </div>
       </div>
       <div id="gm-trade-fairness" style="font-size:.78rem;margin:.6rem 0;padding:.4rem .6rem;border-radius:4px;background:var(--surface3);"></div>
@@ -4313,7 +4376,7 @@ function gmConfirmTrade() {
 }
 
 // ── Final Analysis ────────────────────────────────────────────────────────────
-function gmAnalyse() {
+function gmAnalyze() {
   const roster  = gmState.roster;
   const projPts = gmProjPts(roster);
   const basePts = gmProjPts(gmState.baseRoster.map(p=>({p})));
@@ -4740,6 +4803,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const calcDD   = document.getElementById('calc-dd');
   if (calcSrch && calcDD) {
     // Custom calc search — does NOT call showPlayer; uses its own mousedown
+    const mono = "font-family:'DM Mono',monospace;font-size:.8rem;";
     let _calcResults = [];
     calcSrch.addEventListener('input', () => {
       const q = calcSrch.value.trim();
@@ -4818,6 +4882,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-go" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -4868,6 +4933,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-aw" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -4914,6 +4980,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-gcv" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -4953,6 +5020,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-cs" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5024,6 +5092,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-cmp" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5077,6 +5146,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-fa" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5186,6 +5256,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-bk" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5235,6 +5306,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-tr" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5331,6 +5403,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item active" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-ext" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5448,6 +5521,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-lc" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5578,6 +5652,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item active" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-cc" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5675,6 +5750,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
+      </div>
       <div class="nav-link" id="nav-gm-pc" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5684,7 +5760,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="font-size:1.1rem;font-weight:600;margin-bottom:.2rem;">Player Chemistry</div>
       <div style="font-size:.78rem;color:var(--text3);">Search any skater to see which linemate attributes have historically correlated with their best and worst line combinations, plus model-implied chemistry needs.</div>
     </div>
-    <div style="position:relative;margin-bottom:1.25rem;">
+    <div style="position:relative;margin-bottom:1.25rem;overflow:visible;z-index:200;">
       <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text3);" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
       <input type="text" id="pc-search" placeholder="Search for any skater…"
         style="width:100%;padding:.55rem .75rem .55rem 2.25rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'Karla',sans-serif;font-size:.92rem;outline:none;box-sizing:border-box;">
