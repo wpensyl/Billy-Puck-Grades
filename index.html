@@ -456,6 +456,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
       <input type="text" class="card-search-input" id="lb-search" placeholder="Filter players..." autocomplete="off" spellcheck="false">
+      <div class="nav-link" id="nav-gm-lb" onclick="goGM()">GM Mode</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -514,7 +515,6 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm" onclick="goGM()">GM Mode</div>
       <div class="nav-link" id="nav-gm-lb" onclick="goGM()">GM Mode</div>
       <div class="nav-link" id="nav-gm-tm" onclick="goGM()">GM Mode</div>
@@ -4882,7 +4882,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-go" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -4933,7 +4932,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-aw" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -4980,7 +4978,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-gcv" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5020,7 +5017,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-cs" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5092,7 +5088,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-cmp" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5146,7 +5141,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-fa" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5256,7 +5250,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-bk" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5306,7 +5299,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-tr" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5403,7 +5395,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item active" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-ext" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5521,7 +5512,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-lc" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5652,7 +5642,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item active" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-cc" onclick="goGM()">GM Mode</div>
       </div>
     </div>
@@ -5750,7 +5739,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
           <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
-      </div>
       <div class="nav-link" id="nav-gm-pc" onclick="goGM()">GM Mode</div>
       </div>
     </div>
