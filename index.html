@@ -4430,6 +4430,84 @@ function gmAnalyze() {
     </div>`;
 }
 
+
+// ── Player Chemistry search — global handler (avoids IIFE scope issues) ───────
+window._pcSearch = (function() {
+  const MONO = "font-family:'DM Mono',monospace;font-size:.8rem;";
+  let _results = [];
+  function getEls() {
+    return { inp: document.getElementById('pc-search'),
+             dd:  document.getElementById('pc-dd') };
+  }
+  return {
+    onInput(val) {
+      const {inp, dd} = getEls(); if (!dd) return;
+      const q = (val||'').trim();
+      if (q.length < 2) { dd.className='dropdown'; dd.innerHTML=''; return; }
+      _results = (typeof searchPlayers==='function')
+        ? searchPlayers(q,'all').filter(p=>p._type!=='G')
+        : [];
+      if (!_results.length) { dd.className='dropdown'; dd.innerHTML=''; return; }
+      dd.className = 'dropdown open';
+      dd.innerHTML = _results.map((p,i) => `<div class="dd-item" data-idx="${i}"
+          onmousedown="event.preventDefault();window._pcSearch.pick(${i})">
+          <div><div class="dd-name">${p.name}</div>
+          <div class="dd-meta">${p.current_team||''} · ${p.actual_role||p.role||''}</div></div>
+          <div style="margin-left:auto;${MONO}color:var(--teal);">${p.overall_pct??'–'}</div>
+        </div>`).join('');
+    },
+    pick(i) {
+      const {inp, dd} = getEls();
+      const p = _results[i];
+      if (!p || !inp || !dd) return;
+      inp.value = p.name;
+      dd.className='dropdown'; dd.innerHTML='';
+      if (typeof renderPlayerChem === 'function') renderPlayerChem(p);
+    },
+    blur() { setTimeout(()=>{ const dd=document.getElementById('pc-dd');
+      if(dd){dd.className='dropdown';dd.innerHTML='';} }, 200); }
+  };
+})();
+
+
+// ── Contract Calculator search — global handler ────────────────────────────────
+window._calcSearch = (function() {
+  const MONO = "font-family:'DM Mono',monospace;font-size:.8rem;";
+  let _results = [];
+  function getEls() {
+    return { inp: document.getElementById('calc-search'),
+             dd:  document.getElementById('calc-dd') };
+  }
+  return {
+    onInput(val) {
+      const {inp, dd} = getEls(); if (!dd) return;
+      const q = (val||'').trim();
+      if (q.length < 2) { dd.className='dropdown'; dd.innerHTML=''; return; }
+      _results = (typeof searchPlayers==='function')
+        ? searchPlayers(q,'all').filter(p=>p._type!=='G')
+        : [];
+      if (!_results.length) { dd.className='dropdown'; dd.innerHTML=''; return; }
+      dd.className = 'dropdown open';
+      dd.innerHTML = _results.map((p,i) => `<div class="dd-item" data-idx="${i}"
+          onmousedown="event.preventDefault();window._calcSearch.pick(${i})">
+          <div><div class="dd-name">${p.name}</div>
+          <div class="dd-meta">${p.current_team||''} · ${p.actual_role||p.role||''}</div></div>
+          <div style="margin-left:auto;${MONO}color:var(--teal);">${p.overall_pct??'–'}</div>
+        </div>`).join('');
+    },
+    pick(i) {
+      const {inp, dd} = getEls();
+      const p = _results[i];
+      if (!p || !inp || !dd) return;
+      inp.value = p.name;
+      dd.className='dropdown'; dd.innerHTML='';
+      if (typeof renderCalcResult === 'function') { window.calcPlayer=p; renderCalcResult(); }
+    },
+    blur() { setTimeout(()=>{ const dd=document.getElementById('calc-dd');
+      if(dd){dd.className='dropdown';dd.innerHTML='';} }, 200); }
+  };
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   if (window.location.protocol === 'file:') {
@@ -4759,33 +4837,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nav-goalies-lc')?.addEventListener('click', goGoalies);
 
   // Player Chemistry search wiring
-  (function wirePCSearch() {
-    const inp = document.getElementById('pc-search');
-    const dd  = document.getElementById('pc-dd');
-    if (!inp || !dd) return;
-    let _pcResults = [];
-    inp.addEventListener('input', () => {
-      const q = inp.value.trim();
-      if (q.length < 2) { dd.className='dropdown'; dd.innerHTML=''; return; }
-      _pcResults = searchPlayers(q,'all').filter(p=>p._type!=='G');
-      if (!_pcResults.length) { dd.className='dropdown'; dd.innerHTML=''; return; }
-      dd.className='dropdown open';
-      dd.innerHTML = _pcResults.map((p,i)=>`<div class="dd-item" data-idx="${i}">
-        <div><div class="dd-name">${p.name}</div>
-        <div class="dd-meta">${p.current_team||''} · ${p.actual_role||p.role||''}</div></div>
-        <div style="margin-left:auto;${mono}color:var(--teal);">${p.overall_pct??'–'}</div>
-      </div>`).join('');
-      dd.querySelectorAll('.dd-item').forEach((item,i)=>{
-        item.addEventListener('mousedown', e=>{
-          e.preventDefault(); e.stopPropagation();
-          const p=_pcResults[i]; if(!p) return;
-          inp.value=p.name; dd.className='dropdown'; dd.innerHTML='';
-          renderPlayerChem(p);
-        });
-      });
-    });
-    inp.addEventListener('blur',()=>setTimeout(()=>{dd.className='dropdown';dd.innerHTML='';},200));
-  })();
+    // PC search wired via window._pcSearch global handler
 
   // calcview internal nav
   document.getElementById('nav-logo-gm')?.addEventListener('click', () => showView('landing'));
@@ -4802,41 +4854,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const calcSrch = document.getElementById('calc-search');
   const calcDD   = document.getElementById('calc-dd');
   if (calcSrch && calcDD) {
-    // Custom calc search — does NOT call showPlayer; uses its own mousedown
-    const mono = "font-family:'DM Mono',monospace;font-size:.8rem;";
-    let _calcResults = [];
-    calcSrch.addEventListener('input', () => {
-      const q = calcSrch.value.trim();
-      if (q.length < 2) { calcDD.className='dropdown'; calcDD.innerHTML=''; return; }
-      _calcResults = searchPlayers(q,'all').filter(p=>p._type!=='G');
-      if (!_calcResults.length) { calcDD.className='dropdown'; calcDD.innerHTML=''; return; }
-      calcDD.className='dropdown open';
-      calcDD.innerHTML = _calcResults.map((p,i)=>`<div class="dd-item" data-idx="${i}"><div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.current_team||''} · ${p.actual_role||p.role||''}</div></div><div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--teal);">${p.overall_pct??'–'}</div></div>`).join('');
-      calcDD.querySelectorAll('.dd-item').forEach((item,i)=>{
-        item.addEventListener('mousedown', e=>{
-          e.preventDefault(); e.stopPropagation();
-          const p=_calcResults[i]; if(!p) return;
-          calcPlayer=p; calcTerm=1;
-          calcSrch.value=p.name; calcDD.className='dropdown'; calcDD.innerHTML='';
-          renderCalcResult();
-          fetchNHLPlayerData(p.name,(_,pid)=>{
-            if(!pid) return;
-            const imgEl=document.getElementById('calc-hs');
-            const url=nhlHeadshotCache[p.name]||`https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`;
-            if(imgEl) imgEl.innerHTML=`<img src="${url}" onerror="this.style.display='none'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;">`;
-          });
-        });
-      });
-    });
-    calcSrch.addEventListener('blur',()=>setTimeout(()=>{calcDD.className='dropdown';calcDD.innerHTML='';},200));
-    calcDD.addEventListener('mousedown', e => {
-      const item = e.target.closest('.dd-item');
-      if (item) {
-        e.preventDefault();
-        const results = _calcResults;
-        /* handled by item mousedown above */
-      }
-    });
+    // Calc search wired via window._calcSearch global handler
   }
 
   // Wire ext candidates internal nav
@@ -5655,7 +5673,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <!-- Search -->
     <div style="position:relative;margin-bottom:1.25rem;">
       <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text3);" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-      <input type="text" id="calc-search" placeholder="Search for any player…"
+      <input type="text" id="calc-search" oninput="window._calcSearch&&window._calcSearch.onInput(this.value)" onblur="window._calcSearch&&window._calcSearch.blur()" placeholder="Search for any player…"
         style="width:100%;padding:.55rem .75rem .55rem 2.25rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'Karla',sans-serif;font-size:.92rem;outline:none;box-sizing:border-box;">
       <div id="calc-dd" class="dropdown"></div>
     </div>
@@ -5750,7 +5768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div style="position:relative;margin-bottom:1.25rem;overflow:visible;z-index:200;">
       <svg style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--text3);" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-      <input type="text" id="pc-search" placeholder="Search for any skater…"
+      <input type="text" id="pc-search" placeholder="Search for any skater…" oninput="window._pcSearch&&window._pcSearch.onInput(this.value)" onblur="window._pcSearch&&window._pcSearch.blur()"
         style="width:100%;padding:.55rem .75rem .55rem 2.25rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:'Karla',sans-serif;font-size:.92rem;outline:none;box-sizing:border-box;">
       <div id="pc-dd" class="dropdown"></div>
     </div>
