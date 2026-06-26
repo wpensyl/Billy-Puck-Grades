@@ -967,7 +967,7 @@ function renderHeader(p) {
         <span>${p.height||'–'} · ${p.weight ? p.weight+' lbs' : '–'}</span>
       </div>
       <div class="tags">
-        <span class="tag tag-contract">${p.pos||p._type}</span>
+        <span class="tag tag-contract">${posDisplayGlobal(p)}</span>
         ${p.role ? `<span class="tag" style="background:${ac}22;color:${ac};"><span style="opacity:.6;font-size:.62em;margin-right:2px;">TIER</span>${p.role}</span>` : ''}
         ${p.actual_role ? `<span class="tag tag-contract"><span style="opacity:.6;font-size:.62em;margin-right:2px;">ROLE</span>${p.actual_role}</span>` : ''}
         ${exp ? `<span class="tag tag-contract">${exp}</span>` : ''}
@@ -3548,7 +3548,7 @@ function renderPlayerChem(player) {
   // ── Header ──────────────────────────────────────────────────────────────────
   document.getElementById('pc-name').textContent = player.name;
   document.getElementById('pc-meta').textContent =
-    `${player.current_team||player.team||'–'} · ${player.pos||player._type||'–'} · ${player.actual_role||player.role||'–'}${player.playstyle?' · '+player.playstyle:''}`;
+    `${player.current_team||player.team||'–'} · ${posDisplayGlobal(player)} · ${player.actual_role||player.role||'–'}${player.playstyle?' · '+player.playstyle:''}`;
   const ovEl = document.getElementById('pc-ov');
   ovEl.textContent = ov; ovEl.style.color = barColor(ov);
 
@@ -3771,63 +3771,92 @@ function buildDepthChart(roster) {
   };
   const byScore = (a,b) => gmDepthScore(b) - gmDepthScore(a);
 
+  // Helper: format position with alternates in parens, e.g. "LW (RW,C)"
+  const posNorm = pos => ({'L':'LW','R':'RW','LD':'LD','RD':'RD','C':'C','LW':'LW','RW':'RW'}[pos]||pos||'–');
+  const posDisplay = p => {
+    const pri = posNorm(p.pos||p._type||'–');
+    const ap  = (p.alt_pos||[]).filter(x => x!==pri && x!==p.pos);
+    return ap.length ? `${pri} (${ap.join(',')})` : pri;
+  };
+
   const fwds = roster.filter(r=>r.p._type==='F').sort(byScore);
   const dmen = roster.filter(r=>r.p._type==='D').sort(byScore);
   const parseTOIg = s => { if(!s) return 0; const p=s.split(':'); return p.length===2?parseInt(p[0])+parseInt(p[1])/60:0; };
   const gols = roster.filter(r=>r.p._type==='G').sort((a,b)=>parseTOIg(b.p.toi_per_gp)-parseTOIg(a.p.toi_per_gp));
 
-  // Classify forwards by position
-  const isC  = r => /^C/.test(r.p.pos||'');
-  const isLW = r => /^L/.test(r.p.pos||'') && !isC(r);
-  const isRW = r => /^R/.test(r.p.pos||'') && !isC(r);
+  // Position helpers — primary + alt_pos
+  const isC   = r => /^C/.test(r.p.pos||'');
+  const isLW  = r => /^L/.test(r.p.pos||'') && !isC(r);
+  const isRW  = r => /^R/.test(r.p.pos||'') && !isC(r);
+  const isLD  = r => /^LD/.test(r.p.pos||'') || (r.p.alt_pos||[]).some(p=>p==='LD');
+  const isRD  = r => /^RD/.test(r.p.pos||'') || (r.p.alt_pos||[]).some(p=>p==='RD');
+  const canC  = r => isC(r)  || (r.p.alt_pos||[]).some(p=>p==='C');
+  const canLW = r => isLW(r) || (r.p.alt_pos||[]).some(p=>p==='LW'||p==='L');
+  const canRW = r => isRW(r) || (r.p.alt_pos||[]).some(p=>p==='RW'||p==='R');
 
-  // Position helpers — use alt_pos for flexibility
-  const altPos   = r => r.p.alt_pos || [];
-  const canC     = r => isC(r)  || altPos(r).some(p=>p==='C');
-  const canLW    = r => isLW(r) || altPos(r).some(p=>p==='LW'||p==='L');
-  const canRW    = r => isRW(r) || altPos(r).some(p=>p==='RW'||p==='R');
-
-  // Pool: all non-center forwards (including flex-capable centers for wing slots)
-  let avail = fwds.slice(); // already sorted by byScore
-
-  // Utility: take best player from avail who passes a test (prefer primary pos)
-  const take = (primaryTest, flexTest) => {
-    let idx = avail.findIndex(primaryTest);
-    if (idx < 0) idx = avail.findIndex(flexTest || (()=>false));
-    if (idx < 0) return null;
-    return avail.splice(idx, 1)[0];
-  };
-
-  // Build 4 lines: each gets [C, LW, RW]
+  // ── FWD LINES — depth score is PRIMARY ordering factor ──────────────────
+  // Step 1: assign centers top-down (best C → Line 1, etc.)
+  const cPool = fwds.filter(isC);
+  const wPool = fwds.filter(r=>!isC(r)).slice();  // all non-C, sorted by score
+  const usedFwdNames = new Set();
   const lines = Array.from({length:4}, ()=>({c:null,lw:null,rw:null}));
-  lines.forEach(line => {
-    // Fill C: prefer primary C, fall back to alt-C capable
-    line.c  = take(isC,  canC);
-    // Fill LW: prefer primary LW, fall back to alt-LW (includes RW/flex)
-    line.lw = take(isLW, canLW);
-    // Fill RW: prefer primary RW, fall back to alt-RW (includes LW/flex)
-    line.rw = take(isRW, canRW);
-  });
-  // Remaining wings that didn't fit into 4 lines are handled by leftoverFwd below
 
-  // Fill any remaining empty line slots with leftover forwards
-  const usedFwdNames = new Set(lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(r=>r.p.name));
-  const leftoverFwd  = fwds.filter(r=>!usedFwdNames.has(r.p.name));
+  lines.forEach(line => {
+    const c = cPool.find(r=>!usedFwdNames.has(r.p.name));
+    if (c) { line.c=c; usedFwdNames.add(c.p.name); }
+  });
+
+  // Step 2: Assign wings in SCORE ORDER — top 2 wings → Line 1, next 2 → Line 2, etc.
+  // Within each line's pair, assign L vs R by position preference.
+  lines.forEach(line => {
+    const pair = [];
+    while (pair.length < 2) {
+      const w = wPool.find(r=>!usedFwdNames.has(r.p.name));
+      if (!w) break;
+      pair.push(w); usedFwdNames.add(w.p.name);
+    }
+    // If still no C, promote a wing (prefer canC)
+    if (!line.c && pair.length > 0) {
+      const ci = pair.findIndex(canC);
+      if (ci >= 0) { line.c = pair.splice(ci,1)[0]; }
+      else          { line.c = pair.shift(); }
+    }
+    // Assign L vs R: prefer primary, use alt_pos, else assign by order
+    if (pair.length === 2) {
+      const [w1,w2] = pair;
+      if      (isLW(w1) && !isLW(w2)) { line.lw=w1; line.rw=w2; }
+      else if (isRW(w1) && !isRW(w2)) { line.rw=w1; line.lw=w2; }
+      else if (canLW(w1) && canRW(w2) && !canLW(w2)) { line.lw=w1; line.rw=w2; }
+      else if (canRW(w1) && canLW(w2) && !canRW(w2)) { line.rw=w1; line.lw=w2; }
+      else { line.lw=w1; line.rw=w2; }
+    } else if (pair.length === 1) {
+      if (isLW(pair[0])||canLW(pair[0])) line.lw=pair[0];
+      else line.rw=pair[0];
+    }
+  });
+
+  // Fill any empty slots with remaining forwards (leftover centers or fringe players)
+  const leftoverFwd = fwds.filter(r=>!usedFwdNames.has(r.p.name));
   lines.forEach(line => {
     if (!line.lw && leftoverFwd.length) line.lw = leftoverFwd.shift();
     if (!line.rw && leftoverFwd.length) line.rw = leftoverFwd.shift();
     if (!line.c  && leftoverFwd.length) line.c  = leftoverFwd.shift();
   });
-  // Extra forwards beyond 12 go to scratches
-  const stillLeft = fwds.filter(r => !new Set(lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(x=>x.p.name)).has(r.p.name));
 
-  // D pairs: top 6 by score
-  const pairs = [
-    [dmen[0],dmen[1]].filter(Boolean),
-    [dmen[2],dmen[3]].filter(Boolean),
-    [dmen[4],dmen[5]].filter(Boolean),
-  ].filter(p=>p.length>0);
-  const extraD = dmen.slice(6);
+  // ── D PAIRS — assign LD/RD slots by position within each pair ───────────
+  const pairs = [];
+  for (let i=0; i<3 && i*2<dmen.length; i++) {
+    const d1=dmen[i*2], d2=dmen[i*2+1]||null;
+    if (!d1) break;
+    let ld,rd;
+    if      (!d2)               { isRD(d1)?(rd=d1):(ld=d1); }
+    else if (isLD(d1)&&isRD(d2)){ ld=d1; rd=d2; }
+    else if (isRD(d1)&&isLD(d2)){ ld=d2; rd=d1; }
+    else if (isLD(d1))          { ld=d1; rd=d2; }
+    else if (isRD(d1))          { rd=d1; ld=d2; }
+    else                        { ld=d1; rd=d2; }
+    pairs.push([ld||null, rd||null]);
+  }
 
   const activeNames = new Set([
     ...lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(r=>r.p.name),
@@ -3970,7 +3999,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${r.p.pos||'–'}${r.p.alt_pos&&r.p.alt_pos.length>1?'<sup style="color:var(--teal);font-size:.6rem;"> +flex</sup>':''} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${posDisplay(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -3983,7 +4012,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${r.p.pos||'D'}${r.p.alt_pos&&r.p.alt_pos.length>1?'<sup style="color:var(--teal);font-size:.6rem;"> +flex</sup>':''} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${posDisplay(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -4365,7 +4394,7 @@ function gmOpenTrade() {
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
       <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${p.current_team||p.team||''}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
-        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type}${p.alt_pos&&p.alt_pos.length>1?'<sup style="color:var(--teal);font-size:.6rem;"> +flex</sup>':''} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${p.overall_pct??''}</span>
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${p.overall_pct??''}</span>
         <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(p))}</span>
       </div>`).join('');
   }
@@ -4527,6 +4556,14 @@ function gmAnalyze() {
 
 
 // ── Player Chemistry search — global handler (avoids IIFE scope issues) ───────
+// Global position display helper (primary + alternates in parens)
+const posDisplayGlobal = p => {
+  const nm = {'L':'LW','R':'RW','LD':'LD','RD':'RD','C':'C','LW':'LW','RW':'RW'};
+  const pri = nm[p.pos] || p.pos || '–';
+  const ap  = (p.alt_pos||[]).filter(x => x!==pri && x!==p.pos);
+  return ap.length ? `${pri} (${ap.join(',')})` : pri;
+};
+
 window._pcSearch = (function() {
   const MONO = "font-family:'DM Mono',monospace;font-size:.8rem;";
   let _results = [];
