@@ -3,21 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Billy Puck Grades | NHL Player Analytics & Rankings</title>
-<meta name="description" content="Billy Puck Grades: advanced NHL player analytics with composite ratings, contract value analysis, team breakdowns, and breakout predictions. Data-driven grades for every NHL skater and goalie.">
+<title>Billy Puck Grades | NHL Analytics & GM Simulator</title>
+<meta name="description" content="Billy Puck Grades: NHL analytics featuring player ratings and skillsets, contract value analysis, team breakdowns and matchup analysis, and GM simulator tools.">
 <meta name="keywords" content="NHL analytics, hockey player ratings, NHL player grades, hockey statistics, NHL contract value, hockey analytics, Billy Puck Grades, NHL rankings, hockey composite scores">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="https://billy-puck-grades.pages.dev/">
+<link rel="canonical" href="https://billy-puck-grades.com/">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+<meta property="og:url" content="https://billy-puck-grades.com/">
+<meta property="og:image" content="https://billy-puck-grades.com/favicon.png">
 <!-- Open Graph -->
 <meta property="og:type" content="website">
-<meta property="og:title" content="Billy Puck Grades | NHL Player Analytics">
-<meta property="og:description" content="Advanced NHL player analytics with composite ratings, contract value analysis, team projections, and breakout predictions for every NHL skater and goalie.">
-<meta property="og:url" content="https://billy-puck-grades.pages.dev/">
+<meta property="og:title" content="Billy Puck Grades | NHL Analytics & GM Simulator">
+<meta property="og:description" content="NHL analytics featuring player ratings and skillsets, contract value analysis, team breakdowns and matchup analysis, and GM simulator tools.">
+<!-- og:url already set above -->
 <meta property="og:site_name" content="Billy Puck Grades">
 <!-- Twitter Card -->
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Billy Puck Grades | NHL Player Analytics">
-<meta name="twitter:description" content="Advanced NHL player analytics: composite ratings, contract value, team projections, and breakout predictions.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Billy Puck Grades | NHL Analytics & GM Simulator">
+<meta name="twitter:description" content="NHL analytics: player ratings, contract value analysis, team matchups, and GM simulator tools.">
 <!-- Google Search Console verification -->
 <meta name="google-site-verification" content="dFfwMKf33m4R2K2aEe_mmqPjz3qCcfe9okITr_XhAR0" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -901,6 +905,12 @@ async function showPlayer(p) {
   currentPlayer = p;
   activeCompTab = 'individual';
   showView('card-view');
+  // Update URL so the player card is shareable
+  try {
+    const url = new URL(window.location);
+    url.searchParams.set('player', p.name);
+    history.replaceState(null, '', url);
+  } catch(e) {}
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   document.getElementById('nav-players').classList.add('active');
   document.getElementById('card-search').value = '';
@@ -3798,6 +3808,26 @@ function buildDepthChart(roster) {
   const canLW = r => isLW(r) || (r.p.alt_pos||[]).some(p=>p==='LW'||p==='L');
   const canRW = r => isRW(r) || (r.p.alt_pos||[]).some(p=>p==='RW'||p==='R');
 
+  // Wing assignment helper — uses canRW/canLW to correctly place flexible players
+  const assignWings = (line) => {
+    const wings = [line.lw, line.rw].filter(Boolean);
+    if (wings.length !== 2) return;
+    const [w1, w2] = wings;
+    const w1LWonly = canLW(w1) && !canRW(w1);
+    const w1RWonly = canRW(w1) && !canLW(w1);
+    const w2LWonly = canLW(w2) && !canRW(w2);
+    const w2RWonly = canRW(w2) && !canLW(w2);
+    // Priority 1: player can ONLY play one side → lock them there
+    if      (w1LWonly || w2RWonly) { line.lw=w1; line.rw=w2; }
+    else if (w1RWonly || w2LWonly) { line.rw=w1; line.lw=w2; }
+    // Priority 2: primary position preference
+    else if (isLW(w1) && !isLW(w2)) { line.lw=w1; line.rw=w2; }
+    else if (isRW(w1) && !isRW(w2)) { line.rw=w1; line.lw=w2; }
+    else if (isLW(w2) && !isLW(w1)) { line.lw=w2; line.rw=w1; }
+    else if (isRW(w2) && !isRW(w1)) { line.rw=w2; line.lw=w1; }
+    // else keep current (both equally flexible)
+  };
+
   // ── FWD LINES — depth score is PRIMARY ordering factor ──────────────────
   // Step 1: assign centers top-down (best C → Line 1, etc.)
   const cPool = fwds.filter(isC);
@@ -3827,12 +3857,7 @@ function buildDepthChart(roster) {
     }
     // Assign L vs R: prefer primary, use alt_pos, else assign by order
     if (pair.length === 2) {
-      const [w1,w2] = pair;
-      if      (isLW(w1) && !isLW(w2)) { line.lw=w1; line.rw=w2; }
-      else if (isRW(w1) && !isRW(w2)) { line.rw=w1; line.lw=w2; }
-      else if (canLW(w1) && canRW(w2) && !canLW(w2)) { line.lw=w1; line.rw=w2; }
-      else if (canRW(w1) && canLW(w2) && !canRW(w2)) { line.rw=w1; line.lw=w2; }
-      else { line.lw=w1; line.rw=w2; }
+      line.lw=pair[0]; line.rw=pair[1]; assignWings(line);
     } else if (pair.length === 1) {
       if (isLW(pair[0])||canLW(pair[0])) line.lw=pair[0];
       else line.rw=pair[0];
@@ -3874,17 +3899,15 @@ function buildDepthChart(roster) {
             const ws = line.lw===cp?'lw':'rw'; const old = line.c;
             line.c = cp; line[ws] = old;
           }
-          const wings = [line.lw,line.rw].filter(Boolean);
-          if (wings.length===2) {
-            const [w1,w2]=wings;
-            if      (isLW(w1)&&!isLW(w2)){line.lw=w1;line.rw=w2;}
-            else if (isRW(w1)&&!isRW(w2)){line.rw=w1;line.lw=w2;}
-          }
+          assignWings(line);
         });
         anySwap = true;
       }
     }
   }
+
+  // Final wing cleanup — ensures all lines have correct L/R assignments after any swaps
+  lines.forEach(line => assignWings(line));
 
   // ── PRESS BOX CHECK — scratch FWDs shouldn't outperform active FWDs ───────
   // Rebuild scratch list after sanity swap
@@ -3910,18 +3933,13 @@ function buildDepthChart(roster) {
         activeFwdNames.add(scratch.p.name);
         activeFwdNames.delete(worstR.p.name);
         // Re-assign C/LW/RW in the swapped line
-        const pl = [worstLine.c,worstLine.lw,worstLine.rw].filter(Boolean);
-        const cp = pl.find(r=>isC(r)) || pl.find(r=>canC(r));
-        if (cp && worstLine.c !== cp) {
-          const ws = worstLine.lw===cp?'lw':'rw'; const old=worstLine.c;
-          worstLine.c=cp; worstLine[ws]=old;
+        const pl2 = [worstLine.c,worstLine.lw,worstLine.rw].filter(Boolean);
+        const cp2 = pl2.find(r=>isC(r)) || pl2.find(r=>canC(r));
+        if (cp2 && worstLine.c !== cp2) {
+          const ws2 = worstLine.lw===cp2?'lw':'rw'; const old2=worstLine.c;
+          worstLine.c=cp2; worstLine[ws2]=old2;
         }
-        const wings=[worstLine.lw,worstLine.rw].filter(Boolean);
-        if (wings.length===2) {
-          const [w1,w2]=wings;
-          if      (isLW(w1)&&!isLW(w2)){worstLine.lw=w1;worstLine.rw=w2;}
-          else if (isRW(w1)&&!isRW(w2)){worstLine.rw=w1;worstLine.lw=w2;}
-        }
+        assignWings(worstLine);
         anyBenchSwap = true;
         break;
       }
@@ -4142,8 +4160,12 @@ function renderGMDashboard() {
       ${dPairSlot(pair[0],'LD')}${dPairSlot(pair[1],'RD')}
     </tr>`).join('');
 
-  const scratchHtml = dc.scratches.length
-    ? dc.scratches.map(r=>`<span style="font-size:.72rem;color:var(--text3);margin-right:.5rem;">${r.p.name} (${r.p.pos||'–'})</span>`).join('')
+  const scratchHtml = dc.scratches.filter(r=>r.p._type!=='G').length
+    ? dc.scratches.filter(r=>r.p._type!=='G').map(r=>{
+        const ov = r.p.overall_pct ?? r.p.overall_2526;
+        const ovStr = ov != null ? ` <span style="color:var(--teal);font-family:'DM Mono',monospace;font-size:.68rem;">${ov}</span>` : '';
+        return `<span style="font-size:.72rem;color:var(--text3);margin-right:.5rem;">${r.p.name} (${posDisplayGlobal(r.p)})${ovStr}</span>`;
+      }).join('')
     : '<span style="color:var(--text3);font-size:.72rem;">None</span>';
 
   const sanityHtml = sanity
@@ -4797,7 +4819,16 @@ window._calcSearch = (function() {
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadData();
+  loadData().then(() => {
+    // Share URL support: ?player=NAME opens that player's card directly
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedPlayer = urlParams.get('player');
+    if (sharedPlayer) {
+      const p = ALL_PLAYERS.find(x => x.name.toLowerCase() === sharedPlayer.toLowerCase())
+             || ALL_PLAYERS.find(x => x.name.toLowerCase().includes(sharedPlayer.toLowerCase()));
+      if (p) showPlayer(p);
+    }
+  });
   if (window.location.protocol === 'file:') {
     const n=document.getElementById('file-notice'); if(n) n.style.display='block';
   } else {
