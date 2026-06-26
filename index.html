@@ -3781,25 +3781,32 @@ function buildDepthChart(roster) {
   const isLW = r => /^L/.test(r.p.pos||'') && !isC(r);
   const isRW = r => /^R/.test(r.p.pos||'') && !isC(r);
 
-  let centers = fwds.filter(isC);
-  // Wings are interchangeable — pool them together, prefer natural side
-  let wings   = fwds.filter(r=>!isC(r));
+  // Position helpers — use alt_pos for flexibility
+  const altPos   = r => r.p.alt_pos || [];
+  const canC     = r => isC(r)  || altPos(r).some(p=>p==='C');
+  const canLW    = r => isLW(r) || altPos(r).some(p=>p==='LW'||p==='L');
+  const canRW    = r => isRW(r) || altPos(r).some(p=>p==='RW'||p==='R');
+
+  // Pool: all non-center forwards (including flex-capable centers for wing slots)
+  let avail = fwds.slice(); // already sorted by byScore
+
+  // Utility: take best player from avail who passes a test (prefer primary pos)
+  const take = (primaryTest, flexTest) => {
+    let idx = avail.findIndex(primaryTest);
+    if (idx < 0) idx = avail.findIndex(flexTest || (()=>false));
+    if (idx < 0) return null;
+    return avail.splice(idx, 1)[0];
+  };
 
   // Build 4 lines: each gets [C, LW, RW]
   const lines = Array.from({length:4}, ()=>({c:null,lw:null,rw:null}));
   lines.forEach(line => {
-    // Fill center
-    const cIdx = centers.length ? 0 : -1;
-    if (cIdx >= 0) { line.c = centers.shift(); }
-    else { const w = wings.shift(); if (w) line.c = w; }
-    // Fill LW — prefer natural LW, fall back to any wing
-    const lwIdx = wings.findIndex(r => isLW(r));
-    if (lwIdx >= 0) { line.lw = wings.splice(lwIdx,1)[0]; }
-    else if (wings.length) { line.lw = wings.shift(); }
-    // Fill RW — prefer natural RW, fall back to any wing
-    const rwIdx = wings.findIndex(r => isRW(r));
-    if (rwIdx >= 0) { line.rw = wings.splice(rwIdx,1)[0]; }
-    else if (wings.length) { line.rw = wings.shift(); }
+    // Fill C: prefer primary C, fall back to alt-C capable
+    line.c  = take(isC,  canC);
+    // Fill LW: prefer primary LW, fall back to alt-LW (includes RW/flex)
+    line.lw = take(isLW, canLW);
+    // Fill RW: prefer primary RW, fall back to alt-RW (includes LW/flex)
+    line.rw = take(isRW, canRW);
   });
   // Remaining wings that didn't fit into 4 lines are handled by leftoverFwd below
 
@@ -3963,7 +3970,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${r.p.pos||'–'} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${r.p.pos||'–'}${r.p.alt_pos&&r.p.alt_pos.length>1?'<sup style="color:var(--teal);font-size:.6rem;"> +flex</sup>':''} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -3976,7 +3983,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${r.p.pos||'D'} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${r.p.pos||'D'}${r.p.alt_pos&&r.p.alt_pos.length>1?'<sup style="color:var(--teal);font-size:.6rem;"> +flex</sup>':''} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -4305,7 +4312,7 @@ function gmOpenTrade() {
           <div id="gm-trade-out" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
           <div style="margin-top:.4rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-out-list">
             ${myRoster.map(r=>`<div onclick="gmToggleTradeOut('${r.p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
-              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span>
+              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct??''}</span>
               <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
             </div>`).join('')}
           </div>
@@ -4358,7 +4365,7 @@ function gmOpenTrade() {
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
       <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${p.current_team||p.team||''}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
-        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span>
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type}${p.alt_pos&&p.alt_pos.length>1?'<sup style="color:var(--teal);font-size:.6rem;"> +flex</sup>':''} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${p.overall_pct??''}</span>
         <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(p))}</span>
       </div>`).join('');
   }
