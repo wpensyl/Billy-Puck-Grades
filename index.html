@@ -3963,7 +3963,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'–'} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'–'} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -4245,7 +4245,7 @@ function gmOpenSignUFA() {
     }).slice(0,40);
     document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
       <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
-        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.actual_role||p.role||'–'} · ${p.expiry_type||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.actual_role||p.role||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
         <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:${barColor(p.overall_pct||0)};">${p.overall_pct}</span>
       </div>`).join('') || '<div style="color:var(--text3);padding:.5rem;">No matches</div>';
   }
@@ -4339,10 +4339,25 @@ function gmOpenTrade() {
   window._gmTradeIn  = new Set();
 
   function renderTradeInList() {
-    const q = document.getElementById('gm-trade-in-search')?.value.toLowerCase()||'';
-    const filtered = allLeague.filter(p=>!q||p.name.toLowerCase().includes(q)).slice(0,30);
+    const q   = document.getElementById('gm-trade-in-search')?.value.toLowerCase()||'';
+    const tc  = document.getElementById('gm-trade-in-team')?.value||'all';
+    const pos = document.getElementById('gm-trade-in-pos')?.value||'all';
+    const filtered = allLeague.filter(p=>{
+      if (q && !p.name.toLowerCase().includes(q)) return false;
+      if (tc!=='all' && p.current_team!==tc && p.team!==tc) return false;
+      if (pos!=='all') {
+        const pp=p.pos||p._type||'';
+        if (pos==='C'  && !pp.startsWith('C')) return false;
+        if (pos==='L'  && (!pp.startsWith('L')||pp.startsWith('LD'))) return false;
+        if (pos==='R'  && (!pp.startsWith('R')||pp.startsWith('RD'))) return false;
+        if (pos==='LD' && pp!=='LD') return false;
+        if (pos==='RD' && pp!=='RD') return false;
+      }
+      return true;
+    }).slice(0,60);
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
-      <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
+      <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}"
+           style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span>
         <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(p))}</span>
       </div>`).join('');
