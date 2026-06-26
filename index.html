@@ -3999,7 +3999,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${posDisplay(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -4012,7 +4012,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${posDisplay(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -4857,6 +4857,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Team Rankings filters
   document.getElementById('tr-sort')?.addEventListener('change', renderTeamRankings);
+  document.getElementById('tr-snapshot')?.addEventListener('change', renderTeamRankings);
   document.getElementById('tr-pos')?.addEventListener('change', renderTeamRankings);
 
   // Landing page nav buttons
