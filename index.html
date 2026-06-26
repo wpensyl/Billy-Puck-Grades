@@ -972,7 +972,7 @@ function renderHeader(p) {
     <div style="flex:1;min-width:0;">
       <div class="player-name" style="color:var(--text);">${p.name}</div>
       <div class="player-sub">
-        <span id="ph-team">${p.current_team||p.team||'–'}</span><span id="ph-jersey" style="color:var(--text3);font-size:.82rem;"></span><span class="sep">·</span>
+        <span id="ph-team">${(p.current_team||p.team||'\u2013').split('/').pop()}</span><span id="ph-jersey" style="color:var(--text3);font-size:.82rem;"></span><span class="sep">·</span>
         <span>Age ${p.age ? Math.floor(p.age) : '–'}</span><span class="sep">·</span>
         <span>${p.height||'–'} · ${p.weight ? p.weight+' lbs' : '–'}</span>
       </div>
@@ -4204,7 +4204,7 @@ function renderGMDashboard() {
     </div>
 
     <!-- Category strengths & weaknesses -->
-    ${catSwHtml?`<div style="margin-bottom:.6rem;">${catSwHtml}</div>`:''}
+    ${catSwHtml ? '<div style="margin-bottom:.6rem;">'+catSwHtml+'</div>' : ''}
 
     <!-- Action area — appears here so user sees it immediately -->
     <div id="gm-action-area" style="margin-bottom:.75rem;"></div>
@@ -4325,29 +4325,24 @@ function gmRemovePlayer(name, e) {
 
 // ── Re-sign FA ────────────────────────────────────────────────────────────────
 function gmOpenResign() {
-  // Category comparison: original vs projected
-  const origRanks = gmGetCategoryRanks(null);  // live data for this team
-  const projRanks = gmGetCategoryRanks(roster); // projected roster
-
-  const origStrSet = new Set(origRanks.strengths.map(s=>s.cat));
-  const origWkSet  = new Set(origRanks.weaknesses.map(w=>w.cat));
-  const projStrSet = new Set(projRanks.strengths.map(s=>s.cat));
-  const projWkSet  = new Set(projRanks.weaknesses.map(w=>w.cat));
-
-  const wkFixed    = [...origWkSet].filter(c=>!projWkSet.has(c));   // was weak, now not
-  const strLost    = [...origStrSet].filter(c=>!projStrSet.has(c)); // was strong, now not
-  const newStrs    = [...projStrSet].filter(c=>!origStrSet.has(c)); // newly strong
-  const newWks     = [...projWkSet].filter(c=>!origWkSet.has(c));   // newly weak
-
-  const pill = (cat, clr) => `<span style="padding:.12rem .4rem;border-radius:999px;border:1px solid ${clr};color:${clr};font-size:.68rem;white-space:nowrap;margin:0 .15rem;">${cat}</span>`;
-  const catAnalysis = [
-    wkFixed.length  ? `<div style="margin:.3rem 0;"><span style="color:var(--teal);font-size:.72rem;">✓ Weaknesses addressed:</span> ${wkFixed.map(c=>pill(c,'var(--teal)')).join('')}</div>` : '',
-    strLost.length  ? `<div style="margin:.3rem 0;"><span style="color:var(--coral);font-size:.72rem;">⚠ Strengths dropped:</span> ${strLost.map(c=>pill(c,'var(--coral)')).join('')}</div>` : '',
-    newStrs.length  ? `<div style="margin:.3rem 0;"><span style="color:var(--teal);font-size:.72rem;">★ New strengths:</span> ${newStrs.map(c=>pill(c,'var(--teal)')).join('')}</div>` : '',
-    newWks.length   ? `<div style="margin:.3rem 0;"><span style="color:var(--coral);font-size:.72rem;">⚠ New weaknesses:</span> ${newWks.map(c=>pill(c,'var(--coral)')).join('')}</div>` : '',
-    !wkFixed.length && !strLost.length && !newStrs.length && !newWks.length
-      ? `<div style="color:var(--text3);font-size:.72rem;">Category profile unchanged from original roster.</div>` : '',
-  ].filter(Boolean).join('');
+  // Category comparison: original vs projected roster
+  let catAnalysis = '';
+  try {
+    const _oR = gmGetCategoryRanks(null);
+    const _pR = gmGetCategoryRanks(roster);
+    const oStr=new Set(_oR.strengths.map(s=>s.cat)), oWk=new Set(_oR.weaknesses.map(w=>w.cat));
+    const pStr=new Set(_pR.strengths.map(s=>s.cat)), pWk=new Set(_pR.weaknesses.map(w=>w.cat));
+    const wkF=[...oWk].filter(c=>!pWk.has(c)), strL=[...oStr].filter(c=>!pStr.has(c));
+    const nStr=[...pStr].filter(c=>!oStr.has(c)), nWk=[...pWk].filter(c=>!oWk.has(c));
+    const dp=(cat,clr)=>'<span style="padding:.12rem .4rem;border-radius:999px;border:1px solid '+clr+';color:'+clr+';font-size:.68rem;white-space:nowrap;margin:0 .15rem;">'+cat+'</span>';
+    catAnalysis = [
+      wkF.length  ? '<div style="margin:.3rem 0;"><span style="color:var(--teal);font-size:.72rem;">✓ Weaknesses addressed:</span> '+wkF.map(c=>dp(c,'var(--teal)')).join('')+'</div>' : '',
+      strL.length ? '<div style="margin:.3rem 0;"><span style="color:var(--coral);font-size:.72rem;">⚠ Strengths dropped:</span> '+strL.map(c=>dp(c,'var(--coral)')).join('')+'</div>' : '',
+      nStr.length ? '<div style="margin:.3rem 0;"><span style="color:var(--teal);font-size:.72rem;">★ New strengths:</span> '+nStr.map(c=>dp(c,'var(--teal)')).join('')+'</div>' : '',
+      nWk.length  ? '<div style="margin:.3rem 0;"><span style="color:var(--coral);font-size:.72rem;">⚠ New weaknesses:</span> '+nWk.map(c=>dp(c,'var(--coral)')).join('')+'</div>' : '',
+      !wkF.length&&!strL.length&&!nStr.length&&!nWk.length ? '<div style="color:var(--text3);font-size:.72rem;">Category profile unchanged.</div>' : '',
+    ].filter(Boolean).join('');
+  } catch(e) { catAnalysis=''; }
 
   const area = document.getElementById('gm-action-area');
   if (!area) return;
@@ -4604,7 +4599,7 @@ function gmOpenTrade() {
       return true;
     }).slice(0,60);
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
-      <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${p.current_team||p.team||''}"
+      <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${(p.current_team||p.team||'').split('/').pop()}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;">
           <span style="color:var(--teal);">${p.overall_pct??p.overall_2526??''}</span>
@@ -4794,6 +4789,23 @@ function gmAnalyze() {
     const b = gmChemBadge(r.p, lm);
     return b.label.includes('Poor');
   }).map(r=>r.p.name);
+
+  // Category comparison: original vs projected roster
+  let catAnalysis = '';
+  try {
+    const _oR=gmGetCategoryRanks(null),_pR=gmGetCategoryRanks(roster);
+    const oStr=new Set(_oR.strengths.map(s=>s.cat)),oWk=new Set(_oR.weaknesses.map(w=>w.cat));
+    const pStr=new Set(_pR.strengths.map(s=>s.cat)),pWk=new Set(_pR.weaknesses.map(w=>w.cat));
+    const wkF=[...oWk].filter(c=>!pWk.has(c)),strL=[...oStr].filter(c=>!pStr.has(c));
+    const nStr=[...pStr].filter(c=>!oStr.has(c)),nWk=[...pWk].filter(c=>!oWk.has(c));
+    const dp=(c,cl)=>'<span style="padding:.12rem .4rem;border-radius:999px;border:1px solid '+cl+';color:'+cl+';font-size:.68rem;white-space:nowrap;">'+c+'</span>';
+    catAnalysis=[wkF.length?'<div>✓ Weaknesses addressed: '+wkF.map(c=>dp(c,'var(--teal)')).join('')+'</div>':'',
+      strL.length?'<div>⚠ Strengths dropped: '+strL.map(c=>dp(c,'var(--coral)')).join('')+'</div>':'',
+      nStr.length?'<div>★ New strengths: '+nStr.map(c=>dp(c,'var(--teal)')).join('')+'</div>':'',
+      nWk.length?'<div>⚠ New weaknesses: '+nWk.map(c=>dp(c,'var(--coral)')).join('')+'</div>':'',
+      !wkF.length&&!strL.length&&!nStr.length&&!nWk.length?'<span style="color:var(--text3);font-size:.72rem;">Category profile unchanged.</span>':''
+    ].filter(Boolean).join('');
+  } catch(e){ catAnalysis=''; }
 
   const area = document.getElementById('gm-action-area');
   if (!area) return;
@@ -5142,7 +5154,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lnav-teams')?.addEventListener('click', goTeams);
   document.getElementById('lnav-compare')?.addEventListener('click', goCompare);
   document.getElementById('lnav-fa')?.addEventListener('click', goFA);
-  document.getElementById('lnav-breakout')?.addEventListener('click', ()=>navGoView(null,'calc'));
+  document.getElementById('lnav-breakout')?.addEventListener('click', (e)=>navGoView(e,'calc'));
   document.getElementById('lnav-rankings')?.addEventListener('click', goGM);
 
   // Wire nav-breakout, nav-rankings, nav-leaderboard across ALL view suffixes
