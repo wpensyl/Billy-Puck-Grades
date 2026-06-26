@@ -4119,6 +4119,20 @@ function renderGMDashboard() {
   // Sanity check
   const sanity = gmSanityCheck(dc);
 
+  // Category strengths & weaknesses
+  (() => {
+    const {strengths, weaknesses} = gmGetCategoryRanks(null);
+    const pill = (cat, rank, clr) =>
+      `<span style="display:inline-block;padding:.15rem .5rem;border-radius:999px;border:1px solid ${clr};color:${clr};font-size:.7rem;white-space:nowrap;margin:.15rem .2rem;">${cat} <span style="opacity:.7;font-size:.65rem;">#${rank}</span></span>`;
+    const swHtml = strengths.length||weaknesses.length ? `
+      <div style="padding:.6rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.72rem;">
+        ${strengths.length?`<div style="margin-bottom:.3rem;"><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Strengths</span>${strengths.slice(0,6).map(s=>pill(s.cat,s.rank,'var(--teal)')).join('')}</div>`:''}
+        ${weaknesses.length?`<div><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Weaknesses</span>${weaknesses.slice(0,6).map(w=>pill(w.cat,w.rank,'var(--coral)')).join('')}</div>`:''}
+      </div>` : '';
+    const swEl = document.getElementById('gm-cat-sw');
+    if (swEl) swEl.innerHTML = swHtml;
+  })();
+
   const myFAs  = roster.filter(r=>r.p.exp_year==='2026'&&r.gmRole==='current');
 
   // Depth chart HTML helper
@@ -4193,6 +4207,9 @@ function renderGMDashboard() {
         <div style="font-size:.7rem;color:var(--text3);">${capLeft<0?'OVER CAP':'available'}</div>
       </div>
     </div>
+
+    <!-- Category strengths & weaknesses -->
+    <div id="gm-cat-sw" style="margin-bottom:.6rem;"></div>
 
     <!-- Action area — appears here so user sees it immediately -->
     <div id="gm-action-area" style="margin-bottom:.75rem;"></div>
@@ -4313,6 +4330,30 @@ function gmRemovePlayer(name, e) {
 
 // ── Re-sign FA ────────────────────────────────────────────────────────────────
 function gmOpenResign() {
+  // Category comparison: original vs projected
+  const origRanks = gmGetCategoryRanks(null);  // live data for this team
+  const projRanks = gmGetCategoryRanks(roster); // projected roster
+
+  const origStrSet = new Set(origRanks.strengths.map(s=>s.cat));
+  const origWkSet  = new Set(origRanks.weaknesses.map(w=>w.cat));
+  const projStrSet = new Set(projRanks.strengths.map(s=>s.cat));
+  const projWkSet  = new Set(projRanks.weaknesses.map(w=>w.cat));
+
+  const wkFixed    = [...origWkSet].filter(c=>!projWkSet.has(c));   // was weak, now not
+  const strLost    = [...origStrSet].filter(c=>!projStrSet.has(c)); // was strong, now not
+  const newStrs    = [...projStrSet].filter(c=>!origStrSet.has(c)); // newly strong
+  const newWks     = [...projWkSet].filter(c=>!origWkSet.has(c));   // newly weak
+
+  const pill = (cat, clr) => `<span style="padding:.12rem .4rem;border-radius:999px;border:1px solid ${clr};color:${clr};font-size:.68rem;white-space:nowrap;margin:0 .15rem;">${cat}</span>`;
+  const catAnalysis = [
+    wkFixed.length  ? `<div style="margin:.3rem 0;"><span style="color:var(--teal);font-size:.72rem;">✓ Weaknesses addressed:</span> ${wkFixed.map(c=>pill(c,'var(--teal)')).join('')}</div>` : '',
+    strLost.length  ? `<div style="margin:.3rem 0;"><span style="color:var(--coral);font-size:.72rem;">⚠ Strengths dropped:</span> ${strLost.map(c=>pill(c,'var(--coral)')).join('')}</div>` : '',
+    newStrs.length  ? `<div style="margin:.3rem 0;"><span style="color:var(--teal);font-size:.72rem;">★ New strengths:</span> ${newStrs.map(c=>pill(c,'var(--teal)')).join('')}</div>` : '',
+    newWks.length   ? `<div style="margin:.3rem 0;"><span style="color:var(--coral);font-size:.72rem;">⚠ New weaknesses:</span> ${newWks.map(c=>pill(c,'var(--coral)')).join('')}</div>` : '',
+    !wkFixed.length && !strLost.length && !newStrs.length && !newWks.length
+      ? `<div style="color:var(--text3);font-size:.72rem;">Category profile unchanged from original roster.</div>` : '',
+  ].filter(Boolean).join('');
+
   const area = document.getElementById('gm-action-area');
   if (!area) return;
   const fas = gmState.roster.filter(r=>r.p.exp_year==='2026' && r.gmRole==='current');
@@ -4678,6 +4719,56 @@ function gmConfirmTrade() {
 }
 
 // ── Final Analysis ────────────────────────────────────────────────────────────
+// Compute team category strengths & weaknesses vs all NHL teams
+// Returns {strengths:[{cat,rank}], weaknesses:[{cat,rank}], catRanks:{cat:{rank,total}}}
+function gmGetCategoryRanks(overrideRoster) {
+  const tc      = gmState.teamCode;
+  const DOTTED  = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+  const EXCLUDE_CATS = new Set(['On-ice offense','On-ice defense','Relative offense',
+    'Relative defense','Shot suppression','Quality of comp.','Time on ice']);
+
+  // Get all team profiles
+  const allProfiles = {};
+  for (const code of (NHL_TEAM_CODES||[])) {
+    const prof = getTeamProfile(code,'all',null);
+    if (prof?.catAvgs) allProfiles[code] = prof.catAvgs;
+  }
+
+  // Override with projected roster if provided (use Set of names as snapRoster)
+  if (overrideRoster) {
+    const snapNames = new Set(overrideRoster.map(r=>r.p.name));
+    const proj = getTeamProfile(tc,'all',snapNames);
+    if (proj?.catAvgs) allProfiles[tc] = proj.catAvgs;
+  }
+
+  // Rank each category (higher = better for all except negatives)
+  const NEG_CATS = new Set(['Giveaways','Penalty minutes']);
+  const allCats  = new Set(Object.values(allProfiles).flatMap(a=>Object.keys(a)));
+  const catRanks = {};
+
+  for (const cat of allCats) {
+    if (EXCLUDE_CATS.has(cat)) continue;
+    const vals = Object.entries(allProfiles)
+      .map(([code,a])=>({code,val:a[cat]})).filter(x=>x.val!=null);
+    if (vals.length < 5) continue;
+    // Sort: higher = better (except negative cats)
+    vals.sort((a,b)=>NEG_CATS.has(cat)?a.val-b.val:b.val-a.val);
+    const rank = vals.findIndex(x=>x.code===tc)+1;
+    if (rank>0) catRanks[cat] = {rank, total:vals.length};
+  }
+
+  const strengths  = Object.entries(catRanks)
+    .filter(([,r])=>r.rank<=10)
+    .sort(([,a],[,b])=>a.rank-b.rank)
+    .map(([cat,r])=>({cat,rank:r.rank,total:r.total}));
+  const weaknesses = Object.entries(catRanks)
+    .filter(([,r])=>r.rank>r.total-10)
+    .sort(([,a],[,b])=>b.rank-a.rank)
+    .map(([cat,r])=>({cat,rank:r.rank,total:r.total}));
+
+  return {strengths, weaknesses, catRanks};
+}
+
 function gmAnalyze() {
   const roster  = gmState.roster;
   const projPts = gmProjPts(roster);
@@ -4713,6 +4804,7 @@ function gmAnalyze() {
   if (!area) return;
   area.innerHTML = `
     <div class="calc-card" style="border:1px solid var(--teal);margin-top:.75rem;">
+      ${catAnalysis ? `<div style="border-bottom:1px solid var(--border);padding:.5rem .75rem .6rem;">${catAnalysis}</div>` : ''}
       <div style="font-weight:600;font-size:.95rem;margin-bottom:.75rem;">📊 Roster Analysis — ${gmState.teamCode}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
         <div>
@@ -6154,7 +6246,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </nav>
   <div class="lb-content" style="max-width:960px;">
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.5rem 1rem;margin-bottom:1rem;font-size:.78rem;color:var(--text3);display:flex;justify-content:space-between;align-items:center;">
-      <span>⚠ <strong style="color:var(--text2);">Session not saved</strong> — refreshing or navigating away will reset your roster.</span>
+      <span>⚠ <strong style="color:var(--text2);">Session not saved</strong> — refreshing will reset your roster.</span>
       <button onclick="if(confirm('Reset the GM session and choose a new team?')){{gmState={teamCode:null,baseRoster:[],roster:[],logs:[]};renderGMTeamSelect();}}" style="font-size:.7rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.15rem .5rem;cursor:pointer;">Reset</button>
     </div>
     <div style="margin-bottom:.75rem;">
