@@ -3548,7 +3548,7 @@ function renderPlayerChem(player) {
   // ── Header ──────────────────────────────────────────────────────────────────
   document.getElementById('pc-name').textContent = player.name;
   document.getElementById('pc-meta').textContent =
-    `${player.current_team||player.team||'–'} · ${player.pos||player._type||'–'} · ${player.actual_role||player.role||'–'}`;
+    `${player.current_team||player.team||'–'} · ${player.pos||player._type||'–'} · ${player.actual_role||player.role||'–'}${player.playstyle?' · '+player.playstyle:''}`;
   const ovEl = document.getElementById('pc-ov');
   ovEl.textContent = ov; ovEl.style.color = barColor(ov);
 
@@ -4317,7 +4317,7 @@ function gmOpenTrade() {
             <input id="gm-trade-in-search" placeholder="Name…" style="flex:1;background:var(--surface3);border:1px solid var(--border2);border-radius:4px;padding:.3rem .5rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.78rem;outline:none;">
             <select id="gm-trade-in-team" class="lb-select" style="font-size:.72rem;">
               <option value="all">All teams</option>
-              ${NHL_TEAM_CODES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+              ${[...new Set(allLeague.map(p=>p.current_team||p.team||'').filter(Boolean))].sort().map(t=>`<option value="${t}">${t}</option>`).join('')}
             </select>
             <select id="gm-trade-in-pos" class="lb-select" style="font-size:.72rem;">
               <option value="all">All pos</option><option value="C">C</option>
@@ -4412,7 +4412,7 @@ function gmToggleTradeIn(name, el) {
     const team = el.dataset.team;
     if (team) {
       const tf = document.getElementById('gm-trade-in-team');
-      if (tf && tf.value==='all') { tf.value=team; tf.disabled=true; if(window._renderTradeInList) window._renderTradeInList(); }
+      if (tf) { tf.value=team; tf.disabled=true; if(window._renderTradeInList) window._renderTradeInList(); }
     }
   }
   gmUpdateTradeSummary();
