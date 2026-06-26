@@ -330,14 +330,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   </div>
   <div class="landing-nav" style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-bottom:1.5rem;">
     <button class="landing-nav-btn" id="lnav-lb">Leaderboard</button>
-    <button class="landing-nav-btn" id="lnav-stats">Stat Leaders</button>
+    <button class="landing-nav-btn" id="lnav-stats">Category Leaders</button>
     <button class="landing-nav-btn" id="lnav-goalies">Goalies</button>
     <button class="landing-nav-btn" id="lnav-lines">Lines</button>
     <button class="landing-nav-btn" id="lnav-teams">Teams</button>
     <button class="landing-nav-btn" id="lnav-compare">Matchup Tool</button>
     <button class="landing-nav-btn" id="lnav-fa">Free Agents</button>
-    <button class="landing-nav-btn" id="lnav-breakout">Breakout Stars</button>
-    <button class="landing-nav-btn" id="lnav-rankings">Team Rankings</button>
+    <button class="landing-nav-btn" id="lnav-breakout">Contract Calculator</button>
+    <button class="landing-nav-btn" id="lnav-rankings">GM Mode</button>
   </div>
   <div class="landing-hint">2025–26 NHL Season</div>
 </div>
@@ -351,7 +351,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -434,7 +434,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-lb">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-lb">
           <div class="nav-dd-item active" data-view="leaderboard">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -498,7 +498,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-tm">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-tm">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -4119,19 +4119,14 @@ function renderGMDashboard() {
   // Sanity check
   const sanity = gmSanityCheck(dc);
 
-  // Category strengths & weaknesses
-  (() => {
-    const {strengths, weaknesses} = gmGetCategoryRanks(null);
-    const pill = (cat, rank, clr) =>
-      `<span style="display:inline-block;padding:.15rem .5rem;border-radius:999px;border:1px solid ${clr};color:${clr};font-size:.7rem;white-space:nowrap;margin:.15rem .2rem;">${cat} <span style="opacity:.7;font-size:.65rem;">#${rank}</span></span>`;
-    const swHtml = strengths.length||weaknesses.length ? `
-      <div style="padding:.6rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.72rem;">
-        ${strengths.length?`<div style="margin-bottom:.3rem;"><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Strengths</span>${strengths.slice(0,6).map(s=>pill(s.cat,s.rank,'var(--teal)')).join('')}</div>`:''}
-        ${weaknesses.length?`<div><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Weaknesses</span>${weaknesses.slice(0,6).map(w=>pill(w.cat,w.rank,'var(--coral)')).join('')}</div>`:''}
-      </div>` : '';
-    const swEl = document.getElementById('gm-cat-sw');
-    if (swEl) swEl.innerHTML = swHtml;
-  })();
+  // Category strengths & weaknesses — computed before template, inlined
+  let catSwHtml = '';
+  try {
+    const {strengths:_str, weaknesses:_wk} = gmGetCategoryRanks(null);
+    const _pill = (cat,rank,clr)=>`<span style="display:inline-block;padding:.15rem .5rem;border-radius:999px;border:1px solid ${clr};color:${clr};font-size:.7rem;white-space:nowrap;margin:.15rem .2rem;">${cat} <span style="opacity:.7;font-size:.65rem;">#${rank}</span></span>`;
+    if (_str.length||_wk.length) catSwHtml=`<div style="padding:.6rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.72rem;">${_str.length?`<div style="margin-bottom:.3rem;"><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Strengths</span>${_str.slice(0,6).map(s=>_pill(s.cat,s.rank,'var(--teal)')).join('')}</div>`:''}</div>`;
+    if (_wk.length) catSwHtml=catSwHtml.replace('</div>',`<div><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Weaknesses</span>${_wk.slice(0,6).map(w=>_pill(w.cat,w.rank,'var(--coral)')).join('')}</div></div>`);
+  } catch(e) { catSwHtml=''; }
 
   const myFAs  = roster.filter(r=>r.p.exp_year==='2026'&&r.gmRole==='current');
 
@@ -4209,7 +4204,7 @@ function renderGMDashboard() {
     </div>
 
     <!-- Category strengths & weaknesses -->
-    <div id="gm-cat-sw" style="margin-bottom:.6rem;"></div>
+    ${catSwHtml?`<div style="margin-bottom:.6rem;">${catSwHtml}</div>`:''}
 
     <!-- Action area — appears here so user sees it immediately -->
     <div id="gm-action-area" style="margin-bottom:.75rem;"></div>
@@ -5147,8 +5142,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lnav-teams')?.addEventListener('click', goTeams);
   document.getElementById('lnav-compare')?.addEventListener('click', goCompare);
   document.getElementById('lnav-fa')?.addEventListener('click', goFA);
-  document.getElementById('lnav-breakout')?.addEventListener('click', ()=>goBreakout('fwd'));
-  document.getElementById('lnav-rankings')?.addEventListener('click', goRankings);
+  document.getElementById('lnav-breakout')?.addEventListener('click', ()=>navGoView(null,'calc'));
+  document.getElementById('lnav-rankings')?.addEventListener('click', goGM);
 
   // Wire nav-breakout, nav-rankings, nav-leaderboard across ALL view suffixes
   // Dropdown nav wiring handled by wireAllNavs() delegation — see above
@@ -5290,7 +5285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-go">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-go">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -5340,7 +5335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-aw">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-aw">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item active" data-view="awards">Awards</div>
         </div>
@@ -5386,7 +5381,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-gcv">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-gcv">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -5425,7 +5420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-cs">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-cs">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item active" data-view="stats">Stat Leaders</div>
+          <div class="nav-dd-item active" data-view="stats">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -5496,7 +5491,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-cmp">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-cmp">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -5549,7 +5544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-fa">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-fa">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -5658,7 +5653,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-bk">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-bk">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item active" data-view="breakout">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -5707,7 +5702,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-tr">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-tr">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -5803,7 +5798,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-ext">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-ext">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -5920,7 +5915,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-playerdata-lc">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-lc">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -6050,7 +6045,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-cc">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -6141,7 +6136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-pc">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
@@ -6212,7 +6207,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-gm">Player Data <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-pd-gm">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Stat Leaders</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
           <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
