@@ -339,7 +339,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <button class="landing-nav-btn" id="lnav-breakout">Contract Calculator</button>
     <button class="landing-nav-btn" id="lnav-rankings">GM Mode</button>
   </div>
-  <div class="landing-hint">2025–26 NHL Season</div>
+  <div class="landing-hint">2026–27 NHL Season</div>
 </div>
 
 <div id="card-view" class="view">
@@ -421,7 +421,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       </div>
     </div>
     <div class="panel" id="contract-panel"></div>
-    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2025–26 NHL Season · Updated June 2026<br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
+    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2026–27 NHL Season · Updated June 2026<br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
   </div>
 </div>
 
@@ -783,18 +783,30 @@ function reconcileCurrentTeams() {
   // nhlRosterCache: Map<teamAbbrev, Set<playerName>>
   // For any player with >1 team listed, find which team they actually appear on now
   const NHL_MODEL_MAP = {'LAK':'L.A','NJD':'N.J','SJS':'S.J','TBL':'T.B'};
+
+  // Fix skaters with comma-separated teams (e.g. "MIN, VAN")
   for (const p of ALL_PLAYERS) {
-    if (!p.team || !p.team.includes(',')) continue; // single-team players fine
-    // Search all roster caches for this player's name
+    if (!p.team || !p.team.includes(',')) continue;
     let found = null;
     for (const [abbrev, names] of Object.entries(nhlRosterCache)) {
-      if (names.has(p.name)) {
-        // Convert API abbrev back to model abbrev if needed
-        found = NHL_MODEL_MAP[abbrev] || abbrev;
-        break;
-      }
+      if (names.has(p.name)) { found = NHL_MODEL_MAP[abbrev] || abbrev; break; }
     }
     if (found) p.current_team = found;
+  }
+
+  // Fix goalies (and any player) with slash-separated teams (e.g. "EDM/PIT")
+  for (const p of [...ALL_PLAYERS, ...(ALL_GOALIES||[])]) {
+    if (!p.current_team || !p.current_team.includes('/')) continue;
+    let found = null;
+    for (const [abbrev, names] of Object.entries(nhlRosterCache)) {
+      if (names.has(p.name)) { found = NHL_MODEL_MAP[abbrev] || abbrev; break; }
+    }
+    if (found) { p.current_team = found; p.team = found; }
+    else {
+      // Fallback: take last team after slash (most recently traded TO)
+      const last = p.current_team.split('/').pop().trim();
+      p.current_team = last; p.team = last;
+    }
   }
 }
 
@@ -936,7 +948,7 @@ async function showPlayer(p) {
     const imgEl = document.getElementById('ph-img');
     const fallEl = document.getElementById('ph-init');
     if (imgEl && fallEl) tryHeadshot(pid, imgEl, fallEl, p.name);
-    fetchNHLBoxScore(p.name).then(stats => { if (stats) renderNHLStats(stats); });
+    fetchNHLBoxScore(p.name).then(stats => { if (stats) renderNHLStats(stats, p); });
     // Dynamically update team from NHL API (handles trades not yet in JSON)
     fetch(`https://api-web.nhle.com/v1/player/${pid}/landing`)
       .then(r => r.ok ? r.json() : null)
@@ -997,33 +1009,32 @@ function renderHeader(p) {
 }
 
 function renderStatStrip(p) {
-  // 25-26 implied value from contract calculator (year=2026 entry)
-  const implVal2526 = (() => {
+  // Proj. 26-27 implied value from contract calculator (first year = 2027)
+  const implVal2627 = (() => {
     const cc = p.contract_calc;
     if (!cc || !cc.years) return null;
-    const y = cc.years.find(yr => yr.year === 2026);
+    const y = cc.years.find(yr => yr.year === 2027);
     return y ? y.implied_value : null;
   })();
   document.getElementById('stat-strip').innerHTML = [
-    {val: p.gp??'–', lbl:'GP', slim:true},
-    {val: p.toi_per_gp??'–', lbl:'TOI/GP', slim:true},
     {val: fmt$(p.cap), lbl:'Cap hit'},
     {val: fmt$(p.value), lbl:'25–26 value'},
-    {val: fmt$(implVal2526), lbl:'Avg value*'},
+    {val: fmt$(p.composite_value), lbl:'Hist. avg value'},
+    {val: fmt$(implVal2627 ?? (p.proj_years && p.proj_years[0])), lbl:'Proj. 26–27'},
   ].map(c => `<div class="stat-cell${c.slim?' stat-cell-slim':''}">`
     + `<div class="stat-val">${c.val}</div>`
     + `<div class="stat-lbl">${c.lbl}</div></div>`).join('');
 }
 
-function renderNHLStats(stats) {
+function renderNHLStats(stats, player) {
   const el = document.getElementById('nhl-stat-strip');
   const cells = [
+    {val: player?.gp??stats.gamesPlayed??'–', lbl:'GP'},
+    {val: player?.toi_per_gp??'–', lbl:'TOI/GP'},
     {val: stats.goals??'–', lbl:'Goals'},
     {val: stats.assists??'–', lbl:'Assists'},
     {val: stats.points??'–', lbl:'Points'},
     {val: stats.plusMinus != null ? (stats.plusMinus >= 0 ? '+' : '') + stats.plusMinus : '–', lbl:'+/–'},
-    {val: stats.ppPoints??'–', lbl:'PP pts'},
-    {val: stats.shPoints??'–', lbl:'SH pts'},
   ];
   el.innerHTML = `
     <div style="grid-column:1/-1;background:var(--surface2);padding:.4rem 1rem;font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);">NHL box score · 2025–26</div>
@@ -2480,8 +2491,7 @@ function renderGoalieCard(g) {
       <div class="gc-stat-cell"><div class="gc-stat-val" style="color:var(--blue);">\u2013</div><div class="gc-stat-lbl">SV%</div></div>
       <div class="gc-stat-cell"><div class="gc-stat-val">\u2013</div><div class="gc-stat-lbl">GAA</div></div>
       <div class="gc-stat-cell"><div class="gc-stat-val">\u2013</div><div class="gc-stat-lbl">Wins</div></div>
-      <div class="gc-stat-cell"><div class="gc-stat-val" style="color:${svClr};">${fmtSurplus(sv)}</div><div class="gc-stat-lbl">Surplus</div></div>
-      <div class="gc-stat-cell"><div class="gc-stat-val">${fmtCap(g.cap)}</div><div class="gc-stat-lbl">Cap hit</div></div>
+      <!-- Surplus and Cap Hit shown in Contract & Value section below -->
     </div>
     <div class="panel" style="margin-bottom:1rem;">
       <div class="panel-hd"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
@@ -2797,7 +2807,7 @@ function renderFATracker() {
 function populateFATeams() {
   const sel=document.getElementById('fa-team');
   if (!sel||sel.options.length>1) return;
-  const teams=[...new Set(ALL_PLAYERS.filter(p=>p.exp_year==='2026').map(p=>p.current_team||p.team).filter(Boolean))].sort();
+  const teams=[...new Set(ALL_PLAYERS.filter(p=>p.exp_year==='2027').map(p=>p.current_team||p.team).filter(Boolean))].sort();
   teams.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);});
 }
 
@@ -3504,10 +3514,10 @@ function updateCalcChart() {
   const projYears = p.proj_years || [];
   if (!projYears.length) { el.innerHTML='<div style="color:var(--text3);font-size:.8rem;">No projection data</div>'; return; }
 
-  // Offset: proj_years[0] = 2025-26 (current), [1] = 2026-27 (first year after FA expiry)
-  // General: offset = exp_year - 2025 (FA=1, Extension=2, etc.)
-  const expYear = parseInt(p.exp_year) || 2026;
-  const offset  = Math.max(1, expYear - 2025);
+  // proj_years[0] = 2026-27 (first projected season).
+  // Show all 8 projected years; cap hit bars only shown where on_contract=true.
+  const expYear = parseInt(p.exp_year) || 2027;
+  const offset  = Math.max(0, expYear - 2027);
   const bars    = projYears.slice(offset);
   if (!bars.length) { el.innerHTML='<div style="color:var(--text3);font-size:.8rem;">No data at this expiry</div>'; return; }
 
@@ -4128,14 +4138,14 @@ function renderGMDashboard() {
     if (_wk.length) catSwHtml=catSwHtml.replace('</div>',`<div><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Weaknesses</span>${_wk.slice(0,6).map(w=>_pill(w.cat,w.rank,'var(--coral)')).join('')}</div></div>`);
   } catch(e) { catSwHtml=''; }
 
-  const myFAs  = roster.filter(r=>r.p.exp_year==='2026'&&r.gmRole==='current');
+  const myFAs  = roster.filter(r=>r.p.exp_year==='2027'&&r.gmRole==='current');
 
   // Depth chart HTML helper
   const lineSlot = (r, label) => {
     if (!r) return `<td style="width:33%;padding:.3rem .5rem;color:var(--text3);font-size:.72rem;">${label} TBD</td>`;
     const linemates = linemateMap[r.p.name]||[];
     const badge = gmChemBadge(r.p, linemates);
-    const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
+    const expClr = r.p.exp_year==='2027'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
@@ -4148,7 +4158,7 @@ function renderGMDashboard() {
     if (!r) return `<td style="width:50%;padding:.3rem .5rem;color:var(--text3);font-size:.72rem;">${label} TBD</td>`;
     const partner = (linemateMap[r.p.name]||[]);
     const badge = gmChemBadge(r.p, partner);
-    const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
+    const expClr = r.p.exp_year==='2027'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
@@ -4285,7 +4295,7 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
   const roleLbl = {current:'Roster',signed:'Signed',traded_in:'Acquired',resigned:'Re-signed'}[r.gmRole]||r.gmRole;
   const tv = gmTradeValue(p);
   const badge = gmChemBadge(p, linemates);
-  const expClr = p.exp_year==='2026'?'var(--coral)':p.exp_year==='2027'?'#f5a623':'var(--text3)';
+  const expClr = p.exp_year==='2027'?'var(--coral)':p.exp_year==='2027'?'#f5a623':'var(--text3)';
   const capClr = r.gmRole==='resigned'||r.gmRole==='signed'?'var(--teal)':'var(--text)';
 
   return `<tr data-pname="${p.name}">
@@ -4296,7 +4306,7 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
     <td style="font-size:.75rem;color:${expClr};">${p.exp_year||'–'} ${p.expiry_type||''}</td>
     <td style="${mono}color:${capClr};">${fmtM(r.gmCap)}</td>
     <td style="${mono}color:var(--text2);">${fmtM(tv)}</td>
-    <td>${p.exp_year==='2026'&&r.gmRole==='current'?'<button onclick="gmLetWalk(\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:.65rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.1rem .4rem;cursor:pointer;">Let Walk</button>':'<span style="color:var(--text3);font-size:.68rem;">Trade to move</span>'}</td>
+    <td>${p.exp_year==='2027'&&r.gmRole==='current'?'<button onclick="gmLetWalk(\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:.65rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.1rem .4rem;cursor:pointer;">Let Walk</button>':'<span style="color:var(--text3);font-size:.68rem;">Trade to move</span>'}</td>
   </tr>`;
 }
 
@@ -4346,7 +4356,7 @@ function gmOpenResign() {
 
   const area = document.getElementById('gm-action-area');
   if (!area) return;
-  const fas = gmState.roster.filter(r=>r.p.exp_year==='2026' && r.gmRole==='current');
+  const fas = gmState.roster.filter(r=>r.p.exp_year==='2027' && r.gmRole==='current');
   if (!fas.length) { area.innerHTML='<div class="calc-card" style="color:var(--text3);">No pending free agents on your roster.</div>'; return; }
   area.innerHTML = `
     <div class="calc-card" style="border:1px solid var(--teal);">
@@ -4417,7 +4427,7 @@ function gmOpenSignUFA() {
   const area = document.getElementById('gm-action-area');
   if (!area) return;
   const myNames = new Set(gmState.roster.map(r=>r.p.name));
-  const ufas = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p=>p.exp_year==='2026'&&p.expiry_type==='UFA'&&!myNames.has(p.name))
+  const ufas = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p=>p.exp_year==='2027'&&p.expiry_type==='UFA'&&!myNames.has(p.name))
                            .sort((a,b)=>((b.overall_pct||b.overall_2526||0)-(a.overall_pct||a.overall_2526||0)));
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   area.innerHTML = `
@@ -4826,7 +4836,24 @@ function gmAnalyze() {
           <div style="font-size:.78rem;color:${capLeft<0?'var(--coral)':'var(--teal)'};">${capLeft<0?'OVER CAP by '+fmtM(Math.abs(capLeft)):fmtM(capLeft)+' space remaining'}</div>
         </div>
       </div>
-      ${chemIssues.length ? `<div style="font-size:.78rem;margin-bottom:.5rem;"><span style="color:var(--coral);">⚠ Chemistry concerns:</span> ${chemIssues.join(', ')} — missing complementary linemate attributes.</div>` : '<div style="font-size:.78rem;color:var(--teal);margin-bottom:.5rem;">✓ No major chemistry concerns flagged.</div>'}
+      ${(() => {
+        const baseNames = new Set((gmState.baseRoster||[]).map(r=>r.p.name));
+        const curNames  = new Set(roster.map(r=>r.p.name));
+        const resigned  = roster.filter(r=>r.gmRole==='resigned').map(r=>r.p.name);
+        const signed    = roster.filter(r=>r.gmRole==='signed').map(r=>r.p.name);
+        const acquired  = roster.filter(r=>r.gmRole==='traded_in').map(r=>r.p.name);
+        const lost      = (gmState.baseRoster||[]).filter(r=>!curNames.has(r.p.name)).map(r=>r.p.name);
+        const txRow = (label, players, clr) => players.length
+          ? '<div style="font-size:.78rem;margin-bottom:.25rem;"><span style="color:'+clr+';font-weight:600;">'+label+'</span> '+players.join(', ')+'</div>'
+          : '';
+        const any = resigned.length||signed.length||acquired.length||lost.length;
+        return any
+          ? txRow('Re-signed:','var(--text2)',resigned)
+            + txRow('Signed:','var(--teal)',signed)
+            + txRow('Acquired:','var(--blue)',acquired)
+            + txRow('Lost:','var(--coral)',lost)
+          : '<div style="font-size:.78rem;color:var(--text3);margin-bottom:.25rem;">No roster transactions made.</div>';
+      })()}
       <div style="font-size:.7rem;color:var(--text3);">Points model: R²=0.457, MAE=±9 pts. Chemistry flags based on attribute complementarity regression findings.</div>
     </div>`;
 }
