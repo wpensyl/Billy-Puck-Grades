@@ -4365,7 +4365,7 @@ function gmOpenSignUFA() {
     document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
       <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.actual_role||p.role||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
-        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:${barColor(p.overall_pct||0)};">${p.overall_pct}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:${barColor(p.overall_pct??p.overall_2526??0)};" >${p.overall_pct??p.overall_2526??'–'}</span>
       </div>`).join('') || '<div style="color:var(--text3);padding:.5rem;">No matches</div>';
   }
   renderUFAList();
@@ -4377,7 +4377,7 @@ function gmOpenSignUFA() {
 function gmSelectUFA(name, el) {
   document.querySelectorAll('#gm-ufa-list div').forEach(d=>d.style.background='');
   if (el) el.style.background='var(--surface3)';
-  const p = ALL_PLAYERS.find(x=>x.name===name);
+  const p = [...ALL_PLAYERS,...(ALL_GOALIES||[])].find(x=>x.name===name);
   if (!p) return;
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const capLeft = GM_CAP - gmCapUsed(gmState.roster);
@@ -4413,7 +4413,7 @@ function gmOpenTrade() {
   const allLeague = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p=>!myNames.has(p.name))
                                .sort((a,b)=>((b.overall_pct||b.overall_2526||0)-(a.overall_pct||a.overall_2526||0)));
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
-  const myRoster = gmState.roster.filter(r=>r.p._type!=='G');
+  const myRoster = gmState.roster;  // include goalies
 
   area.innerHTML = `
     <div class="calc-card" style="border:1px solid var(--teal);">
@@ -4424,7 +4424,7 @@ function gmOpenTrade() {
           <div id="gm-trade-out" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
           <div style="margin-top:.4rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-out-list">
             ${myRoster.map(r=>`<div onclick="gmToggleTradeOut('${r.p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
-              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct??r.p.overall_2526??''}</span>
+              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct??r.p.overall_2526??''}</span>
               <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
             </div>`).join('')}
           </div>
@@ -4479,8 +4479,7 @@ function gmOpenTrade() {
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
       <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${p.current_team||p.team||''}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
-        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${p.overall_pct??p.overall_2526??''}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:.72rem;">
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;">
           <span style="color:var(--teal);">${p.overall_pct??p.overall_2526??''}</span>
           <span style="color:var(--text3);"> · ${fmtM(gmTradeValue(p))}</span>
         </span>
@@ -4545,7 +4544,7 @@ function gmToggleTradeIn(name, el) {
 function gmUpdateTradeSummary() {
   const fmtM = v=>'$'+(v/1e6).toFixed(2)+'M';
   const outPlayers = [...window._gmTradeOut].map(n=>gmState.roster.find(r=>r.p.name===n)?.p).filter(Boolean);
-  const inPlayers  = [...window._gmTradeIn].map(n=>ALL_PLAYERS.find(p=>p.name===n)).filter(Boolean);
+  const inPlayers  = [...window._gmTradeIn].map(n=>[...ALL_PLAYERS,...(ALL_GOALIES||[])].find(p=>p.name===n)).filter(Boolean);
 
   document.getElementById('gm-trade-out').innerHTML = outPlayers.length
     ? outPlayers.map(p=>`<span style="display:inline-flex;align-items:center;gap:.25rem;background:var(--coral);color:#fff;border-radius:3px;padding:.1rem .4rem;margin:.15rem;font-size:.72rem;">
