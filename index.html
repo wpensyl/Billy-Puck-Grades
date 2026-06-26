@@ -3597,7 +3597,7 @@ function renderPlayerChem(player) {
       <td style="font-size:.78rem;font-weight:500;">${names}</td>
       <td style="font-size:.72rem;color:var(--text3);">${c.s}</td>
       <td style="${mono}">${c.toi} min</td>
-      <td style="${mono}font-weight:600;color:${clr};">${c.xgf}%</td>
+      <td style="${mono}font-weight:600;color:${clr};">${c.ls != null ? c.ls+'%' : c.xgf+'%'}</td>
     </tr>`;
   };
 
@@ -3605,11 +3605,11 @@ function renderPlayerChem(player) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
       <div class="calc-card">
         <div style="font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:.6rem;">
-          Linemate attribute correlation with xGF%
+          Linemate attribute correlation with Line Success
           <span style="font-weight:400;color:var(--text3);"> · ${rec.n} historical combos</span>
         </div>
         <div style="font-size:.68rem;color:var(--text3);margin-bottom:.5rem;">
-          Green = better lines when linemate has this attribute · Red = worse lines
+          Line Success = xG share (50%) + G+/-/60 (30%) + xG+/-/60 (20%) · Green = better lines when linemate has this · Red = worse
         </div>
         ${barRows}
       </div>
@@ -3963,7 +3963,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'–'} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${r.p.pos||'–'} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -3976,7 +3976,7 @@ function renderGMDashboard() {
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
-      <div style="font-size:.68rem;color:var(--text3);">${label} · ${r.p.pos||'D'} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
+      <div style="font-size:.68rem;color:var(--text3);">${r.p.pos||'D'} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
   };
@@ -3984,13 +3984,13 @@ function renderGMDashboard() {
   const linesHtml = dc.lines.map((line,i) => `
     <tr style="border-bottom:1px solid var(--border);">
       <td style="padding:.3rem .5rem;font-size:.72rem;color:var(--text3);font-weight:600;white-space:nowrap;">Line ${i+1}</td>
-      ${lineSlot(line.c,'C')}${lineSlot(line.lw,'LW')}${lineSlot(line.rw,'RW')}
+      ${lineSlot(line.lw,'LW')}${lineSlot(line.c,'C')}${lineSlot(line.rw,'RW')}
     </tr>`).join('');
 
   const pairsHtml = dc.pairs.map((pair,i) => `
     <tr style="border-bottom:1px solid var(--border);">
       <td style="padding:.3rem .5rem;font-size:.72rem;color:var(--text3);font-weight:600;white-space:nowrap;">Pair ${i+1}</td>
-      ${dPairSlot(pair[0],'LD/D')}${dPairSlot(pair[1],'RD/D')}
+      ${dPairSlot(pair[0],'LD')}${dPairSlot(pair[1],'RD')}
     </tr>`).join('');
 
   const scratchHtml = dc.scratches.length
@@ -4045,8 +4045,8 @@ function renderGMDashboard() {
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr>
           <th style="width:60px;padding:.25rem .5rem;font-size:.68rem;color:var(--text3);text-align:left;"></th>
-          <th style="font-size:.68rem;color:var(--text3);text-align:left;">C</th>
           <th style="font-size:.68rem;color:var(--text3);text-align:left;">LW</th>
+          <th style="font-size:.68rem;color:var(--text3);text-align:left;">C</th>
           <th style="font-size:.68rem;color:var(--text3);text-align:left;">RW</th>
         </tr></thead>
         <tbody>${linesHtml}</tbody>
@@ -4055,8 +4055,8 @@ function renderGMDashboard() {
       <table style="width:100%;border-collapse:collapse;">
         <thead><tr>
           <th style="width:60px;padding:.25rem .5rem;font-size:.68rem;color:var(--text3);text-align:left;"></th>
-          <th style="font-size:.68rem;color:var(--text3);text-align:left;">D1</th>
-          <th style="font-size:.68rem;color:var(--text3);text-align:left;">D2</th>
+          <th style="font-size:.68rem;color:var(--text3);text-align:left;">LD</th>
+          <th style="font-size:.68rem;color:var(--text3);text-align:left;">RD</th>
         </tr></thead>
         <tbody>${pairsHtml}</tbody>
       </table>
@@ -4142,8 +4142,8 @@ function gmOpenResign() {
     <div class="calc-card" style="border:1px solid var(--teal);">
       <div style="font-weight:600;font-size:.85rem;margin-bottom:.6rem;">Re-sign a Free Agent</div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
-        <select class="lb-select" id="gm-resign-player">
-          ${fas.map(r=>`<option value="${r.p.name}">${r.p.name} — ${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''}</option>`).join('')}
+        <select class="lb-select" id="gm-resign-player" onchange="gmUpdateResignCap()">
+          ${fas.map(r=>`<option value="${r.p.name}">${r.p.name} — ${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · Current: ${'$'+(((r.gmCap||r.p.cap)||0)/1e6).toFixed(2)}M</option>`).join('')}
         </select>
         <div id="gm-resign-terms" style="display:flex;gap:.35rem;flex-wrap:wrap;"></div>
         <button class="calc-term-btn" onclick="gmConfirmResign()">Confirm Re-sign</button>
@@ -4356,7 +4356,7 @@ function gmOpenTrade() {
       return true;
     }).slice(0,60);
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
-      <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}"
+      <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${p.current_team||p.team||''}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span>
         <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(p))}</span>
@@ -4409,10 +4409,10 @@ function gmToggleTradeIn(name, el) {
   } else {
     window._gmTradeIn.add(name);
     el.style.background='var(--surface2)'; el.style.outline='1px solid var(--teal)';
-    const p = (window.ALL_PLAYERS||[]).find(x=>x.name===name);
-    if (p) {
+    const team = el.dataset.team;
+    if (team) {
       const tf = document.getElementById('gm-trade-in-team');
-      if (tf && tf.value==='all') { tf.value=p.current_team||p.team||'all'; tf.disabled=true; if(window._renderTradeInList) window._renderTradeInList(); }
+      if (tf && tf.value==='all') { tf.value=team; tf.disabled=true; if(window._renderTradeInList) window._renderTradeInList(); }
     }
   }
   gmUpdateTradeSummary();
