@@ -3886,6 +3886,48 @@ function buildDepthChart(roster) {
     }
   }
 
+  // ── PRESS BOX CHECK — scratch FWDs shouldn't outperform active FWDs ───────
+  // Rebuild scratch list after sanity swap
+  const activeFwdNames = new Set(lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(r=>r.p.name));
+  const scratchFwds = fwds.filter(r=>!activeFwdNames.has(r.p.name));
+  const BENCH_THRESH = 0.20;
+  let anyBenchSwap = true;
+  while (anyBenchSwap) {
+    anyBenchSwap = false;
+    for (const scratch of scratchFwds.slice()) {
+      const scrScore = gmDepthScore(scratch);
+      // Find the worst active forward across all 4 lines
+      let worstR=null, worstScore=Infinity, worstLine=null, worstSlot=null;
+      lines.forEach(line => ['c','lw','rw'].forEach(slot => {
+        const r = line[slot]; if (!r) return;
+        const s = gmDepthScore(r);
+        if (s < worstScore) { worstScore=s; worstR=r; worstLine=line; worstSlot=slot; }
+      }));
+      if (worstR && scrScore - worstScore > BENCH_THRESH) {
+        worstLine[worstSlot] = scratch;
+        scratchFwds.splice(scratchFwds.indexOf(scratch), 1);
+        scratchFwds.push(worstR);
+        activeFwdNames.add(scratch.p.name);
+        activeFwdNames.delete(worstR.p.name);
+        // Re-assign C/LW/RW in the swapped line
+        const pl = [worstLine.c,worstLine.lw,worstLine.rw].filter(Boolean);
+        const cp = pl.find(r=>isC(r)) || pl.find(r=>canC(r));
+        if (cp && worstLine.c !== cp) {
+          const ws = worstLine.lw===cp?'lw':'rw'; const old=worstLine.c;
+          worstLine.c=cp; worstLine[ws]=old;
+        }
+        const wings=[worstLine.lw,worstLine.rw].filter(Boolean);
+        if (wings.length===2) {
+          const [w1,w2]=wings;
+          if      (isLW(w1)&&!isLW(w2)){worstLine.lw=w1;worstLine.rw=w2;}
+          else if (isRW(w1)&&!isRW(w2)){worstLine.rw=w1;worstLine.lw=w2;}
+        }
+        anyBenchSwap = true;
+        break;
+      }
+    }
+  }
+
   // ── D PAIRS — assign LD/RD slots by position within each pair ───────────
   const pairs = [];
   for (let i=0; i<3 && i*2<dmen.length; i++) {
@@ -4381,6 +4423,24 @@ function gmSelectUFA(name, el) {
   if (!p) return;
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const capLeft = GM_CAP - gmCapUsed(gmState.roster);
+  if (p._type === 'G') {
+    // Goalies: no aging curve → sign at average value only
+    const aav = p.value || p.aav_1yr || p.cap || 0;
+    const fits = aav <= capLeft;
+    document.getElementById('gm-ufa-sign-area').innerHTML = `
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">
+        <strong style="font-size:.82rem;">${name}</strong>
+        <span style="font-size:.75rem;color:var(--text3);">G · Overall: ${p.overall_2526??'–'}</span>
+        <button class="calc-term-btn" onclick="gmConfirmSignGoalie('${name.replace(/'/g,"\\'")}',${aav})"
+          ${fits?'':'disabled'} style="${fits?'':'opacity:.35;cursor:default;'}"
+          title="${fits?'Sign':'Insufficient cap space'}">
+          Sign at ${fmtM(aav)}/yr
+        </button>
+      </div>
+      <div style="font-size:.72rem;color:var(--text3);margin-top:.25rem;">Cap space: ${fmtM(capLeft)} · Value based on projected output (no aging curve available)</div>`;
+    return;
+  }
+
   document.getElementById('gm-ufa-sign-area').innerHTML = `
     <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">
       <strong style="font-size:.82rem;">${name}</strong>
@@ -4393,6 +4453,15 @@ function gmSelectUFA(name, el) {
     <div style="font-size:.72rem;color:var(--text3);margin-top:.25rem;">Cap space: ${fmtM(capLeft)}</div>`;
 }
 
+function gmConfirmSignGoalie(name, aav) {
+  const p = (ALL_GOALIES||[]).find(x=>x.name===name);
+  if (!p) return;
+  const fmtM=v=>'$'+(v/1e6).toFixed(2)+'M';
+  gmState.roster.push({p, gmRole:'signed', gmCap:aav, gmTerm:1});
+  gmState.logs.push(`Signed UFA goalie ${name} at ${fmtM(aav)}/yr.`);
+  document.getElementById('gm-action-area').innerHTML='';
+  renderGMDashboard();
+}
 function gmConfirmSignUFA(name, term) {
   const p = ALL_PLAYERS.find(x=>x.name===name);
   if (!p) return;
