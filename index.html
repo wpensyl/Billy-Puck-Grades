@@ -4006,8 +4006,13 @@ function gmSelectTeam(tc, snapLabel) {
       snapNames.has(p.name) || (snapNames.size === 0 && teamMatch(p))
     );
   } else {
-    // Live mode
-    players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(teamMatch);
+    // Live mode: use nhlRosterCache if populated (same source as Team Overview)
+    const liveCache = nhlRosterCache[tc];
+    if (liveCache && liveCache.size > 0) {
+      players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p => liveCache.has(p.name));
+    } else {
+      players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(teamMatch);
+    }
   }
   gmState.teamCode  = tc;
   gmState.snapLabel = snapLabel || 'live';
@@ -4162,7 +4167,8 @@ function renderGMDashboard() {
         </tr></thead>
         <tbody>${pairsHtml}</tbody>
       </table>
-      ${dc.goalies.length?`<div style="margin-top:.5rem;">
+      ${dc.goalies.length?`<div style="margin-top:.75rem;">
+        <div style="font-size:.72rem;font-weight:600;color:var(--text3);margin-bottom:.3rem;letter-spacing:.05em;text-transform:uppercase;">Goalies</div>
         ${dc.goalies.map(r=>`
           <div style="display:inline-flex;align-items:center;gap:.4rem;margin:.2rem .3rem 0 0;padding:.2rem .5rem;background:var(--surface2);border-radius:4px;font-size:.72rem;">
             <span style="color:var(--text2);font-weight:500;">${r.p.name}</span>
@@ -4328,7 +4334,7 @@ function gmOpenSignUFA() {
               <option value="all">All teams</option>
               ${NHL_TEAM_CODES.map(t=>`<option value="${t}">${t}</option>`).join('')}
             </select>
-        <select id="gm-ufa-pos" class="lb-select" style="font-size:.72rem;"><option value="all">All pos</option><option value="C">C</option><option value="L">LW</option><option value="R">RW</option><option value="LD">LD</option><option value="RD">RD</option></select>
+        <select id="gm-ufa-pos" class="lb-select" style="font-size:.72rem;"><option value="all">All pos</option><option value="C">C</option><option value="L">LW</option><option value="R">RW</option><option value="LD">LD</option><option value="RD">RD</option><option value="G">G</option></select>
       </div>
       <div id="gm-ufa-list" style="max-height:240px;overflow-y:auto;"></div>
       <div id="gm-ufa-sign-area" style="margin-top:.5rem;"></div>
@@ -4343,15 +4349,19 @@ function gmOpenSignUFA() {
       if (q && !p.name.toLowerCase().includes(q)) return false;
       if (tc!=='all' && p.current_team!==tc && p.team!==tc) return false;
       if (pos!=='all') {
-        const pp=p.pos||'';
-        if (pos==='C' && !pp.startsWith('C')) return false;
-        if (pos==='L' && (!pp.startsWith('L')||pp.startsWith('LD'))) return false;
-        if (pos==='R' && (!pp.startsWith('R')||pp.startsWith('RD'))) return false;
-        if (pos==='LD' && pp!=='LD'&&pp!=='D') return false;
-        if (pos==='RD' && pp!=='RD') return false;
+        const pp=p.pos||p._type||'';
+        if (pos==='G'  && p._type!=='G')                                    return false;
+        if (pos!=='G'  && p._type==='G')                                    return false;
+        if (pos==='C'  && !pp.startsWith('C'))                               return false;
+        if (pos==='L'  && (!pp.startsWith('L')||pp.startsWith('LD')))        return false;
+        if (pos==='R'  && (!pp.startsWith('R')||pp.startsWith('RD')))        return false;
+        if (pos==='LD' && pp!=='LD')                                         return false;
+        if (pos==='RD' && pp!=='RD')                                         return false;
+        if (pos==='G'  && p._type!=='G')                                     return false;
+        if (pos!=='G'  && p._type==='G')                                     return false;
       }
       return true;
-    }).slice(0,40);
+    }).slice(0,60);
     document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
       <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.actual_role||p.role||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
@@ -4414,7 +4424,7 @@ function gmOpenTrade() {
           <div id="gm-trade-out" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
           <div style="margin-top:.4rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-out-list">
             ${myRoster.map(r=>`<div onclick="gmToggleTradeOut('${r.p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
-              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct??''}</span>
+              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct??r.p.overall_2526??''}</span>
               <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
             </div>`).join('')}
           </div>
@@ -4431,7 +4441,7 @@ function gmOpenTrade() {
             <select id="gm-trade-in-pos" class="lb-select" style="font-size:.72rem;">
               <option value="all">All pos</option><option value="C">C</option>
               <option value="L">LW</option><option value="R">RW</option>
-              <option value="LD">LD</option><option value="RD">RD</option>
+              <option value="LD">LD</option><option value="RD">RD</option><option value="G">G</option>
             </select>
           </div>
           <div style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-in-list"></div>
@@ -4456,19 +4466,24 @@ function gmOpenTrade() {
       if (tc!=='all' && p.current_team!==tc && p.team!==tc) return false;
       if (pos!=='all') {
         const pp=p.pos||p._type||'';
-        if (pos==='C'  && !pp.startsWith('C')) return false;
-        if (pos==='L'  && (!pp.startsWith('L')||pp.startsWith('LD'))) return false;
-        if (pos==='R'  && (!pp.startsWith('R')||pp.startsWith('RD'))) return false;
-        if (pos==='LD' && pp!=='LD') return false;
-        if (pos==='RD' && pp!=='RD') return false;
+        if (pos==='G'  && p._type!=='G')                                    return false;
+        if (pos!=='G'  && p._type==='G')                                    return false;
+        if (pos==='C'  && !pp.startsWith('C'))                               return false;
+        if (pos==='L'  && (!pp.startsWith('L')||pp.startsWith('LD')))        return false;
+        if (pos==='R'  && (!pp.startsWith('R')||pp.startsWith('RD')))        return false;
+        if (pos==='LD' && pp!=='LD')                                         return false;
+        if (pos==='RD' && pp!=='RD')                                         return false;
       }
       return true;
     }).slice(0,60);
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
       <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${p.current_team||p.team||''}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
-        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${p.overall_pct??''}</span>
-        <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(p))}</span>
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${p.overall_pct??p.overall_2526??''}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:.72rem;">
+          <span style="color:var(--teal);">${p.overall_pct??p.overall_2526??''}</span>
+          <span style="color:var(--text3);"> · ${fmtM(gmTradeValue(p))}</span>
+        </span>
       </div>`).join('');
   }
   window._renderTradeInList = renderTradeInList;  // expose for gmToggleTradeIn
