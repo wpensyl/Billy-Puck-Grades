@@ -3672,6 +3672,10 @@ let gmState = {
 
 function gmTradeValue(p) {
   if (!p) return 0;
+  if (p._type === 'G') {
+    // Goalies: no FV trajectory, use average annual value
+    return p.value || p.avg_proj_value || p.aav_1yr || 0;
+  }
   const pyrs = p.proj_years || [];
   if (!pyrs.length) return p.value || 0;
   const ey = parseInt(p.exp_year) || 2026;
@@ -3843,6 +3847,45 @@ function buildDepthChart(roster) {
     if (!line.c  && leftoverFwd.length) line.c  = leftoverFwd.shift();
   });
 
+  // ── SANITY PASS — bubble high-value players up to correct lines ────────
+  // If a player on line[i+1] scores >SWAP_THRESH above worst on line[i], swap them
+  const SWAP_THRESH = 0.20;
+  let anySwap = true;
+  while (anySwap) {
+    anySwap = false;
+    for (let li = 0; li < lines.length - 1; li++) {
+      const abv = lines[li], blw = lines[li+1];
+      const ap = [abv.c,abv.lw,abv.rw].filter(Boolean);
+      const bp = [blw.c,blw.lw,blw.rw].filter(Boolean);
+      if (!ap.length || !bp.length) continue;
+      const minA = Math.min(...ap.map(r=>gmDepthScore(r)));
+      const maxB = Math.max(...bp.map(r=>gmDepthScore(r)));
+      if (maxB - minA > SWAP_THRESH) {
+        const worstA = ap.reduce((a,b)=>gmDepthScore(a)<gmDepthScore(b)?a:b);
+        const bestB  = bp.reduce((a,b)=>gmDepthScore(a)>gmDepthScore(b)?a:b);
+        const findSlot = (ln,r)=>ln.c===r?'c':ln.lw===r?'lw':'rw';
+        abv[findSlot(abv,worstA)] = bestB;
+        blw[findSlot(blw,bestB)]  = worstA;
+        // Re-assign C slot and L/R within each affected line
+        [abv, blw].forEach(line => {
+          const pl = [line.c,line.lw,line.rw].filter(Boolean);
+          const cp = pl.find(r=>isC(r)) || pl.find(r=>canC(r));
+          if (cp && line.c !== cp) {
+            const ws = line.lw===cp?'lw':'rw'; const old = line.c;
+            line.c = cp; line[ws] = old;
+          }
+          const wings = [line.lw,line.rw].filter(Boolean);
+          if (wings.length===2) {
+            const [w1,w2]=wings;
+            if      (isLW(w1)&&!isLW(w2)){line.lw=w1;line.rw=w2;}
+            else if (isRW(w1)&&!isRW(w2)){line.rw=w1;line.lw=w2;}
+          }
+        });
+        anySwap = true;
+      }
+    }
+  }
+
   // ── D PAIRS — assign LD/RD slots by position within each pair ───────────
   const pairs = [];
   for (let i=0; i<3 && i*2<dmen.length; i++) {
@@ -3914,9 +3957,19 @@ function renderGMTeamSelect() {
     return {tc, prof, cap};
   }).filter(Boolean).sort((a,b)=>b.prof.projPts-a.prof.projPts);
 
+  const gmSnapLabels = Object.keys(window.ROSTER_SNAPSHOTS||{}).sort().reverse();
+  const gmModeHtml = gmSnapLabels.length ? `
+    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;">
+      <span style="font-size:.78rem;color:var(--text3);font-weight:500;">Roster mode:</span>
+      <select id="gm-mode-sel" class="lb-select" style="font-size:.75rem;">
+        <option value="live">📋 Live Roster</option>
+        ${gmSnapLabels.map(l=>`<option value="${l}">📸 ${l} Snapshot</option>`).join('')}
+      </select>
+    </div>` : '';
   wrap.innerHTML = `
+    ${gmModeHtml}
     <div style="font-size:.85rem;color:var(--text3);margin-bottom:1.25rem;">
-      Choose your team to begin. Your session roster will be built from the current season's data.
+      Choose your team to begin. Your session roster will be built from the selected roster.
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.5rem;">
       ${teamRows.map(({tc,prof,cap}) => `
@@ -3931,23 +3984,36 @@ function renderGMTeamSelect() {
   // Wire delegated click on team grid
   wrap.querySelectorAll('.gm-team-card').forEach(el => {
     el.addEventListener('click', () => {
-      const tc = el.dataset.tc;
-      if (tc) gmSelectTeam(tc);
+      const tc   = el.dataset.tc;
+      const sel  = document.getElementById('gm-mode-sel');
+      const mode = sel ? sel.value : 'live';
+      if (tc) gmSelectTeam(tc, mode);
     });
     el.addEventListener('mouseenter', () => el.style.borderColor='var(--teal)');
     el.addEventListener('mouseleave', () => el.style.borderColor='var(--border)');
   });
 }
 
-function gmSelectTeam(tc) {
-  const players = ALL_PLAYERS.filter(p => {
-    const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
-    return p.current_team===tc || p.current_team===DOTTED[tc];
-  });
-  gmState.teamCode = tc;
+function gmSelectTeam(tc, snapLabel) {
+  const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+  const teamMatch = p => p.current_team===tc || p.current_team===DOTTED[tc];
+  let players;
+  if (snapLabel && snapLabel !== 'live') {
+    // Snapshot mode: use the snapshot's roster names, look up live data
+    const snapRosters = window.ROSTER_SNAPSHOTS?.[snapLabel]?.rosters || {};
+    const snapNames   = new Set(snapRosters[DOTTED[tc]||tc] || snapRosters[tc] || []);
+    players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p =>
+      snapNames.has(p.name) || (snapNames.size === 0 && teamMatch(p))
+    );
+  } else {
+    // Live mode
+    players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(teamMatch);
+  }
+  gmState.teamCode  = tc;
+  gmState.snapLabel = snapLabel || 'live';
   gmState.baseRoster = players;
-  gmState.roster = players.map(p => ({p, gmRole:'current', gmCap:p.cap||0, gmTerm:null}));
-  gmState.logs = [`Started session as GM of ${tc}.`];
+  gmState.roster     = players.map(p => ({p, gmRole:'current', gmCap:p.cap||0, gmTerm:null}));
+  gmState.logs = [`Started session as GM of ${tc} (${snapLabel&&snapLabel!=='live'?snapLabel+' snapshot':'live roster'}).`];
   renderGMDashboard();
 }
 
@@ -4096,7 +4162,14 @@ function renderGMDashboard() {
         </tr></thead>
         <tbody>${pairsHtml}</tbody>
       </table>
-      ${dc.goalies.length?`<div style="margin-top:.5rem;font-size:.72rem;color:var(--text3);">Goalies: ${dc.goalies.map(r=>r.p.name).join(' / ')}</div>`:''}
+      ${dc.goalies.length?`<div style="margin-top:.5rem;">
+        ${dc.goalies.map(r=>`
+          <div style="display:inline-flex;align-items:center;gap:.4rem;margin:.2rem .3rem 0 0;padding:.2rem .5rem;background:var(--surface2);border-radius:4px;font-size:.72rem;">
+            <span style="color:var(--text2);font-weight:500;">${r.p.name}</span>
+            <span style="color:var(--text3);">${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}</span>
+            <span style="color:var(--teal);font-family:'DM Mono',monospace;">${r.p.overall_2526??'–'}</span>
+          </div>`).join('')}
+      </div>`:''}
       ${dc.scratches.length?`<div style="margin-top:.35rem;font-size:.7rem;color:var(--text3);">Press box: ${scratchHtml}</div>`:''}
       ${sanityHtml}
     </div>
@@ -4243,8 +4316,8 @@ function gmOpenSignUFA() {
   const area = document.getElementById('gm-action-area');
   if (!area) return;
   const myNames = new Set(gmState.roster.map(r=>r.p.name));
-  const ufas = ALL_PLAYERS.filter(p=>p.exp_year==='2026'&&p.expiry_type==='UFA'&&!myNames.has(p.name))
-                           .sort((a,b)=>(b.overall_pct||0)-(a.overall_pct||0));
+  const ufas = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p=>p.exp_year==='2026'&&p.expiry_type==='UFA'&&!myNames.has(p.name))
+                           .sort((a,b)=>((b.overall_pct||b.overall_2526||0)-(a.overall_pct||a.overall_2526||0)));
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   area.innerHTML = `
     <div class="calc-card" style="border:1px solid var(--teal);">
@@ -4327,8 +4400,8 @@ function gmOpenTrade() {
   const area = document.getElementById('gm-action-area');
   if (!area) return;
   const myNames = new Set(gmState.roster.map(r=>r.p.name));
-  const allLeague = ALL_PLAYERS.filter(p=>!myNames.has(p.name))
-                               .sort((a,b)=>(b.overall_pct||0)-(a.overall_pct||0));
+  const allLeague = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p=>!myNames.has(p.name))
+                               .sort((a,b)=>((b.overall_pct||b.overall_2526||0)-(a.overall_pct||a.overall_2526||0)));
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const myRoster = gmState.roster.filter(r=>r.p._type!=='G');
 
