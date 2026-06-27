@@ -1020,7 +1020,7 @@ function renderStatStrip(p) {
     {val: fmt$(p.cap), lbl:'Cap hit'},
     {val: fmt$(p.value), lbl:'25–26 value'},
     {val: fmt$(p.composite_value), lbl:'Hist. avg value'},
-    {val: fmt$(implVal2627 ?? (p.proj_years && p.proj_years[0])), lbl:'Proj. 26–27'},
+    {val: fmt$(p.proj_years && p.proj_years[0]), lbl:'Proj. 26–27'},
   ].map(c => `<div class="stat-cell${c.slim?' stat-cell-slim':''}">`
     + `<div class="stat-val">${c.val}</div>`
     + `<div class="stat-lbl">${c.lbl}</div></div>`).join('');
@@ -1360,8 +1360,6 @@ function renderContract(p) {
   const el = document.getElementById('contract-panel');
   const cc = p.contract_calc;
   if (!cc) { el.innerHTML = ''; return; }
-  const s25 = cc.years.find(y => y.year === 2026);
-  const s25v = s25 ? s25.surplus : null;
   const avgAnnSurplus = cc.avg_aav_excess;
   const avgProjVal    = p.avg_proj_value || null;
   const fvM = v => v!=null ? '$'+(v/1e6).toFixed(2)+'M' : '\u2013';
@@ -1372,11 +1370,11 @@ function renderContract(p) {
     <div class="panel-hd"><span class="panel-title">Contract calculator</span><span class="panel-note">Implied value vs. cap hit</span></div>
     <div class="contract-strip">
       <div class="c-item"><div class="c-lbl">Cap hit</div><div class="c-val">${fmt$(p.cap)}</div></div>
-      <div class="c-item"><div class="c-lbl">25\u201326 value</div><div class="c-val">${fmt$(p.value)}</div></div>
-      <div class="c-item"><div class="c-lbl">25\u201326 surplus*</div><div class="c-val ${posneg(s25v)}">${fmtSurplus(s25v)}</div></div>
-      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'\u2013'} ${p.expiry_type||''}</div></div>
-      <div class="c-item"><div class="c-lbl">Avg. proj. value</div><div class="c-val" style="color:var(--blue);">${fmt$(avgProjVal)}</div></div>
-      <div class="c-item"><div class="c-lbl">Avg. annual surplus</div><div class="c-val ${posneg(avgAnnSurplus)}">${fmtSurplus(avgAnnSurplus)}</div></div>
+      <div class="c-item"><div class="c-lbl">Proj. 26–27 value</div><div class="c-val">${fvM(proj2627)}</div></div>
+      <div class="c-item"><div class="c-lbl">Proj. 26–27 surplus</div><div class="c-val ${posneg(surp2627)}">${fs(surp2627)}</div></div>
+      <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
+      <div class="c-item"><div class="c-lbl">Avg. proj. value</div><div class="c-val" style="color:var(--blue);">${fvM(avgProjVal)}</div></div>
+      <div class="c-item"><div class="c-lbl">Avg. annual surplus</div><div class="c-val ${posneg(avgAnnSurplus)}">${fs(avgAnnSurplus)}</div></div>
     </div>
     <div class="contract-chart-wrap">
       <div class="contract-chart-title">Projected value vs. cap hit \u2014 2025\u201326 through 2032\u201333</div>
@@ -1387,10 +1385,10 @@ function renderContract(p) {
       </div>
     </div>`;
   if (contractChart) { contractChart.destroy(); contractChart = null; }
-  const SEASON_LABELS    = ['25\u201326','26\u201327','27\u201328','28\u201329','29\u201330','30\u201331','31\u201332','32\u201333'];
-  const SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033];
+  const SEASON_LABELS    = ['25\u201326','26\u201327','27\u201328','28\u201329','29\u201330','30\u201331','31\u201332','32\u201333','33\u201334'];
+  const SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033,2034];
   const expYear  = parseInt(p.exp_year) || 0;
-  const projVals = p.proj_years || [];
+  const projVals = [p.value||null, ...(p.proj_years||[])];  // prepend 25-26 historical
   const capHits  = SEASON_END_YEARS.map(yr => yr <= expYear ? (p.cap || null) : null);
   const ctx2 = document.getElementById('contract-chart').getContext('2d');
   contractChart = new Chart(ctx2, {
@@ -1422,8 +1420,8 @@ function renderContract(p) {
     {lbl:'Proj. rating at expiry', val:fpct(p.norm_at_expiry)},
     {lbl:'Peak proj. value',       val:fvM(p.peak_value)},
     {lbl:'Fair value \u2014 1-yr deal', val:fvM(p.aav_1yr)},
-    {lbl:'Fair value \u2014 3-yr deal', val:fvM(p.aav_3yr)},
-    {lbl:'Fair value \u2014 7-yr deal', val:fvM(p.aav_7yr)},
+    {lbl:'Fair value \u2014 4-yr deal', val:fvM(p.aav_4yr)},
+    {lbl:'Fair value \u2014 8-yr deal', val:fvM(p.aav_8yr)},
   ].map(it=>`<div class="c-item"><div class="c-lbl">${it.lbl}</div><div class="c-val" style="color:var(--blue);">${it.val}</div></div>`).join('');
   el.appendChild(btm);
 }
@@ -2785,11 +2783,11 @@ function renderFATracker() {
       <td style="color:var(--text3);font-size:.82rem;">${p._type||p.pos||'–'}</td>
       <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
       <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
+      <td style="${mono}">${p.age?Math.floor(p.age):'–'}</td>
       <td style="${mono}font-weight:600;color:${ovClr};">${ov}</td>
-      <td style="${mono}">${fmtM((p.proj_years||[])[0])}</td>
       <td style="${mono}">${fmtM(p.aav_1yr)}</td>
       <td style="${mono}">${fmtM(p.aav_4yr)}</td>
-      <td style="${mono}">${fmtM(p.aav_7yr)}</td>
+      <td style="${mono}">${fmtM(p.aav_8yr)}</td>
       <td style="${mono}">${fmtM(p.cap)}</td>
       <td style="${mono}">${fmtM(p.value)}</td>
       <td style="${mono}color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
@@ -3204,11 +3202,12 @@ function renderExtCandidates() {
       <td style="color:var(--text3);font-size:.82rem;">${p._type||p.pos||'–'}</td>
       <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
       <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${p.age?Math.floor(p.age):'–'}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:600;color:${ovClr};">${ov}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${veClr};">${fmtM(p.value_at_expiry)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_1yr)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_4yr)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.aav_7yr)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.ext_1yr)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.ext_4yr)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.ext_8yr)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.cap)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.value)}</td>
       <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
@@ -3468,11 +3467,11 @@ function renderCalcResult() {
   // ── Term selector ──────────────────────────────────────────────────────────
   const termEl = document.getElementById('calc-term-btns');
   if (termEl) {
-    const maxTerm = 7; // 8yr pending 26-27 workbook
+    const maxTerm = 8; // all 8 year terms available
     termEl.innerHTML = Array.from({length:maxTerm},(_,i)=>i+1).map(t => {
       const hasVal = !!p[`aav_${t}yr`];
       return `<button class="calc-term-btn${t===calcTerm?' active':''}" data-term="${t}"${hasVal?'':' disabled title="Not modeled in current workbook" style="opacity:.35;cursor:default;"'}>${t}yr</button>`;
-    }).join('') + '<span style="font-size:.63rem;color:var(--text3);margin-left:.5rem;align-self:center;">1/3/7yr available now · all terms with 26-27 update</span>';
+    }).join('') ;
     termEl.querySelectorAll('.calc-term-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         calcTerm = +btn.dataset.term;
@@ -3693,9 +3692,10 @@ let gmState = {
 function gmTradeValue(p) {
   if (!p) return 0;
   if (p._type === 'G') {
-    // Goalies: no FV trajectory, use average annual value
-    return p.value || p.avg_proj_value || p.aav_1yr || 0;
+    return p.avg_proj_value || p.value || p.aav_1yr || 0;
   }
+  // Use projected value from FWD CAP col AD
+  if (p.avg_proj_value) return p.avg_proj_value;
   const pyrs = p.proj_years || [];
   if (!pyrs.length) return p.value || 0;
   const ey = parseInt(p.exp_year) || 2026;
@@ -4356,7 +4356,7 @@ function gmOpenResign() {
 
   const area = document.getElementById('gm-action-area');
   if (!area) return;
-  const fas = gmState.roster.filter(r=>r.p.exp_year==='2027' && r.gmRole==='current');
+  const fas = gmState.roster.filter(r=>r.p.exp_year==='2026' && r.gmRole==='current');
   if (!fas.length) { area.innerHTML='<div class="calc-card" style="color:var(--text3);">No pending free agents on your roster.</div>'; return; }
   area.innerHTML = `
     <div class="calc-card" style="border:1px solid var(--teal);">
@@ -4382,9 +4382,9 @@ function gmUpdateResignTerms() {
   const termsDiv = document.getElementById('gm-resign-terms');
   if (!p || !termsDiv) return;
   const fmtM = v => v?'$'+(v/1e6).toFixed(2)+'M':'N/A';
-  termsDiv.innerHTML = [1,2,3,4,5,6,7].map(t => {
+  termsDiv.innerHTML = [1,2,3,4,5,6,7,8].map(t => {
     const aav = p[`aav_${t}yr`];
-    return `<button class="calc-term-btn${t===gmState._resignTerm?' active':''}" onclick="gmSetResignTerm(${t})" ${aav?'':'disabled title="No FV data"'} style="${aav?'':'opacity:.35;cursor:default;'}">
+    return `<button class="calc-term-btn${t===gmState._resignTerm?' active':''}" onclick="gmSetResignTerm(${t})" ${aav?'':'disabled'} style="${aav?'':'opacity:.35;cursor:default;'}">
       ${t}yr ${aav?fmtM(aav):'–'}
     </button>`;
   }).join('');
@@ -4427,7 +4427,7 @@ function gmOpenSignUFA() {
   const area = document.getElementById('gm-action-area');
   if (!area) return;
   const myNames = new Set(gmState.roster.map(r=>r.p.name));
-  const ufas = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p=>p.exp_year==='2027'&&p.expiry_type==='UFA'&&!myNames.has(p.name))
+  const ufas = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p=>p.exp_year==='2026'&&p.expiry_type==='UFA'&&!myNames.has(p.name))
                            .sort((a,b)=>((b.overall_pct||b.overall_2526||0)-(a.overall_pct||a.overall_2526||0)));
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   area.innerHTML = `
@@ -4507,7 +4507,7 @@ function gmSelectUFA(name, el) {
   document.getElementById('gm-ufa-sign-area').innerHTML = `
     <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">
       <strong style="font-size:.82rem;">${name}</strong>
-      ${[1,2,3,4,5,6,7].map(t=>{
+      ${[1,2,3,4,5,6,7,8].map(t=>{
         const aav=p[`aav_${t}yr`];
         const fits=(aav||0)<=capLeft;
         return `<button class="calc-term-btn" onclick="gmConfirmSignUFA('${name.replace(/'/g,"\\'")}',${t})" ${aav&&fits?'':'disabled'} style="${aav&&fits?'':'opacity:.35;cursor:default;'}" title="${!aav?'No FV data':!fits?'Insufficient cap space':'Sign'}">${t}yr ${fmtM(aav)}</button>`;
