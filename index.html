@@ -1398,7 +1398,7 @@ function renderContract(p) {
   contractChart = new Chart(ctx2, {
     type:'bar',
     data:{labels:SEASON_LABELS,datasets:[
-      {label:'Proj. value',data:projVals,backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
+      {label:'Proj. value',data:projVals.map(v=>v!=null?Math.max(0,v):null),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
       {label:'Cap hit',   data:capHits, backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
@@ -4391,7 +4391,7 @@ function gmOpenResign() {
         <select class="lb-select" id="gm-resign-player" onchange="gmUpdateResignCap()">
           ${fas.map(r=>`<option value="${r.p.name}">${r.p.name} — ${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · Current: ${'$'+(((r.gmCap||r.p.cap)||0)/1e6).toFixed(2)}M</option>`).join('')}
         </select>
-        <div id="gm-resign-terms" style="display:flex;gap:.35rem;flex-wrap:wrap;"></div>
+        <div id="gm-resign-goalie-note" style="display:none;font-size:.82rem;color:var(--text3);margin-bottom:.4rem;">Goalie re-sign · Offer: <span id="gm-goalie-offer-val" style="color:var(--teal);font-weight:600;">–</span>/yr</div><div id="gm-resign-terms" style="display:flex;gap:.35rem;flex-wrap:wrap;"></div>
         <button class="calc-term-btn" onclick="gmConfirmResign()">Confirm Re-sign</button>
         <button class="calc-term-btn" style="color:var(--coral);border-color:var(--coral);" onclick="gmLetWalkFromResign()">Let Walk</button>
         <button class="calc-term-btn" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
@@ -4434,7 +4434,14 @@ function gmUpdateResignCap() {
   const termsEl = document.getElementById('gm-resign-terms');
   if (termsEl) termsEl.style.display = isGoalie ? 'none' : '';
   const goalieArea = document.getElementById('gm-resign-goalie-note');
-  if (goalieArea) goalieArea.style.display = isGoalie ? '' : 'none';
+  if (goalieArea) {
+    goalieArea.style.display = isGoalie ? '' : 'none';
+    if (isGoalie && r?.p) {
+      const gVal = r.p.composite_value || r.p.value || r.p.avg_proj_value;
+      const offerEl = document.getElementById('gm-goalie-offer-val');
+      if (offerEl) offerEl.textContent = gVal ? '$'+(gVal/1e6).toFixed(2)+'M/yr' : '–';
+    }
+  }
 }
 
 function gmSetResignTerm(t) {
@@ -4911,13 +4918,10 @@ function gmAnalyze() {
       ${(() => {
         const baseNames = new Set((gmState.baseRoster||[]).map(r=>r.name||r?.p?.name).filter(Boolean));
         const curNames  = new Set(roster.filter(r=>r?.p).map(r=>r.p.name));
-        let resigned=[],signed=[],acquired=[],lost2=[];
-    try {
-    resigned  = roster.filter(r=>r?.p&&r.gmRole==='resigned').map(r=>r.p.name);
+        const resigned  = roster.filter(r=>r?.p&&r.gmRole==='resigned').map(r=>r.p.name);
         const signed    = roster.filter(r=>r?.p&&r.gmRole==='signed').map(r=>r.p.name);
         const acquired  = roster.filter(r=>r?.p&&r.gmRole==='traded_in').map(r=>r.p.name);
         const lost      = (gmState.baseRoster||[]).map(r=>r.name||r?.p?.name).filter(n=>n&&!curNames.has(n));
-        } catch(eTx){ console.error('tx section:',eTx); }
         const txRow = (label, players, clr) => players.length
           ? '<div style="font-size:.78rem;margin-bottom:.25rem;"><span style="color:'+clr+';font-weight:600;">'+label+'</span> '+players.join(', ')+'</div>'
           : '';
