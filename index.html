@@ -1379,7 +1379,7 @@ function renderContract(p) {
       <div class="c-item"><div class="c-lbl">Avg. annual surplus</div><div class="c-val ${posneg(avgAnnSurplus)}">${fs(avgAnnSurplus)}</div></div>
     </div>
     <div class="contract-chart-wrap">
-      <div class="contract-chart-title">Projected value vs. cap hit \u2014 2025\u201326 through 2032\u201333</div>
+      <div class="contract-chart-title">Projected value vs. cap hit \u2014 2025\u201326 through 2034\u201335</div>
       <div style="position:relative;height:160px;"><canvas id="contract-chart"></canvas></div>
       <div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">
         <div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Proj. value</span></div>
@@ -1391,7 +1391,8 @@ function renderContract(p) {
   const SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
   const expYear  = parseInt(p.exp_year) || 0;
   const projVals = [p.value||null, ...(p.proj_years||[])];  // prepend 25-26 historical
-  const cap2526  = p.cap_2526 || null;  // actual 2025-26 cap hit from BIO FWD 25 offseason tracker
+  // 2025-26 cap: use offseason-tracker value if available, otherwise same as current (ongoing contracts)
+  const cap2526  = p.cap_2526 || p.cap || null;
   const capHits  = SEASON_END_YEARS.map((yr, i) => i === 0 ? cap2526 : (yr <= expYear ? (p.cap || null) : null));
   const ctx2 = document.getElementById('contract-chart').getContext('2d');
   contractChart = new Chart(ctx2, {
@@ -1405,6 +1406,7 @@ function renderContract(p) {
         callbacks:{label:ctx=>`${ctx.dataset.label}: $${Math.round(ctx.raw||0).toLocaleString()}`}}},
       scales:{
         x:{grid:{display:false},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
+        y:{min:0,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#555a6a',font:{family:'Karla',size:10},callback:v=>v>=1e6?'$'+(v/1e6).toFixed(0)+'M':''}},
         y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10},callback:v=>'$'+(v/1e6).toFixed(1)+'M'}}
       }
     }
@@ -3492,7 +3494,7 @@ function renderCalcResult() {
 function updateCalcAAV() {
   const p = calcPlayer;
   if (!p) return;
-  const fmtM = v => v!=null && v>0 ? '$'+(v/1e6).toFixed(2)+'M' : '–';
+  const fmtM = v => v!=null ? (v<0?'−':'')+'$'+(Math.abs(v)/1e6).toFixed(2)+'M' : '–';
   // Compute avg of covered projected bars (same logic as chart)
   const projYears = p.proj_years || [];
   const expYear   = parseInt(p.exp_year) || 2027;
@@ -4907,12 +4909,15 @@ function gmAnalyze() {
         </div>
       </div>
       ${(() => {
-        const baseNames = new Set((gmState.baseRoster||[]).filter(r=>r?.p).map(r=>r.p.name));
+        const baseNames = new Set((gmState.baseRoster||[]).map(r=>r.name||r?.p?.name).filter(Boolean));
         const curNames  = new Set(roster.filter(r=>r?.p).map(r=>r.p.name));
-        const resigned  = roster.filter(r=>r?.p&&r.gmRole==='resigned').map(r=>r.p.name);
+        let resigned=[],signed=[],acquired=[],lost2=[];
+    try {
+    resigned  = roster.filter(r=>r?.p&&r.gmRole==='resigned').map(r=>r.p.name);
         const signed    = roster.filter(r=>r?.p&&r.gmRole==='signed').map(r=>r.p.name);
         const acquired  = roster.filter(r=>r?.p&&r.gmRole==='traded_in').map(r=>r.p.name);
-        const lost      = (gmState.baseRoster||[]).filter(r=>r?.p&&!curNames.has(r.p.name)).map(r=>r.p.name);
+        const lost      = (gmState.baseRoster||[]).map(r=>r.name||r?.p?.name).filter(n=>n&&!curNames.has(n));
+        } catch(eTx){ console.error('tx section:',eTx); }
         const txRow = (label, players, clr) => players.length
           ? '<div style="font-size:.78rem;margin-bottom:.25rem;"><span style="color:'+clr+';font-weight:600;">'+label+'</span> '+players.join(', ')+'</div>'
           : '';
