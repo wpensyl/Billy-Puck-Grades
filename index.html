@@ -5135,13 +5135,13 @@ function ostRenderTable() {
   console.log('[OST render] setting innerHTML with', rows.length, 'rows');
   tbody.innerHTML = rows.map(([tc,ts], i) => `
     <tr data-team="${tc}" onclick="ostShowTeam('${tc}')" style="border-bottom:1px solid var(--border);cursor:pointer;transition:.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-      <td style="padding:.5rem .75rem;color:var(--text3);">${i+1}</td>
+      <td style="padding:.5rem .75rem;color:var(--text2);">${i+1}</td>
       <td style="padding:.5rem .75rem;font-weight:600;font-size:.88rem;">${tc}</td>
       <td style="padding:.5rem .75rem;text-align:right;font-family:'DM Mono',monospace;color:${fmtClr(ts.comp_value_add)};">${fmtM(ts.comp_value_add)}</td>
       <td style="padding:.5rem .75rem;text-align:right;font-family:'DM Mono',monospace;color:${fmtClr(ts.surplus_change)};">${fmtM(ts.surplus_change)}</td>
       <td style="padding:.5rem .75rem;text-align:right;font-family:'DM Mono',monospace;color:${fmtClr(ts.fv_surplus_add)};">${fmtM(ts.fv_surplus_add)}</td>
-      <td style="padding:.5rem .75rem;text-align:center;font-size:.75rem;color:var(--text3);">${ts.acq_count>0?`<span style="color:var(--teal);">${ts.acq_count} in</span> `:''}${ts.resign_count>0?`${ts.resign_count} re-sign`:''}</td>
-      <td style="padding:.5rem .75rem;color:var(--text3);">▶</td>
+      <td style="padding:.5rem .75rem;text-align:center;font-size:.75rem;color:var(--text2);">${ts.acq_count>0?`<span style="color:var(--teal);">${ts.acq_count} in</span> `:''}${ts.resign_count>0?`${ts.resign_count} re-sign`:''}</td>
+      <td style="padding:.5rem .75rem;color:var(--text2);">▶</td>
     </tr>
   `).join('');
   if (!rows.length) tbody.innerHTML = '<tr><td colspan="7" style="padding:1rem;text-align:center;color:var(--text3);">No transactions found for this filter.</td></tr>';
@@ -5199,8 +5199,10 @@ async function goOffseasonTracker() {
   if (ostView) {
     ostView.style.display = 'block';
     ostView.classList.add('active');
+    window.scrollTo({top: 0, behavior: 'instant'});
   }
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  window.scrollTo(0, 0);
   console.log('[OST] view shown, loading data...');
   await ostLoad();
   console.log('[OST] data loaded:', OST_DATA?.transactions?.length, 'transactions');
@@ -6385,7 +6387,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="overflow-x:auto;margin-bottom:1.5rem;">
         <table id="ost-table" style="width:100%;border-collapse:collapse;font-size:.82rem;">
           <thead>
-            <tr style="border-bottom:1px solid var(--border);color:var(--text3);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
+            <tr style="border-bottom:1px solid var(--border2);color:var(--text2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
               <th style="text-align:left;padding:.5rem .75rem;font-weight:600;">#</th>
               <th style="text-align:left;padding:.5rem .75rem;font-weight:600;">Team</th>
               <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('comp_value_add')">Proj. Value Add ⇅</th>
