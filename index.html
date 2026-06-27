@@ -5190,30 +5190,39 @@ function ostShowTeam(tc) {
   panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-async function goOffseasonTracker() {
-  // Debug: change title so we know JS is running
-  document.title = 'OST ACTIVE';
+function ostDismissTest() {
+  document.querySelectorAll('#ost-body-test').forEach(e => e.remove());
+  const ost = document.getElementById('offseasontracker');
+  const cs  = window.getComputedStyle(ost);
+  const test = document.getElementById('ost-test');
+  const tcs = test ? window.getComputedStyle(test) : {};
+  const par = ost.parentElement;
+  const pcs = window.getComputedStyle(par);
+  console.log('OST display='+cs.display+' visibility='+cs.visibility+' opacity='+cs.opacity+' height='+cs.height+' width='+cs.width+' overflow='+cs.overflow);
+  console.log('OST test-div display='+tcs.display+' visibility='+tcs.visibility+' height='+tcs.height);
+  console.log('OST parent <'+par.tagName+' class="'+par.className+'">' +' display='+pcs.display+' visibility='+pcs.visibility+' opacity='+pcs.opacity);
+}
 
-  // Append a full-screen overlay directly on body — bypasses ALL view/z-index issues
+async function goOffseasonTracker() {
+  // Body-level overlay to confirm JS runs — uses named dismiss function (no inline JS)
   document.querySelectorAll('#ost-body-test').forEach(e => e.remove());
   const _t = document.createElement('div');
   _t.id = 'ost-body-test';
-  _t.style.cssText = 'position:fixed;inset:0;background:#ff0000;color:#fff;font-size:40px;z-index:2147483647;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;';
-  _t.innerHTML = '<div>OST JS RUNNING</div><button onclick="(function(){ document.getElementById('ost-body-test').remove(); var ost=document.getElementById('offseasontracker'); var cs=window.getComputedStyle(ost); var test=document.getElementById('ost-test'); var tcs=test?window.getComputedStyle(test):{}; console.log('OST computed: display='+cs.display+' visibility='+cs.visibility+' opacity='+cs.opacity+' height='+cs.height+' width='+cs.width+' overflow='+cs.overflow+' clip='+cs.clip); console.log('OST test-div: display='+tcs.display+' visibility='+tcs.visibility+' opacity='+tcs.opacity+' height='+tcs.height); var parent=ost.parentElement; var pcs=window.getComputedStyle(parent); console.log('OST parent('+parent.tagName+'.'+parent.className+'): display='+pcs.display+' visibility='+pcs.visibility+' opacity='+pcs.opacity); })()" style="font-size:20px;padding:10px 20px;cursor:pointer;">Dismiss</button>';
+  _t.style.cssText = 'position:fixed;inset:0;background:#c00;color:#fff;font-size:36px;z-index:2147483647;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
+  const _btn = document.createElement('button');
+  _btn.textContent = 'Dismiss (logs computed styles)';
+  _btn.style.cssText = 'font-size:18px;padding:10px 20px;cursor:pointer;margin-top:16px;';
+  _btn.onclick = ostDismissTest;
+  _t.innerHTML = '<div>OST JS RUNNING</div>';
+  _t.appendChild(_btn);
   document.body.appendChild(_t);
 
   // Show the view
-  document.querySelectorAll('.view').forEach(v => {
-    v.classList.remove('active');
-    v.style.display = '';
-  });
+  document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.style.display = ''; });
   const ostView = document.getElementById('offseasontracker');
-  if (ostView) {
-    ostView.style.display = 'block';
-    ostView.classList.add('active');
-  }
+  if (ostView) { ostView.style.display = 'block'; ostView.classList.add('active'); }
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-  console.log('[OST] view shown, loading data...');
+  console.log('[OST] view shown');
   await ostLoad();
   console.log('[OST] data loaded:', OST_DATA?.transactions?.length, 'transactions');
   ostRenderTable();
