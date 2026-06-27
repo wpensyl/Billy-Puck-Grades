@@ -4803,7 +4803,7 @@ function gmGetCategoryRanks(overrideRoster) {
 
   // Override with projected roster if provided (use Set of names as snapRoster)
   if (overrideRoster) {
-    const snapNames = new Set(overrideRoster.map(r=>r.p.name));
+    const snapNames = new Set(overrideRoster.filter(r=>r?.p).map(r=>r.p.name));
     const proj = getTeamProfile(tc,'all',snapNames);
     if (proj?.catAvgs) allProfiles[tc] = proj.catAvgs;
   }
@@ -4838,6 +4838,10 @@ function gmGetCategoryRanks(overrideRoster) {
 
 function gmAnalyze() {
   try {
+  if (!gmState.teamCode || !gmState.roster?.length) {
+    document.getElementById('gm-action-area').innerHTML = '<div style="color:var(--coral);font-size:.85rem;padding:.75rem;">Please select a team first.</div>';
+    return;
+  }
   const roster  = (gmState.roster||[]).filter(r=>r?.p);
   const projPts = gmProjPts(roster);
   const basePts = gmProjPts(gmState.baseRoster.map(p=>({p})));
