@@ -5097,7 +5097,6 @@ function ostSortBy(col) {
 }
 
 function ostRenderTable() {
-  console.log('[OST render] called, OST_DATA:', !!OST_DATA, 'tab:', ostCurrentTab);
   if (!OST_DATA) return;
   const sortKey = document.getElementById('ost-sort')?.value || ostCurrentSort;
   const pos = ostCurrentTab;
@@ -5123,17 +5122,10 @@ function ostRenderTable() {
   const rows = Object.entries(teamMap)
     .sort(([,a],[,b]) => (b[sortKey]||0)-(a[sortKey]||0));
 
-  console.log('[OST render] rows built:', rows.length, 'tbody el:', document.getElementById('ost-tbody') ? 'FOUND' : 'NULL');
   const tbody = document.getElementById('ost-tbody');
   if (!tbody) {
-    console.error('[OST render] ost-tbody NOT FOUND in DOM - view may not be in HTML');
-    // Fallback: write directly to lb-content
-    const lb = document.querySelector('#offseasontracker .lb-content');
-    if (lb) lb.innerHTML = '<p style="color:white;padding:2rem;">OST tbody missing. Rows: ' + rows.length + '</p>';
-    return;
+      return;
   }
-  console.log('[OST render] setting innerHTML with', rows.length, 'rows');
-  const testEl = document.getElementById('ost-test-count'); if(testEl) testEl.textContent = rows.length;
   tbody.innerHTML = rows.map(([tc,ts], i) => `
     <tr data-team="${tc}" onclick="ostShowTeam('${tc}')" style="border-bottom:1px solid var(--border);cursor:pointer;transition:.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <td style="padding:.5rem .75rem;color:var(--text2);">${i+1}</td>
@@ -5190,41 +5182,10 @@ function ostShowTeam(tc) {
   panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-function ostDismissTest() {
-  document.querySelectorAll('#ost-body-test').forEach(e => e.remove());
-  const ost = document.getElementById('offseasontracker');
-  const cs  = window.getComputedStyle(ost);
-  const test = document.getElementById('ost-test');
-  const tcs = test ? window.getComputedStyle(test) : {};
-  const par = ost.parentElement;
-  const pcs = window.getComputedStyle(par);
-  console.log('OST display='+cs.display+' visibility='+cs.visibility+' opacity='+cs.opacity+' height='+cs.height+' width='+cs.width+' overflow='+cs.overflow);
-  console.log('OST test-div display='+tcs.display+' visibility='+tcs.visibility+' height='+tcs.height);
-  console.log('OST parent <'+par.tagName+' class="'+par.className+'">' +' display='+pcs.display+' visibility='+pcs.visibility+' opacity='+pcs.opacity);
-}
-
 async function goOffseasonTracker() {
-  // Body-level overlay to confirm JS runs — uses named dismiss function (no inline JS)
-  document.querySelectorAll('#ost-body-test').forEach(e => e.remove());
-  const _t = document.createElement('div');
-  _t.id = 'ost-body-test';
-  _t.style.cssText = 'position:fixed;inset:0;background:#c00;color:#fff;font-size:36px;z-index:2147483647;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
-  const _btn = document.createElement('button');
-  _btn.textContent = 'Dismiss (logs computed styles)';
-  _btn.style.cssText = 'font-size:18px;padding:10px 20px;cursor:pointer;margin-top:16px;';
-  _btn.onclick = ostDismissTest;
-  _t.innerHTML = '<div>OST JS RUNNING</div>';
-  _t.appendChild(_btn);
-  document.body.appendChild(_t);
-
-  // Show the view
-  document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.style.display = ''; });
-  const ostView = document.getElementById('offseasontracker');
-  if (ostView) { ostView.style.display = 'block'; ostView.classList.add('active'); }
+  showView('offseasontracker');
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-  console.log('[OST] view shown');
   await ostLoad();
-  console.log('[OST] data loaded:', OST_DATA?.transactions?.length, 'transactions');
   ostRenderTable();
 }
 
@@ -6348,84 +6309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <input type="text" id="lc-player-search" placeholder="Filter by player name…" style="width:100%;padding:.35rem .75rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:.78rem;font-family:'Karla',sans-serif;">
       </div>
     </div>
-    <div id="offseasontracker" class="view">
-    <div id="ost-test" style="background:#ff0000;color:#ffffff;font-size:28px;font-weight:bold;padding:30px;margin:20px;border:5px solid #00ff00;position:relative;z-index:9999;">OST VIEW IS RENDERING — ROWS: <span id="ost-test-count">?</span></div>
-      <nav class="app-nav">
-    <div class="nav-logo" id="nav-logo-ost">Billy Puck<span> Grades</span></div>
-    <div class="nav-links">
-      <div class="nav-link" id="nav-players-ost">Player Cards</div>
-      <div class="nav-dropdown">
-        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-ost">Player Data <span class="dd-arrow">▾</span></button>
-        <div class="nav-dd-menu" id="nddm-pd-ost">
-          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
-          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
-          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
-        </div>
-      </div>
-      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-ost">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-ost"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
-      <div class="nav-link" id="nav-goalies-ost">Goalies</div>
-      <div class="nav-dropdown">
-        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-ost" >Team Data <span class="dd-arrow">▾</span></button>
-        <div class="nav-dd-menu" id="nddm-td-ost">
-          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
-          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
-          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
-          <div class="nav-dd-item active" data-view="offseasontracker">Offseason Tracker</div>
-        </div>
-      </div>
-      <div class="nav-dropdown">
-        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-ost">Contract Tools <span class="dd-arrow">▾</span></button>
-        <div class="nav-dd-menu" id="nddm-ct-ost">
-          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
-          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
-          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
-        </div>
-      </div>
-      <div class="nav-link" id="nav-gm-ost" onclick="goGM()">GM Mode</div>
-    </div>
-  </nav>
-  <div class="lb-content">
-      <div class="view-header">
-        <h2 class="view-title">Offseason Tracker</h2>
-        <div class="view-sub">2025–26 → 2026–27 · Player movement &amp; value changes by team</div>
-      </div>
-      <!-- Sub-tabs -->
-      <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;">
-        <button class="ost-tab active" data-pos="all"  onclick="ostSetTab('all')">All Positions</button>
-        <button class="ost-tab"        data-pos="F"    onclick="ostSetTab('F')">Forwards</button>
-        <button class="ost-tab"        data-pos="D"    onclick="ostSetTab('D')">Defensemen</button>
-        <button class="ost-tab"        data-pos="G"    onclick="ostSetTab('G')">Goalies</button>
-        <select id="ost-sort" onchange="ostRenderTable()" style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;cursor:pointer;">
-          <option value="comp_value_add">Sort: Proj. Value Add</option>
-          <option value="surplus_change">Sort: Surplus Change</option>
-          <option value="fv_surplus_add">Sort: FV Surplus Add</option>
-          <option value="acq_count">Sort: Acquisitions</option>
-        </select>
-      </div>
-      <!-- Summary table -->
-      <div style="overflow-x:auto;margin-bottom:1.5rem;">
-        <table id="ost-table" style="width:100%;border-collapse:collapse;font-size:.82rem;">
-          <thead>
-            <tr style="border-bottom:1px solid var(--border2);color:var(--text2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
-              <th style="text-align:left;padding:.5rem .75rem;font-weight:600;">#</th>
-              <th style="text-align:left;padding:.5rem .75rem;font-weight:600;">Team</th>
-              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('comp_value_add')">Proj. Value Add ⇅</th>
-              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('surplus_change')">Surplus Chg ⇅</th>
-              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('fv_surplus_add')">FV Surplus ⇅</th>
-              <th style="text-align:center;padding:.5rem .75rem;font-weight:600;">Moves</th>
-              <th style="padding:.5rem .75rem;"></th>
-            </tr>
-          </thead>
-          <tbody id="ost-tbody"></tbody>
-        </table>
-      </div>
-      <!-- Team detail panel -->
-      <div id="ost-team-panel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:1rem;">
-        <div id="ost-team-panel-content"></div>
-      </div>
-  </div><!-- /lb-content -->
-    </div>
+    
 
     <div id="lc-results" style="font-size:.8rem;color:var(--text3);margin-bottom:.5rem;"></div>
     <div style="font-size:.73rem;color:var(--text3);margin-bottom:.5rem;line-height:1.5;max-width:700px;">
@@ -6669,6 +6553,86 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="gm-content"></div>
   </div>
 </div>
+
+
+
+<div id="offseasontracker" class="view">
+      <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-ost">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-ost">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-ost">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-ost">
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
+        </div>
+      </div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-ost">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-ost"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
+      <div class="nav-link" id="nav-goalies-ost">Goalies</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-ost" >Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-ost">
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item active" data-view="offseasontracker">Offseason Tracker</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-ost">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-ost">
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
+        </div>
+      </div>
+      <div class="nav-link" id="nav-gm-ost" onclick="goGM()">GM Mode</div>
+    </div>
+  </nav>
+  <div class="lb-content">
+      <div class="view-header">
+        <h2 class="view-title">Offseason Tracker</h2>
+        <div class="view-sub">2025–26 → 2026–27 · Player movement &amp; value changes by team</div>
+      </div>
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+        <button class="ost-tab active" data-pos="all"  onclick="ostSetTab('all')">All Positions</button>
+        <button class="ost-tab"        data-pos="F"    onclick="ostSetTab('F')">Forwards</button>
+        <button class="ost-tab"        data-pos="D"    onclick="ostSetTab('D')">Defensemen</button>
+        <button class="ost-tab"        data-pos="G"    onclick="ostSetTab('G')">Goalies</button>
+        <select id="ost-sort" onchange="ostRenderTable()" style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;cursor:pointer;">
+          <option value="comp_value_add">Sort: Proj. Value Add</option>
+          <option value="surplus_change">Sort: Surplus Change</option>
+          <option value="fv_surplus_add">Sort: FV Surplus Add</option>
+          <option value="acq_count">Sort: Acquisitions</option>
+        </select>
+      </div>
+      <!-- Summary table -->
+      <div style="overflow-x:auto;margin-bottom:1.5rem;">
+        <table id="ost-table" style="width:100%;border-collapse:collapse;font-size:.82rem;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border2);color:var(--text2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
+              <th style="text-align:left;padding:.5rem .75rem;font-weight:600;">#</th>
+              <th style="text-align:left;padding:.5rem .75rem;font-weight:600;">Team</th>
+              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('comp_value_add')">Proj. Value Add ⇅</th>
+              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('surplus_change')">Surplus Chg ⇅</th>
+              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('fv_surplus_add')">FV Surplus ⇅</th>
+              <th style="text-align:center;padding:.5rem .75rem;font-weight:600;">Moves</th>
+              <th style="padding:.5rem .75rem;"></th>
+            </tr>
+          </thead>
+          <tbody id="ost-tbody"></tbody>
+        </table>
+      </div>
+      <!-- Team detail panel -->
+      <div id="ost-team-panel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:1rem;">
+        <div id="ost-team-panel-content"></div>
+      </div>
+  </div><!-- /lb-content -->
+    </div>
 
 </body>
 </html>
