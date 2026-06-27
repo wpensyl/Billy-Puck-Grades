@@ -5191,7 +5191,18 @@ function ostShowTeam(tc) {
 }
 
 async function goOffseasonTracker() {
-  // Force-show: remove active from all views, then directly set display + class
+  // Debug: change title so we know JS is running
+  document.title = 'OST ACTIVE';
+
+  // Append a full-screen overlay directly on body — bypasses ALL view/z-index issues
+  document.querySelectorAll('#ost-body-test').forEach(e => e.remove());
+  const _t = document.createElement('div');
+  _t.id = 'ost-body-test';
+  _t.style.cssText = 'position:fixed;inset:0;background:#ff0000;color:#fff;font-size:40px;z-index:2147483647;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;';
+  _t.innerHTML = '<div>OST JS RUNNING</div><button onclick="document.getElementById(\'ost-body-test\').remove()" style="font-size:20px;padding:10px 20px;cursor:pointer;">Dismiss</button>';
+  document.body.appendChild(_t);
+
+  // Show the view
   document.querySelectorAll('.view').forEach(v => {
     v.classList.remove('active');
     v.style.display = '';
@@ -5200,10 +5211,8 @@ async function goOffseasonTracker() {
   if (ostView) {
     ostView.style.display = 'block';
     ostView.classList.add('active');
-    window.scrollTo({top: 0, behavior: 'instant'});
   }
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-  window.scrollTo(0, 0);
   console.log('[OST] view shown, loading data...');
   await ostLoad();
   console.log('[OST] data loaded:', OST_DATA?.transactions?.length, 'transactions');
