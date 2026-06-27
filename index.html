@@ -4907,12 +4907,12 @@ function gmAnalyze() {
         </div>
       </div>
       ${(() => {
-        const baseNames = new Set((gmState.baseRoster||[]).map(r=>r.p.name));
-        const curNames  = new Set(roster.map(r=>r.p.name));
-        const resigned  = roster.filter(r=>r.gmRole==='resigned').map(r=>r.p.name);
-        const signed    = roster.filter(r=>r.gmRole==='signed').map(r=>r.p.name);
-        const acquired  = roster.filter(r=>r.gmRole==='traded_in').map(r=>r.p.name);
-        const lost      = (gmState.baseRoster||[]).filter(r=>!curNames.has(r.p.name)).map(r=>r.p.name);
+        const baseNames = new Set((gmState.baseRoster||[]).filter(r=>r?.p).map(r=>r.p.name));
+        const curNames  = new Set(roster.filter(r=>r?.p).map(r=>r.p.name));
+        const resigned  = roster.filter(r=>r?.p&&r.gmRole==='resigned').map(r=>r.p.name);
+        const signed    = roster.filter(r=>r?.p&&r.gmRole==='signed').map(r=>r.p.name);
+        const acquired  = roster.filter(r=>r?.p&&r.gmRole==='traded_in').map(r=>r.p.name);
+        const lost      = (gmState.baseRoster||[]).filter(r=>r?.p&&!curNames.has(r.p.name)).map(r=>r.p.name);
         const txRow = (label, players, clr) => players.length
           ? '<div style="font-size:.78rem;margin-bottom:.25rem;"><span style="color:'+clr+';font-weight:600;">'+label+'</span> '+players.join(', ')+'</div>'
           : '';
