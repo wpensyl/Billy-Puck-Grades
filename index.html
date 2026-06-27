@@ -5133,6 +5133,7 @@ function ostRenderTable() {
     return;
   }
   console.log('[OST render] setting innerHTML with', rows.length, 'rows');
+  const testEl = document.getElementById('ost-test-count'); if(testEl) testEl.textContent = rows.length;
   tbody.innerHTML = rows.map(([tc,ts], i) => `
     <tr data-team="${tc}" onclick="ostShowTeam('${tc}')" style="border-bottom:1px solid var(--border);cursor:pointer;transition:.1s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <td style="padding:.5rem .75rem;color:var(--text2);">${i+1}</td>
@@ -6330,6 +6331,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
     <div id="offseasontracker" class="view">
+    <div id="ost-test" style="background:#ff0000;color:#ffffff;font-size:28px;font-weight:bold;padding:30px;margin:20px;border:5px solid #00ff00;position:relative;z-index:9999;">OST VIEW IS RENDERING — ROWS: <span id="ost-test-count">?</span></div>
       <nav class="app-nav">
     <div class="nav-logo" id="nav-logo-ost">Billy Puck<span> Grades</span></div>
     <div class="nav-links">
