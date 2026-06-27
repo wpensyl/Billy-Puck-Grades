@@ -1391,8 +1391,8 @@ function renderContract(p) {
   const SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
   const expYear  = parseInt(p.exp_year) || 0;
   const projVals = [p.value||null, ...(p.proj_years||[])];  // prepend 25-26 historical
-  const cap2526  = p.cap_2526 || p.cap || null;
-  const capHits  = SEASON_END_YEARS.map((yr, i) => i === 0 ? cap2526 : (yr <= expYear ? (p.cap || null) : null));
+  // For the 2025-26 bar we only show historical value (no cap bar — old cap hits not in new file for re-signed players)
+  const capHits  = SEASON_END_YEARS.map((yr, i) => i === 0 ? null : (yr <= expYear ? (p.cap || null) : null));
   const ctx2 = document.getElementById('contract-chart').getContext('2d');
   contractChart = new Chart(ctx2, {
     type:'bar',
@@ -3511,7 +3511,7 @@ function updateCalcAAV() {
   el.innerHTML = `
     <div style="font-size:1.5rem;font-weight:600;font-family:'DM Mono',monospace;color:${clr};">${fmtM(aav)}<span style="font-size:.85rem;color:var(--text3);">/yr</span></div>
     <div style="font-size:.8rem;color:var(--text3);margin-top:.15rem;">Avg implied value · ${calcTerm}-yr deal starting ${expYear}–26 · Total: ${fmtM(total)}</div>
-    <div style="font-size:.72rem;color:var(--text3);margin-top:.1rem;">vs cap hit: ${fmtM(p.cap)} · Proj surplus/yr: ${fmtM(aav&&p.cap?aav-p.cap:null)}</div>`;
+    <div style="font-size:.72rem;color:var(--text3);margin-top:.1rem;">Current cap hit: ${fmtM(p.cap)}</div>`;
 }
 
 function updateCalcChart() {
@@ -3546,7 +3546,7 @@ function updateCalcChart() {
       ${bars.map((v, i) => {
         const h = maxVal ? Math.round(((v||0)/maxVal)*100) : 0;
         const hilite = inTerm(i);
-        const clr = hilite ? barColor(Math.round((v/maxVal)*100)) : 'var(--surface3)';
+        const clr = hilite ? 'var(--teal)' : 'var(--surface3)';
         return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
           <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:.58rem;color:var(--text3);white-space:nowrap;">${fmtM(v)}</div>
           <div style="width:100%;height:${h}px;background:${clr};border-radius:3px 3px 0 0;transition:background .2s;" title="${labels[i]}: ${fmtM(v)}"></div>
@@ -4397,6 +4397,8 @@ function gmOpenResign() {
       <div id="gm-resign-preview" style="font-size:.78rem;color:var(--teal);margin-top:.5rem;font-family:'DM Mono',monospace;"></div>
     </div>`;
   gmUpdateResignTerms();
+  // Check if initial player is a goalie and hide terms
+  setTimeout(() => gmUpdateResignCap(), 0);
   document.getElementById('gm-resign-player').addEventListener('change', gmUpdateResignTerms);
 }
 
@@ -4456,9 +4458,11 @@ function gmConfirmResign() {
   const term = gmState._resignTerm || 1;
   const idx  = gmState.roster.findIndex(r=>r.p.name===name);
   if (idx<0) return;
-  const p   = gmState.roster[idx].p;
+  const rEntry = gmState.roster[idx];
+  const p   = rEntry.p;
+  // Goalies: use composite value, no term buttons
+  if (p._type === 'G') { gmConfirmResignGoalie(rEntry); return; }
   const aav = p[`aav_${term}yr`];
-  if (!aav) { alert('No FV AAV data for this term.'); return; }
   gmState.roster[idx] = {...gmState.roster[idx], gmRole:'resigned', gmCap:aav, gmTerm:term};
   const fmtM = v=>'$'+(v/1e6).toFixed(2)+'M';
   gmState.logs.push(`Re-signed ${name} — ${term}yr at ${fmtM(aav)}/yr.`);
@@ -4628,6 +4632,7 @@ function gmOpenTrade() {
         <button class="calc-term-btn" onclick="gmConfirmTrade()">Confirm Trade</button>
         <button class="calc-term-btn" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
       </div>
+      <div id="gm-trade-cap-summary" style="font-size:.75rem;color:var(--text3);margin-top:.4rem;font-family:'DM Mono',monospace;min-height:1.2rem;"></div>
     </div>`;
 
   window._gmTradeOut = new Set();
@@ -4691,16 +4696,33 @@ function gmToggleTradeOut(name, el) {
   if (window._gmTradeOut.has(name)) {
     window._gmTradeOut.delete(name);
     el.style.background=''; el.style.outline='';
+    gmUpdateTradeCap();
   } else {
     window._gmTradeOut.add(name);
     el.style.background='var(--surface2)'; el.style.outline='1px solid var(--coral)';
+    gmUpdateTradeCap();
   }
   gmUpdateTradeSummary();
 }
+function gmUpdateTradeCap() {
+  const fmtM = v => '$'+(Math.abs(v)/1e6).toFixed(2)+'M';
+  const outCap = [...(window._gmTradeOut||[])].reduce((s,n)=>{
+    const r=gmState.roster.find(r=>r.p.name===n); return s+(r?.gmCap||r?.p.cap||0);},0);
+  const inCap  = [...(window._gmTradeIn||[])].reduce((s,n)=>{
+    const p=ALL_PLAYERS.find(p=>p.name===n); return s+(p?.cap||0);},0);
+  const net = inCap - outCap;
+  const el  = document.getElementById('gm-trade-cap-summary');
+  if (!el) return;
+  if (!window._gmTradeOut?.size && !window._gmTradeIn?.size) { el.textContent=''; return; }
+  const netClr = net <= 0 ? 'var(--teal)' : 'var(--coral)';
+  el.innerHTML = `Out: ${fmtM(outCap)} · In: ${fmtM(inCap)} · <span style="color:${netClr};">Net cap: ${net>=0?'+':''}${fmtM(net)} ${net<=0?'freed':'added'}</span>`;
+}
+
 function gmToggleTradeIn(name, el) {
   if (window._gmTradeIn.has(name)) {
     window._gmTradeIn.delete(name);
     el.style.background=''; el.style.outline='';
+    gmUpdateTradeCap();
     if (window._gmTradeIn.size === 0) {
       const tf = document.getElementById('gm-trade-in-team');
       if (tf) { tf.value='all'; tf.disabled=false; if(window._renderTradeInList) window._renderTradeInList(); }
@@ -4708,6 +4730,7 @@ function gmToggleTradeIn(name, el) {
   } else {
     window._gmTradeIn.add(name);
     el.style.background='var(--surface2)'; el.style.outline='1px solid var(--teal)';
+    gmUpdateTradeCap();
     const team = el.dataset.team;
     if (team) {
       const tf = document.getElementById('gm-trade-in-team');
@@ -4832,12 +4855,12 @@ function gmAnalyze() {
   // Chemistry summary using depth chart linemates
   const dc2 = buildDepthChart(roster);
   const linemateMap2 = {};
-  dc2.lines.forEach(line => {
-    const members = [line.c,line.lw,line.rw].filter(Boolean);
+  (dc2.lines||[]).forEach(line => {
+    const members = [line.c,line.lw,line.rw].filter(r=>r?.p);
     members.forEach(r => { linemateMap2[r.p.name] = members.filter(x=>x!==r); });
   });
-  dc2.pairs.forEach(pair => {
-    pair.forEach(r => { linemateMap2[r.p.name] = pair.filter(x=>x!==r); });
+  (dc2.pairs||[]).forEach(pair => {
+    (pair||[]).filter(r=>r?.p).forEach(r => { linemateMap2[r.p.name] = (pair||[]).filter(x=>x!==r); });
   });
   const chemIssues = roster.filter(r=>r.p._type!=='G').filter(r=>{
     const lm = linemateMap2[r.p.name]||[];
