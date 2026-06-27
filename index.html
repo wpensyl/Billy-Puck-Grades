@@ -1387,11 +1387,12 @@ function renderContract(p) {
       </div>
     </div>`;
   if (contractChart) { contractChart.destroy(); contractChart = null; }
-  const SEASON_LABELS    = ['25\u201326','26\u201327','27\u201328','28\u201329','29\u201330','30\u201331','31\u201332','32\u201333','33\u201334'];
-  const SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033,2034];
+  const SEASON_LABELS    = ['25\u201326','26\u201327','27\u201328','28\u201329','29\u201330','30\u201331','31\u201332','32\u201333','33\u201334','34\u201335'];
+  const SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
   const expYear  = parseInt(p.exp_year) || 0;
   const projVals = [p.value||null, ...(p.proj_years||[])];  // prepend 25-26 historical
-  const capHits  = SEASON_END_YEARS.map(yr => yr <= expYear ? (p.cap || null) : null);
+  const cap2526  = p.cap_2526 || p.cap || null;
+  const capHits  = SEASON_END_YEARS.map((yr, i) => i === 0 ? cap2526 : (yr <= expYear ? (p.cap || null) : null));
   const ctx2 = document.getElementById('contract-chart').getContext('2d');
   contractChart = new Chart(ctx2, {
     type:'bar',
@@ -3491,20 +3492,26 @@ function renderCalcResult() {
 function updateCalcAAV() {
   const p = calcPlayer;
   if (!p) return;
-  const fmtM = v => v ? '$'+(v/1e6).toFixed(2)+'M' : '–';
-  const aav   = p[`aav_${calcTerm}yr`];
-  const total = aav ? aav * calcTerm : null;
-  const el    = document.getElementById('calc-aav-result');
+  const fmtM = v => v!=null && v>0 ? '$'+(v/1e6).toFixed(2)+'M' : '–';
+  // Compute avg of covered projected bars (same logic as chart)
+  const projYears = p.proj_years || [];
+  const expYear   = parseInt(p.exp_year) || 2027;
+  const offset    = Math.max(0, expYear - 2026);
+  const bars      = projYears.slice(offset);
+  const termBars  = bars.slice(0, calcTerm).filter(Boolean);
+  const aav       = termBars.length ? termBars.reduce((s,v)=>s+v,0)/termBars.length : null;
+  const total     = aav ? aav * calcTerm : null;
+  const el        = document.getElementById('calc-aav-result');
   if (!el) return;
   if (!aav) {
-    el.innerHTML = `<span style="color:var(--text3);">No FV data for ${calcTerm}-yr term</span>`;
+    el.innerHTML = `<span style="color:var(--text3);">No projection data for ${calcTerm}-yr term</span>`;
     return;
   }
   const clr = barColor(p.overall_pct||50);
   el.innerHTML = `
     <div style="font-size:1.5rem;font-weight:600;font-family:'DM Mono',monospace;color:${clr};">${fmtM(aav)}<span style="font-size:.85rem;color:var(--text3);">/yr</span></div>
-    <div style="font-size:.8rem;color:var(--text3);margin-top:.15rem;">Fair Value AAV · ${calcTerm}-year deal · Total: ${fmtM(total)}</div>
-    <div style="font-size:.72rem;color:var(--text3);margin-top:.1rem;">vs current cap hit: ${fmtM(p.cap)} · Proj surplus/yr: ${fmtM(aav&&p.cap?aav-p.cap:null)}</div>`;
+    <div style="font-size:.8rem;color:var(--text3);margin-top:.15rem;">Avg implied value · ${calcTerm}-yr deal starting ${expYear}–26 · Total: ${fmtM(total)}</div>
+    <div style="font-size:.72rem;color:var(--text3);margin-top:.1rem;">vs cap hit: ${fmtM(p.cap)} · Proj surplus/yr: ${fmtM(aav&&p.cap?aav-p.cap:null)}</div>`;
 }
 
 function updateCalcChart() {
@@ -4259,7 +4266,8 @@ function renderGMDashboard() {
         ${dc.goalies.map(r=>`
           <div style="display:inline-flex;align-items:center;gap:.4rem;margin:.2rem .3rem 0 0;padding:.2rem .5rem;background:var(--surface2);border-radius:4px;font-size:.72rem;">
             <span style="color:var(--text2);font-weight:500;">${r.p.name}</span>
-            <span style="color:var(--text3);">${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}</span>
+            <span style="color:var(--text3);">${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)} cap</span>
+            <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--text3);">Value: ${fmtM(gmTradeValue(r.p))}</span>
             <span style="color:var(--teal);font-family:'DM Mono',monospace;">${r.p.overall_2526??'–'}</span>
           </div>`).join('')}
       </div>`:''}
@@ -4309,6 +4317,21 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
     <td style="${mono}color:var(--text2);">${fmtM(tv)}</td>
     <td>${p.exp_year==='2026'&&r.gmRole==='current'?'<button onclick="gmLetWalk(\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:.65rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.1rem .4rem;cursor:pointer;">Let Walk</button>':'<span style="color:var(--text3);font-size:.68rem;">Trade to move</span>'}</td>
   </tr>`;
+}
+
+function gmConfirmResignGoalie(rEntry) {
+  const p = rEntry.p;
+  const val = p.composite_value || p.value || p.avg_proj_value;
+  const fmtM = v => v ? '$'+(v/1e6).toFixed(2)+'M' : '–';
+  if (!val) { alert('No value data available for this goalie.'); return; }
+  rEntry.gmRole    = 'resigned';
+  rEntry.gmCap     = val;
+  rEntry.gmTerm    = 1;
+  gmState._resignTerm = 1;
+  const prev = document.getElementById('gm-resign-preview');
+  if (prev) prev.innerHTML = `<span style="color:var(--teal);">${p.name} re-signed at ${fmtM(val)}/yr (composite value)</span>`;
+  document.getElementById('gm-action-area').innerHTML = '';
+  gmRefreshRosterPanel();
 }
 
 function gmLetWalkFromResign() {
@@ -4392,10 +4415,30 @@ function gmUpdateResignTerms() {
   if (!gmState._resignTerm) gmSetResignTerm(1);
 }
 
-function gmSetResignTerm(t) {
-  gmState._resignTerm = t;
+function gmUpdateResignCap() {
+  // Called when player dropdown changes — reset preview and term buttons
+  const prev = document.getElementById('gm-resign-preview');
+  if (prev) prev.textContent = '';
+  gmState._resignTerm = 1;
+  document.querySelectorAll('#gm-resign-terms .calc-term-btn').forEach(b=>b.classList.remove('active'));
+  const first = document.querySelector('#gm-resign-terms .calc-term-btn');
+  if (first) first.classList.add('active');
+  // If goalie selected, hide term buttons and show simplified confirm
   const name = document.getElementById('gm-resign-player')?.value;
-  const p = gmState.roster.find(r=>r.p.name===name)?.p;
+  const r = gmState.roster.find(r=>r.p.name===name);
+  const isGoalie = r?.p._type === 'G';
+  const termsEl = document.getElementById('gm-resign-terms');
+  if (termsEl) termsEl.style.display = isGoalie ? 'none' : '';
+  const goalieArea = document.getElementById('gm-resign-goalie-note');
+  if (goalieArea) goalieArea.style.display = isGoalie ? '' : 'none';
+}
+
+function gmSetResignTerm(t) {
+  const name = document.getElementById('gm-resign-player')?.value;
+  const r = gmState.roster.find(rr=>rr.p.name===name);
+  if (r?.p._type === 'G') return;  // goalies use composite value, no term selection
+  gmState._resignTerm = t;
+  const p = r?.p;
   const fmtM = v => v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const aav = p?.[`aav_${t}yr`];
   const prev = document.getElementById('gm-resign-preview');
@@ -4771,6 +4814,7 @@ function gmGetCategoryRanks(overrideRoster) {
 }
 
 function gmAnalyze() {
+  try {
   const roster  = gmState.roster;
   const projPts = gmProjPts(roster);
   const basePts = gmProjPts(gmState.baseRoster.map(p=>({p})));
@@ -4857,6 +4901,7 @@ function gmAnalyze() {
       })()}
       <div style="font-size:.7rem;color:var(--text3);">Points model: R²=0.457, MAE=±9 pts. Chemistry flags based on attribute complementarity regression findings.</div>
     </div>`;
+  } catch(e) { console.error('gmAnalyze:',e); const _ae=document.getElementById('gm-action-area'); if(_ae) _ae.innerHTML='<div style="color:var(--coral);font-size:.85rem;padding:.75rem;">Analysis error — re-select your team first.</div>'; }
 }
 
 
