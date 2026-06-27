@@ -857,7 +857,7 @@ async function fetchNHLPlayerData(playerName, onData) {
 
 function tryHeadshot(pid, imgEl, fallbackEl, playerName) {
   const cachedUrl = playerName && nhlHeadshotCache[playerName];
-  const url = cachedUrl || `https://assets.nhle.com/mugs/nhl/20252026/${pid}.png`;
+  const url = cachedUrl || `https://assets.nhle.com/mugs/nhl/20262027/${pid}.png`;
   const img = new Image();
   img.onload = () => {
     if (document.getElementById('ph-img') === imgEl) {
@@ -1362,6 +1362,8 @@ function renderContract(p) {
   if (!cc) { el.innerHTML = ''; return; }
   const avgAnnSurplus = cc.avg_aav_excess;
   const avgProjVal    = p.avg_proj_value || null;
+  const proj2627      = (p.proj_years && p.proj_years[0]) || null;
+  const surp2627      = p.surplus_2627 || null;
   const fvM = v => v!=null ? '$'+(v/1e6).toFixed(2)+'M' : '\u2013';
   const fs  = v => v!=null ? (v>=0?'+':'')+fvM(v) : '\u2013';
   const fpct= v => v!=null ? Math.round(v)+'th' : '\u2013';
@@ -2575,8 +2577,7 @@ function renderGoalieCard(g) {
         <div class="gc-stat-cell"><div class="gc-stat-val" style="color:var(--blue);">${stats.svPct||'\u2013'}</div><div class="gc-stat-lbl">SV%</div></div>
         <div class="gc-stat-cell"><div class="gc-stat-val">${stats.gaa||'\u2013'}</div><div class="gc-stat-lbl">GAA</div></div>
         <div class="gc-stat-cell"><div class="gc-stat-val">${stats.wins!=null?stats.wins:'\u2013'}</div><div class="gc-stat-lbl">Wins</div></div>
-        <div class="gc-stat-cell"><div class="gc-stat-val" style="color:${svClr};">${fmtSurplus(sv)}</div><div class="gc-stat-lbl">Surplus</div></div>
-        <div class="gc-stat-cell"><div class="gc-stat-val">${fmtCap(g.cap)}</div><div class="gc-stat-lbl">Cap hit</div></div>`;
+        <!-- Surplus and Cap Hit shown in Contract & Value section below -->`;
     }
   });
 }
@@ -2805,7 +2806,7 @@ function renderFATracker() {
 function populateFATeams() {
   const sel=document.getElementById('fa-team');
   if (!sel||sel.options.length>1) return;
-  const teams=[...new Set(ALL_PLAYERS.filter(p=>p.exp_year==='2027').map(p=>p.current_team||p.team).filter(Boolean))].sort();
+  const teams=[...new Set(ALL_PLAYERS.filter(p=>p.exp_year==='2026').map(p=>p.current_team||p.team).filter(Boolean))].sort();
   teams.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);});
 }
 
@@ -3469,8 +3470,8 @@ function renderCalcResult() {
   if (termEl) {
     const maxTerm = 8; // all 8 year terms available
     termEl.innerHTML = Array.from({length:maxTerm},(_,i)=>i+1).map(t => {
-      const hasVal = !!p[`aav_${t}yr`];
-      return `<button class="calc-term-btn${t===calcTerm?' active':''}" data-term="${t}"${hasVal?'':' disabled title="Not modeled in current workbook" style="opacity:.35;cursor:default;"'}>${t}yr</button>`;
+      
+      return `<button class="calc-term-btn${t===calcTerm?' active':''}" data-term="${t}">${t}yr</button>`;
     }).join('') ;
     termEl.querySelectorAll('.calc-term-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -3516,7 +3517,7 @@ function updateCalcChart() {
   // proj_years[0] = 2026-27 (first projected season).
   // Show all 8 projected years; cap hit bars only shown where on_contract=true.
   const expYear = parseInt(p.exp_year) || 2027;
-  const offset  = Math.max(0, expYear - 2027);
+  const offset  = Math.max(0, expYear - 2026);
   const bars    = projYears.slice(offset);
   if (!bars.length) { el.innerHTML='<div style="color:var(--text3);font-size:.8rem;">No data at this expiry</div>'; return; }
 
@@ -4138,14 +4139,14 @@ function renderGMDashboard() {
     if (_wk.length) catSwHtml=catSwHtml.replace('</div>',`<div><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Weaknesses</span>${_wk.slice(0,6).map(w=>_pill(w.cat,w.rank,'var(--coral)')).join('')}</div></div>`);
   } catch(e) { catSwHtml=''; }
 
-  const myFAs  = roster.filter(r=>r.p.exp_year==='2027'&&r.gmRole==='current');
+  const myFAs  = roster.filter(r=>r.p.exp_year==='2026'&&r.gmRole==='current');
 
   // Depth chart HTML helper
   const lineSlot = (r, label) => {
     if (!r) return `<td style="width:33%;padding:.3rem .5rem;color:var(--text3);font-size:.72rem;">${label} TBD</td>`;
     const linemates = linemateMap[r.p.name]||[];
     const badge = gmChemBadge(r.p, linemates);
-    const expClr = r.p.exp_year==='2027'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
+    const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
@@ -4158,7 +4159,7 @@ function renderGMDashboard() {
     if (!r) return `<td style="width:50%;padding:.3rem .5rem;color:var(--text3);font-size:.72rem;">${label} TBD</td>`;
     const partner = (linemateMap[r.p.name]||[]);
     const badge = gmChemBadge(r.p, partner);
-    const expClr = r.p.exp_year==='2027'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
+    const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
       <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
@@ -4295,7 +4296,7 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
   const roleLbl = {current:'Roster',signed:'Signed',traded_in:'Acquired',resigned:'Re-signed'}[r.gmRole]||r.gmRole;
   const tv = gmTradeValue(p);
   const badge = gmChemBadge(p, linemates);
-  const expClr = p.exp_year==='2027'?'var(--coral)':p.exp_year==='2027'?'#f5a623':'var(--text3)';
+  const expClr = p.exp_year==='2026'?'var(--coral)':p.exp_year==='2027'?'#f5a623':'var(--text3)';
   const capClr = r.gmRole==='resigned'||r.gmRole==='signed'?'var(--teal)':'var(--text)';
 
   return `<tr data-pname="${p.name}">
@@ -4306,7 +4307,7 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
     <td style="font-size:.75rem;color:${expClr};">${p.exp_year||'–'} ${p.expiry_type||''}</td>
     <td style="${mono}color:${capClr};">${fmtM(r.gmCap)}</td>
     <td style="${mono}color:var(--text2);">${fmtM(tv)}</td>
-    <td>${p.exp_year==='2027'&&r.gmRole==='current'?'<button onclick="gmLetWalk(\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:.65rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.1rem .4rem;cursor:pointer;">Let Walk</button>':'<span style="color:var(--text3);font-size:.68rem;">Trade to move</span>'}</td>
+    <td>${p.exp_year==='2026'&&r.gmRole==='current'?'<button onclick="gmLetWalk(\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:.65rem;color:var(--coral);background:none;border:1px solid var(--coral);border-radius:3px;padding:.1rem .4rem;cursor:pointer;">Let Walk</button>':'<span style="color:var(--text3);font-size:.68rem;">Trade to move</span>'}</td>
   </tr>`;
 }
 
@@ -4384,8 +4385,8 @@ function gmUpdateResignTerms() {
   const fmtM = v => v?'$'+(v/1e6).toFixed(2)+'M':'N/A';
   termsDiv.innerHTML = [1,2,3,4,5,6,7,8].map(t => {
     const aav = p[`aav_${t}yr`];
-    return `<button class="calc-term-btn${t===gmState._resignTerm?' active':''}" onclick="gmSetResignTerm(${t})" ${aav?'':'disabled'} style="${aav?'':'opacity:.35;cursor:default;'}">
-      ${t}yr ${aav?fmtM(aav):'–'}
+    return `<button class="calc-term-btn${t===gmState._resignTerm?' active':''}" onclick="gmSetResignTerm(${t})" >
+      ${t}yr${aav?' '+fmtM(aav):''}
     </button>`;
   }).join('');
   if (!gmState._resignTerm) gmSetResignTerm(1);
@@ -5670,8 +5671,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <thead><tr>
           <th class="lb-rank">#</th>
           <th>Player</th><th>Pos</th><th>Team</th><th>Type</th>
-          <th>Overall</th><th>Avg Value</th>
-          <th>1-Yr FV</th><th>4-Yr FV</th><th>7-Yr FV</th>
+          <th>Age</th><th>Overall</th>
+          <th>1-Yr FV</th><th>4-Yr FV</th><th>8-Yr FV</th>
           <th>25-26 Cap</th><th>25-26 Value</th><th>25-26 Surplus</th>
         </tr></thead>
         <tbody id="fa-list"></tbody>
@@ -5927,11 +5928,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <th>Pos</th>
           <th>Team</th>
           <th>Type</th>
-          <th>Overall</th>
+          <th>Age</th><th>Overall</th>
           <th>Val@Expiry</th>
           <th>1-Yr Ext</th>
           <th>4-Yr Ext</th>
-          <th>7-Yr Ext</th>
+          <th>8-Yr Ext</th>
           <th>25-26 Cap</th>
           <th>25-26 Value</th>
           <th>25-26 Surplus</th>
