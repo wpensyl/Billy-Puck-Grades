@@ -455,6 +455,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -519,6 +520,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item active" data-view="teams">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -5069,10 +5071,17 @@ let ostCurrentSort = 'comp_value_add';
 
 async function ostLoad() {
   if (OST_DATA) return;
+  const tbody = document.getElementById('ost-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:1.5rem;text-align:center;color:var(--text3);">Loading…</td></tr>';
   try {
     const res = await fetch('offseason_tracker.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     OST_DATA = await res.json();
-  } catch(e) { console.error('OST load error:', e); OST_DATA = {transactions:[], team_summary:{}}; }
+  } catch(e) {
+    console.error('OST load error:', e);
+    OST_DATA = {transactions:[], team_summary:{}};
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="padding:1.5rem;text-align:center;color:var(--coral);">Could not load offseason_tracker.json — run update.py and redeploy.</td></tr>';
+  }
 }
 
 function ostSetTab(pos) {
@@ -5572,6 +5581,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -5622,6 +5632,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -5668,6 +5679,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -5707,6 +5719,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -5778,6 +5791,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item active" data-view="compare">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -5831,6 +5845,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -5940,6 +5955,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -5989,6 +6005,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item active" data-view="rankings">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6085,6 +6102,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6202,6 +6220,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6289,6 +6308,41 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
     <div id="offseasontracker" class="view" style="display:none;">
+      <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-ost">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-ost">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-playerdata-ost">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-pd-ost">
+          <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
+        </div>
+      </div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-lines-ost">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu" id="nddm-lines-ost"><div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" data-view="playerchem" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
+      <div class="nav-link" id="nav-goalies-ost">Goalies</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-teamdata-ost" >Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-td-ost">
+          <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item active" data-view="offseasontracker">Offseason Tracker</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-ost">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu" id="nddm-ct-ost">
+          <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
+        </div>
+      </div>
+      <div class="nav-link" id="nav-gm-ost" onclick="goGM()">GM Mode</div>
+    </div>
+  </nav>
       <div class="view-header">
         <h2 class="view-title">Offseason Tracker</h2>
         <div class="view-sub">2025–26 → 2026–27 · Player movement &amp; value changes by team</div>
@@ -6373,6 +6427,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6470,6 +6525,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6541,6 +6597,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="teams" onclick="navGoView(event,'teams')">Team Overview</div>
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
         </div>
       </div>
       <div class="nav-dropdown">
