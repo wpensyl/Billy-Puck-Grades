@@ -5199,7 +5199,7 @@ async function goOffseasonTracker() {
   const _t = document.createElement('div');
   _t.id = 'ost-body-test';
   _t.style.cssText = 'position:fixed;inset:0;background:#ff0000;color:#fff;font-size:40px;z-index:2147483647;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;';
-  _t.innerHTML = '<div>OST JS RUNNING</div><button onclick="document.getElementById(\'ost-body-test\').remove()" style="font-size:20px;padding:10px 20px;cursor:pointer;">Dismiss</button>';
+  _t.innerHTML = '<div>OST JS RUNNING</div><button onclick="(function(){ document.getElementById('ost-body-test').remove(); var ost=document.getElementById('offseasontracker'); var cs=window.getComputedStyle(ost); var test=document.getElementById('ost-test'); var tcs=test?window.getComputedStyle(test):{}; console.log('OST computed: display='+cs.display+' visibility='+cs.visibility+' opacity='+cs.opacity+' height='+cs.height+' width='+cs.width+' overflow='+cs.overflow+' clip='+cs.clip); console.log('OST test-div: display='+tcs.display+' visibility='+tcs.visibility+' opacity='+tcs.opacity+' height='+tcs.height); var parent=ost.parentElement; var pcs=window.getComputedStyle(parent); console.log('OST parent('+parent.tagName+'.'+parent.className+'): display='+pcs.display+' visibility='+pcs.visibility+' opacity='+pcs.opacity); })()" style="font-size:20px;padding:10px 20px;cursor:pointer;">Dismiss</button>';
   document.body.appendChild(_t);
 
   // Show the view
