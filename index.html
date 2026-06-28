@@ -934,6 +934,8 @@ async function showPlayer(p) {
     history.replaceState(null, '', url);
   } catch(e) {}
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  const _p=document.getElementById('ost-team-panel');
+  if(_p&&!_p._navBound){_p.addEventListener('click',e=>{const c=e.target.closest('.ost-player-card[data-click]');if(!c)return;const pl=(window.ALL_PLAYERS||[]).find(p=>p.name===c.dataset.pn);if(pl)showPlayer(pl);});_p._navBound=true;}
   document.getElementById('nav-players').classList.add('active');
   document.getElementById('card-search').value = '';
   document.getElementById('card-dd').className = 'dropdown';
@@ -5100,50 +5102,55 @@ function ostRenderTable() {
   if (!OST_DATA) return;
   const tbody = document.getElementById('ost-tbody');
   if (!tbody) return;
-  const pos = ostCurrentTab;
-  const sortKey = document.getElementById('ost-sort')?.value || ostCurrentSort;
-  const fmtM   = v => v==null ? '–' : (v>=0?'+':'−')+'$'+(Math.abs(v)/1e6).toFixed(1)+'M';
-  const fmtClr = v => !v&&v!==0 ? 'var(--text3)' : v>0 ? 'var(--teal)' : v<0 ? 'var(--coral)' : 'var(--text3)';
+  const pos  = ostCurrentTab;
+  const sKey = document.getElementById('ost-sort')?.value || ostCurrentSort;
+  const isG  = pos === 'G';
+  const fmtM  = v => v==null ? '–' : (v>=0?'+':'−')+'$'+(Math.abs(v)/1e6).toFixed(1)+'M';
+  const fmtMP = v => v==null ? '–' : '$'+(Math.abs(v)/1e6).toFixed(1)+'M';
+  const clr   = v => (!v&&v!==0)?'var(--text3)':v>0?'var(--teal)':v<0?'var(--coral)':'var(--text3)';
   const summary = OST_DATA.team_summary || {};
 
   const getVals = ts => {
-    if (pos==='all') return {pv:ts.all_proj_value, sc:ts.all_surplus_chg, ps:ts.all_proj_surplus, fvs:ts.all_fv_surplus};
-    if (pos==='F')   return {pv:ts.fwd_proj_value,  sc:ts.fwd_surplus_chg,  ps:ts.fwd_proj_surplus,  fvs:ts.fwd_fv_surplus};
-    if (pos==='D')   return {pv:ts.dman_proj_value, sc:ts.dman_surplus_chg, ps:ts.dman_proj_surplus, fvs:ts.dman_fv_surplus};
-    if (pos==='G')   return {pv:ts.goalie_proj_value,sc:ts.goalie_surplus_chg,ps:ts.goalie_proj_surplus,fvs:ts.goalie_fv_surplus};
+    if (pos==='all') return {pv:ts.all_proj_value,  rv:ts.all_resign_value,  sc:ts.all_surplus_chg,  ps:ts.all_proj_surplus,  fvs:ts.all_fv_surplus,
+                             a:ts.acq_count,   l:ts.lost_count,   r:ts.resign_count};
+    if (pos==='F')   return {pv:ts.fwd_proj_value,  rv:ts.fwd_resign_value,  sc:ts.fwd_surplus_chg,  ps:ts.fwd_proj_surplus,  fvs:ts.fwd_fv_surplus,
+                             a:ts.acq_count_F, l:ts.lost_count_F, r:ts.resign_count_F};
+    if (pos==='D')   return {pv:ts.dman_proj_value, rv:ts.dman_resign_value, sc:ts.dman_surplus_chg, ps:ts.dman_proj_surplus, fvs:ts.dman_fv_surplus,
+                             a:ts.acq_count_D, l:ts.lost_count_D, r:ts.resign_count_D};
+    if (pos==='G')   return {pv:ts.goalie_proj_value,rv:ts.goalie_resign_value,sc:ts.goalie_surplus_chg,ps:ts.goalie_proj_surplus,fvs:null,
+                             a:ts.acq_count_G, l:ts.lost_count_G, r:ts.resign_count_G};
     return {};
   };
 
-  let rows = Object.entries(summary).map(([tc,ts]) => ({tc, ts, v:getVals(ts)}));
+  // Update AAV Surplus over Term header visibility
+  document.querySelectorAll('.ost-th-aav,.ost-td-aav').forEach(el => el.style.display = isG ? 'none' : '');
 
-  if (sortKey==='name')         rows.sort((a,b)=>a.tc.localeCompare(b.tc));
-  else if (sortKey==='proj_value')  rows.sort((a,b)=>(b.v.pv||0)-(a.v.pv||0));
-  else if (sortKey==='surplus_chg') rows.sort((a,b)=>(b.v.sc||0)-(a.v.sc||0));
-  else if (sortKey==='proj_surplus')rows.sort((a,b)=>(b.v.ps||0)-(a.v.ps||0));
-  else if (sortKey==='fv_surplus')  rows.sort((a,b)=>(b.v.fvs||0)-(a.v.fvs||0));
+  let rows = Object.entries(summary).map(([tc,ts])=>({tc,ts,v:getVals(ts)}));
+  if (sKey==='name')         rows.sort((a,b)=>a.tc.localeCompare(b.tc));
+  else if (sKey==='proj_value')   rows.sort((a,b)=>(b.v.pv||0)-(a.v.pv||0));
+  else if (sKey==='resign_value') rows.sort((a,b)=>(b.v.rv||0)-(a.v.rv||0));
+  else if (sKey==='surplus_chg')  rows.sort((a,b)=>(b.v.sc||0)-(a.v.sc||0));
+  else if (sKey==='proj_surplus') rows.sort((a,b)=>(b.v.ps||0)-(a.v.ps||0));
+  else if (sKey==='fv_surplus')   rows.sort((a,b)=>(b.v.fvs||0)-(a.v.fvs||0));
 
-  tbody.innerHTML = rows.map(({tc,ts,v},i) => `
+  tbody.innerHTML = rows.map(({tc,ts,v},i)=>`
     <tr data-team="${tc}" onclick="ostShowTeam('${tc}')" style="border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-      <td style="padding:.45rem .6rem;color:var(--text3);font-size:.75rem;">${i+1}</td>
-      <td style="padding:.45rem .6rem;font-weight:700;font-size:.9rem;">${tc}</td>
-      <td style="padding:.45rem .6rem;text-align:right;font-family:'DM Mono',monospace;color:${fmtClr(v.pv)};">${fmtM(v.pv)}</td>
-      <td style="padding:.45rem .6rem;text-align:right;font-family:'DM Mono',monospace;color:${fmtClr(v.sc)};">${fmtM(v.sc)}</td>
-      <td style="padding:.45rem .6rem;text-align:right;font-family:'DM Mono',monospace;color:${fmtClr(v.ps)};">${fmtM(v.ps)}</td>
-      <td style="padding:.45rem .6rem;text-align:right;font-family:'DM Mono',monospace;color:${fmtClr(v.fvs)};">${fmtM(v.fvs)}</td>
-      <td style="padding:.45rem .6rem;font-size:.72rem;color:var(--text2);">${ts.acq_count||0} in &middot; ${ts.lost_count||0} out &middot; ${ts.resign_count||0} re-sign</td>
-      <td style="padding:.45rem .6rem;color:var(--text3);">&#9658;</td>
+      <td style="padding:.4rem .5rem;color:var(--text3);font-size:.72rem;">${i+1}</td>
+      <td style="padding:.4rem .5rem;font-weight:700;font-size:.88rem;">${tc}</td>
+      <td style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:${clr(v.pv)};">${fmtM(v.pv)}</td>
+      <td style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:var(--text2);">${fmtMP(v.rv)}</td>
+      <td style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:${clr(v.sc)};">${fmtM(v.sc)}</td>
+      <td style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:${clr(v.ps)};">${fmtM(v.ps)}</td>
+      <td class="ost-td-aav" style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:${clr(v.fvs)};${isG?'display:none':''}">${fmtM(v.fvs)}</td>
+      <td style="padding:.4rem .5rem;font-size:.7rem;color:var(--text2);">${v.a||0} in &middot; ${v.l||0} out &middot; ${v.r||0} re-sign</td>
+      <td style="padding:.4rem .5rem;color:var(--text3);">&#9658;</td>
     </tr>`).join('');
-  if (!rows.length) tbody.innerHTML='<tr><td colspan="8" style="padding:1rem;text-align:center;color:var(--text3);">No data.</td></tr>';
-}
-
-function ostNavPlayer(name) {
-  const p = (window.ALL_PLAYERS||[]).find(pl => pl.name === name);
-  if (p) showPlayer(p);
+  if (!rows.length) tbody.innerHTML='<tr><td colspan="9" style="padding:1rem;text-align:center;color:var(--text3);">No data available.</td></tr>';
 }
 
 function ostShowTeam(tc) {
   if (!OST_DATA) return;
-  const pos = ostCurrentTab;
+  const pos  = ostCurrentTab;
   const fmtM = v => v==null ? '–' : '$'+(Math.abs(v)/1e6).toFixed(2)+'M';
   const fmtD = v => v==null ? '–' : (v>=0?'+':'−')+'$'+(Math.abs(v)/1e6).toFixed(2)+'M';
   const clr  = v => v==null?'var(--text3)':v>0?'var(--teal)':v<0?'var(--coral)':'var(--text3)';
@@ -5153,24 +5160,39 @@ function ostShowTeam(tc) {
   const lost    = txns.filter(t=>t.is_acquisition && t.old_team===tc);
 
   const card = (t, isLost=false) => {
-    const knownPlayer = (window.ALL_PLAYERS||[]).some(p=>p.name===t.name);
-    const oc = knownPlayer ? `onclick="ostNavPlayer('${t.name.replace(/'/g,"\\'")}')"` : '';
+    const known = (window.ALL_PLAYERS||[]).some(p=>p.name===t.name);
+    const nm = t.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    const chgVal = isLost ? t.change_in_surplus_loss : t.change_in_surplus;
     const fromTo = isLost
-      ? (t.new_team ? `To ${t.new_team}` : '')
-      : (t.is_acquisition && t.old_team ? `From ${t.old_team}` : '');
-    return `<div class="ost-player-card" style="${knownPlayer?'cursor:pointer':'cursor:default;opacity:.9'}" ${oc}>
-      <div style="font-size:.7rem;font-weight:700;color:var(--text3);width:20px;text-align:center;">${t.pos_type}</div>
+      ? (t.new_team?`To ${t.new_team}`:'')
+      : (t.is_acquisition&&t.old_team?`From ${t.old_team}${t.old_cap?' · Old cap: '+fmtM(t.old_cap):''}`:
+         t.old_cap?`Old cap: ${fmtM(t.old_cap)}`:'');
+    return `<div class="ost-player-card" data-pn="${nm}" ${known?'data-click="1"':''}
+        style="${known?'cursor:pointer':'cursor:default;opacity:.88'}">
+      <div style="font-size:.68rem;font-weight:700;color:var(--text3);width:18px;text-align:center;flex-shrink:0;">${t.pos_type}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:.9rem;font-weight:700;">${t.name}</div>
-        ${fromTo?`<div style="font-size:.7rem;color:var(--text3);">${fromTo}${t.old_cap&&!isLost?' · Old cap: '+fmtM(t.old_cap):''}</div>`:''}
+        <div style="font-size:.88rem;font-weight:700;line-height:1.2;">${t.name}</div>
+        ${fromTo?`<div style="font-size:.68rem;color:var(--text3);margin-top:1px;">${fromTo}</div>`:''}
+        <div style="display:flex;gap:.75rem;margin-top:4px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="text-align:center;">
+            <div style="font-size:.88rem;font-weight:700;color:var(--teal);font-family:'DM Mono',monospace;">${fmtM(t.new_cap)}</div>
+            <div style="font-size:.6rem;color:var(--text3);">cap</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:.88rem;font-weight:700;color:var(--teal);font-family:'DM Mono',monospace;">${fmtM(t.comp_value)}</div>
+            <div style="font-size:.6rem;color:var(--text3);">26-27 val</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:.78rem;font-weight:600;color:${clr(chgVal)};font-family:'DM Mono',monospace;">${fmtD(chgVal)}</div>
+            <div style="font-size:.6rem;color:var(--text3);">Δ vs 25-26</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:.75rem;color:var(--text2);font-family:'DM Mono',monospace;">${fmtM(t.fv_aav)}</div>
+            <div style="font-size:.6rem;color:var(--text3);">FV AAV</div>
+          </div>
+        </div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-family:'DM Mono',monospace;">
-        <div><span style="font-size:.95rem;font-weight:700;color:var(--teal);">${fmtM(t.new_cap)}</span><span style="font-size:.65rem;color:var(--text3);margin-left:3px;">cap</span></div>
-        <div><span style="font-size:.95rem;font-weight:700;color:var(--teal);">${fmtM(t.comp_value)}</span><span style="font-size:.65rem;color:var(--text3);margin-left:3px;">26-27 val</span></div>
-        <div><span style="font-size:.8rem;font-weight:600;color:${clr(t.change_in_surplus)};">${fmtD(t.change_in_surplus)}</span><span style="font-size:.65rem;color:var(--text3);margin-left:3px;">Δsurplus</span></div>
-        <div><span style="font-size:.75rem;color:var(--text2);">${fmtM(t.fv_aav)}</span><span style="font-size:.65rem;color:var(--text3);margin-left:3px;">FV AAV</span></div>
-      </div>
-      ${knownPlayer?'<div style="color:var(--text3);font-size:.75rem;align-self:center;margin-left:4px;">&#9658;</div>':''}
+      ${known?'<div style="color:var(--text3);font-size:.75rem;align-self:center;flex-shrink:0;">&#9658;</div>':''}
     </div>`;
   };
 
@@ -5180,9 +5202,9 @@ function ostShowTeam(tc) {
       <div style="font-size:1.2rem;font-weight:700;">${tc}</div>
       <button onclick="document.getElementById('ost-team-panel').style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.1rem;">×</button>
     </div>
-    ${acqs.length   ? hd(`Acquisitions (${acqs.length})`)+acqs.map(t=>card(t)).join('')       : ''}
-    ${resigns.length? hd(`Re-signings / Extensions (${resigns.length})`)+resigns.map(t=>card(t)).join('') : ''}
-    ${lost.length   ? hd(`Departures (${lost.length})`)+lost.map(t=>card(t,true)).join('')    : ''}
+    ${acqs.length?   hd(`Acquisitions (${acqs.length})`)+acqs.map(t=>card(t)).join('')       :''}
+    ${resigns.length?hd(`Re-signings / Extensions (${resigns.length})`)+resigns.map(t=>card(t)).join(''):''}
+    ${lost.length?   hd(`Departures (${lost.length})`)+lost.map(t=>card(t,true)).join('')    :''}
     ${!acqs.length&&!resigns.length&&!lost.length?'<div style="color:var(--text3);font-size:.82rem;">No transactions on record.</div>':''}
   `;
   const panel=document.getElementById('ost-team-panel');
@@ -6613,7 +6635,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="ost-tab"        data-pos="G"    onclick="ostSetTab('G')">Goalies</button>
         <select id="ost-sort" onchange="ostRenderTable()" style="margin-left:auto;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;cursor:pointer;">
           <option value="name">Sort: Team (A–Z)</option>
-          <option value="proj_value">Sort: Proj. 26-27 Value</option>
+          <option value="proj_value">Sort: Proj. 26-27 Value Added</option>
+          <option value="resign_value">Sort: Re-Signed Value</option>
           <option value="surplus_chg">Sort: Change in Surplus</option>
           <option value="proj_surplus">Sort: Proj. Surplus</option>
           <option value="fv_surplus">Sort: AAV Surplus over Term</option>
@@ -6626,12 +6649,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <tr style="border-bottom:1px solid var(--border2);color:var(--text2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;">
               <th style="text-align:left;padding:.5rem .75rem;font-weight:600;">#</th>
               <th style="text-align:left;padding:.5rem .75rem;font-weight:600;">Team</th>
-              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('proj_value')">Proj. 26-27 Value ⇅</th>
-              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('surplus_chg')">Change in Surplus ⇅</th>
-              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('proj_surplus')">Proj. Surplus ⇅</th>
-              <th style="text-align:right;padding:.5rem .75rem;font-weight:600;cursor:pointer;" onclick="ostSortBy('fv_surplus')">AAV Surplus over Term ⇅</th>
-              <th style="text-align:center;padding:.5rem .75rem;font-weight:600;">Moves</th>
-              <th style="padding:.5rem .75rem;"></th>
+              <th style="text-align:right;padding:.4rem .5rem;font-weight:600;font-size:.72rem;cursor:pointer;" onclick="ostSortBy('proj_value')">Proj. 26-27 Value Added ⇅</th>
+              <th style="text-align:right;padding:.4rem .5rem;font-weight:600;font-size:.72rem;cursor:pointer;" onclick="ostSortBy('resign_value')">Re-Signed Value ⇅</th>
+              <th style="text-align:right;padding:.4rem .5rem;font-weight:600;font-size:.72rem;cursor:pointer;" onclick="ostSortBy('surplus_chg')">Proj. Surplus Change ⇅</th>
+              <th style="text-align:right;padding:.4rem .5rem;font-weight:600;font-size:.72rem;cursor:pointer;" onclick="ostSortBy('proj_surplus')">Proj. Surplus ⇅</th>
+              <th class="ost-th-aav" style="text-align:right;padding:.4rem .5rem;font-weight:600;font-size:.72rem;cursor:pointer;" onclick="ostSortBy('fv_surplus')">AAV Surplus over Term ⇅</th>
+              <th style="text-align:center;padding:.4rem .5rem;font-weight:600;font-size:.72rem;">Moves</th>
+              <th style="padding:.4rem .5rem;"></th>
             </tr>
           </thead>
           <tbody id="ost-tbody"></tbody>
