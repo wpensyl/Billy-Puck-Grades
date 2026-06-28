@@ -5163,7 +5163,7 @@ function ostShowTeam(tc) {
   let _navI = 0;
 
   const card = (t, isLost) => {
-    const known  = (ALL_PLAYERS||[]).some(p=>p.name===t.name);
+    const known  = (ALL_PLAYERS||[]).some(p=>p.name===t.name)||(ALL_GOALIES||[]).some(p=>p.name===t.name);
     const chgVal = isLost ? t.change_in_surplus_loss : t.change_in_surplus;
     const sub    = isLost
       ? (t.new_team ? 'To '+t.new_team : '')
