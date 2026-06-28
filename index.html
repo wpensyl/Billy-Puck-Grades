@@ -1746,22 +1746,8 @@ async function renderTeamView(teamCode) {
     if (!catMap[grp]) catMap[grp] = [];
     catMap[grp].push({name, avg: weightedTotal > 0 ? Math.round(weightedSum / weightedTotal) : null});
   }
-  let catHtml = '';
-  for (const [grp, items] of Object.entries(catMap)) {
-    catHtml += `<div style="margin-bottom:.75rem;">
-      <div style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;">${grp}</div>
-      <div class="tm-cat-grid">`;
-    for (const {name, avg} of items) {
-      const p = avg??0;
-      const clr = p>=65?'var(--teal)':p>=55?'rgba(45,212,160,0.55)':p>=45?'var(--mid)':p>=35?'rgba(244,98,74,0.55)':'var(--coral)';
-      catHtml += `<div class="tm-cat-card"><div class="tm-cat-name">${name}</div><div class="tm-cat-bar"><div class="tm-cat-fill" style="width:${p}%;background:${clr};"></div></div><div class="tm-cat-pct" style="color:${clr};">${avg!=null?avg:'–'}</div></div>`;
-    }
-    catHtml += '</div></div>';
-  }
-
   // ── Inject Retrievals & Def. Zone Exits (microstat composites) into Defense ──
-  // Computed from p.retrievals_pct / p.exits_pct set by update.py.
-  // They replace the old category-based "Def. Zone Exits" entry.
+  // Must happen BEFORE catHtml loop so tiles appear in the rendered Defense group.
   {
     let rwS2=0,rwT2=0, exS2=0,exT2=0;
     for (const p of players) {
@@ -1774,6 +1760,19 @@ async function renderTeamView(teamCode) {
     if (!catMap['Defense']) catMap['Defense'] = [];
     if (tmRetr != null) catMap['Defense'].push({name:'Retrievals',      avg: tmRetr});
     if (tmExts != null) catMap['Defense'].push({name:'Def. Zone Exits', avg: tmExts});
+  }
+
+  let catHtml = '';
+  for (const [grp, items] of Object.entries(catMap)) {
+    catHtml += `<div style="margin-bottom:.75rem;">
+      <div style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.4rem;">${grp}</div>
+      <div class="tm-cat-grid">`;
+    for (const {name, avg} of items) {
+      const p = avg??0;
+      const clr = p>=65?'var(--teal)':p>=55?'rgba(45,212,160,0.55)':p>=45?'var(--mid)':p>=35?'rgba(244,98,74,0.55)':'var(--coral)';
+      catHtml += `<div class="tm-cat-card"><div class="tm-cat-name">${name}</div><div class="tm-cat-bar"><div class="tm-cat-fill" style="width:${p}%;background:${clr};"></div></div><div class="tm-cat-pct" style="color:${clr};">${avg!=null?avg:'–'}</div></div>`;
+    }
+    catHtml += '</div></div>';
   }
 
   const rosterHtml = `
@@ -2805,6 +2804,21 @@ async function renderTeamCompare() {
           <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:16px;height:6px;border-radius:3px;background:var(--teal);"></div><span style="color:var(--teal);">${teamA}</span></div>
           <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:16px;height:6px;border-radius:3px;background:var(--blue);"></div><span style="color:var(--blue);">${teamB}</span></div>
         </div>`;
+  // ── Inject Retrievals & Def. Zone Exits into Defense group BEFORE rendering ──
+  {
+    const rA=profA.retrievalsPct, rB=profB.retrievalsPct;
+    const eA=profA.exitsPct,      eB=profB.exitsPct;
+    if (!profA.result['Defense']) profA.result['Defense'] = [];
+    if (!profB.result['Defense']) profB.result['Defense'] = [];
+    if (rA!=null || rB!=null) {
+      profA.result['Defense'].push({name:'Retrievals',      avg: rA??null});
+      profB.result['Defense'].push({name:'Retrievals',      avg: rB??null});
+    }
+    if (eA!=null || eB!=null) {
+      profA.result['Defense'].push({name:'Def. Zone Exits', avg: eA??null});
+      profB.result['Defense'].push({name:'Def. Zone Exits', avg: eB??null});
+    }
+  }
   for (const [grp,rowsA] of Object.entries(profA.result)) {
     const rowsB=profB.result[grp]||[];
     html+=`<div class="cmp-section-hd">${grp}</div>`;
@@ -2840,21 +2854,6 @@ async function renderTeamCompare() {
         <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${gB}</span>
       </div>
     </div>`;
-  // Inject Retrievals & Def. Zone Exits into Defense group result before rendering
-  {
-    const rA=profA.retrievalsPct, rB=profB.retrievalsPct;
-    const eA=profA.exitsPct,      eB=profB.exitsPct;
-    if (!profA.result['Defense']) profA.result['Defense'] = [];
-    if (!profB.result['Defense']) profB.result['Defense'] = [];
-    if (rA!=null || rB!=null) {
-      profA.result['Defense'].push({name:'Retrievals',      avg: rA??null});
-      profB.result['Defense'].push({name:'Retrievals',      avg: rB??null});
-    }
-    if (eA!=null || eB!=null) {
-      profA.result['Defense'].push({name:'Def. Zone Exits', avg: eA??null});
-      profB.result['Defense'].push({name:'Def. Zone Exits', avg: eB??null});
-    }
-  }
   html+=`</div></div>`;
   out.innerHTML=html;
 }
