@@ -5163,7 +5163,7 @@ function ostShowTeam(tc) {
   let _navI = 0;
 
   const card = (t, isLost) => {
-    const known  = (window.ALL_PLAYERS||[]).some(p=>p.name===t.name);
+    const known  = (ALL_PLAYERS||[]).some(p=>p.name===t.name);
     const chgVal = isLost ? t.change_in_surplus_loss : t.change_in_surplus;
     const sub    = isLost
       ? (t.new_team ? 'To '+t.new_team : '')
@@ -5225,7 +5225,7 @@ function ostClosePanel() { var p=document.getElementById("ost-team-panel"); if(p
 function ostNavIdx(i) {
   const name = window._OST_NAV[i];
   if (!name) return;
-  const p = (window.ALL_PLAYERS||[]).find(pl => pl.name === name);
+  const p = (ALL_PLAYERS||[]).find(pl => pl.name === name);
   if (!p) return;
   try { if (p._type==='G') showGoalieCard(p); else showPlayer(p); } catch(e) { showPlayer(p); }
 }
