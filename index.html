@@ -5207,7 +5207,7 @@ function ostShowTeam(tc) {
   document.getElementById('ost-team-panel-content').innerHTML =
     '<div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;">'+
       '<div style="font-size:1.2rem;font-weight:700;">'+tc+'</div>'+
-      '<button onclick="document.getElementById('ost-team-panel').style.display='none'" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.1rem;">×</button>'+
+      '<button onclick="ostClosePanel()" style="margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.1rem;">×</button>'+
     '</div>'+
     (acqs.length    ? hd('Acquisitions ('+acqs.length+')')+acqs.map(t=>card(t,false)).join('')      : '')+
     (resigns.length ? hd('Re-signings / Extensions ('+resigns.length+')')+resigns.map(t=>card(t,false)).join('') : '')+
@@ -5220,6 +5220,8 @@ function ostShowTeam(tc) {
 
 // Bulletproof player navigation using numeric index registry
 window._OST_NAV = {};
+function ostClosePanel() { var p=document.getElementById("ost-team-panel"); if(p) p.style.display="none"; }
+
 function ostNavIdx(i) {
   const name = window._OST_NAV[i];
   if (!name) return;
