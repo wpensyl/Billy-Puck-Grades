@@ -1627,14 +1627,14 @@ async function renderTeamView(teamCode) {
     ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
     ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot volume"],["Scoring","Shot quality"],["Scoring","Shot speed"],
     ["Offense","Passing"],["Offense","Playdriving"],["Offense","Transition offense"],["Offense","Off. Zone Involvement"],
-    ["Defense","Entry defense"],["Defense","Def. Zone Exits"],["Defense","Shot suppression"],["Defense","Takeaways"],["Defense","Giveaways"],
+    ["Defense","Entry defense"],["Defense","Shot suppression"],["Defense","Takeaways"],["Defense","Giveaways"],
     ["Special teams","Power play"],["Special teams","Penalty kill"],["Special teams","Penalty differential"],
     ["Analytics","On-ice offense"],["Analytics","On-ice defense"],
   ] : [
     ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
     ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot volume"],["Scoring","Shot quality"],["Scoring","Shot speed"],
     ["Offense","Passing"],["Offense","Playdriving"],["Offense","Rush offense"],["Offense","Forecheck offense"],["Offense","Cycle offense"],["Offense","Net-front presence"],["Offense","Faceoffs"],
-    ["Defense","Entry defense"],["Defense","Def. Zone Exits"],["Defense","Shot suppression"],["Defense","Takeaways"],
+    ["Defense","Entry defense"],["Defense","Shot suppression"],["Defense","Takeaways"],
     ["Special teams","Power play"],["Special teams","Penalty kill"],["Special teams","Penalty differential"],
     ["Analytics","On-ice offense"],["Analytics","On-ice defense"],
   ];
@@ -1759,22 +1759,21 @@ async function renderTeamView(teamCode) {
     catHtml += '</div></div>';
   }
 
-  // ── Retrievals & Exits composites row (Issue 3b) ──────────────────────────
-  const bc3 = v => v >= 65 ? 'var(--teal)' : v >= 45 ? 'var(--mid)' : 'var(--coral)';
-  // Compute TOI-weighted composites directly from the roster
-  let rwS2=0,rwT2=0, exS2=0,exT2=0;
-  for (const p of players) {
-    const w = toiMap[p.name] || 0;
-    if (p.retrievals_pct != null) { rwS2 += p.retrievals_pct * w; rwT2 += w; }
-    if (p.exits_pct != null)      { exS2 += p.exits_pct * w;      exT2 += w; }
-  }
-  const tmRetr = rwT2 > 0 ? Math.round(rwS2 / rwT2) : null;
-  const tmExts = exT2 > 0 ? Math.round(exS2 / exT2) : null;
-  if (tmRetr != null || tmExts != null) {
-    catHtml = `<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem;">` +
-      (tmRetr != null ? `<div class="tm-cat-card" style="flex:1;min-width:130px;"><div class="tm-cat-name">Retrievals</div><div style="font-size:.58rem;color:var(--text3);margin-bottom:3px;">Work Rate + Success avg</div><div class="tm-cat-bar"><div class="tm-cat-fill" style="width:${tmRetr}%;background:${bc3(tmRetr)};"></div></div><div class="tm-cat-pct" style="color:${bc3(tmRetr)};">${tmRetr}</div></div>` : '') +
-      (tmExts != null ? `<div class="tm-cat-card" style="flex:1;min-width:130px;"><div class="tm-cat-name">Def. Zone Exits</div><div style="font-size:.58rem;color:var(--text3);margin-bottom:3px;">Exit Rate + Failure Rate avg</div><div class="tm-cat-bar"><div class="tm-cat-fill" style="width:${tmExts}%;background:${bc3(tmExts)};"></div></div><div class="tm-cat-pct" style="color:${bc3(tmExts)};">${tmExts}</div></div>` : '') +
-    `</div>` + catHtml;
+  // ── Inject Retrievals & Def. Zone Exits (microstat composites) into Defense ──
+  // Computed from p.retrievals_pct / p.exits_pct set by update.py.
+  // They replace the old category-based "Def. Zone Exits" entry.
+  {
+    let rwS2=0,rwT2=0, exS2=0,exT2=0;
+    for (const p of players) {
+      const w = toiMap[p.name] || 0;
+      if (p.retrievals_pct != null) { rwS2 += p.retrievals_pct * w; rwT2 += w; }
+      if (p.exits_pct != null)      { exS2 += p.exits_pct * w;      exT2 += w; }
+    }
+    const tmRetr = rwT2 > 0 ? Math.round(rwS2 / rwT2) : null;
+    const tmExts = exT2 > 0 ? Math.round(exS2 / exT2) : null;
+    if (!catMap['Defense']) catMap['Defense'] = [];
+    if (tmRetr != null) catMap['Defense'].push({name:'Retrievals',      avg: tmRetr});
+    if (tmExts != null) catMap['Defense'].push({name:'Def. Zone Exits', avg: tmExts});
   }
 
   const rosterHtml = `
@@ -2731,7 +2730,7 @@ function getTeamCategoryProfile(teamCode, posFilter='all') {
     ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot volume'],['Scoring','Shot quality'],['Scoring','Shot speed'],
     ['Offense','Passing'],['Offense','Playdriving'],['Offense','Rush offense'],['Offense','Forecheck offense'],['Offense','Cycle offense'],['Offense','Net-front presence'],['Offense','Faceoffs'],
     ['Offense','Transition offense'],['Offense','Off. Zone Involvement'],
-    ['Defense','Entry defense'],['Defense','Def. Zone Exits'],['Defense','Shot suppression'],['Defense','Takeaways'],
+    ['Defense','Entry defense'],['Defense','Shot suppression'],['Defense','Takeaways'],
     ['Defense','Giveaways'],
     ['Special teams','Power play'],['Special teams','Penalty kill'],['Special teams','Penalty differential'],
     ['Analytics','On-ice offense'],['Analytics','On-ice defense'],
@@ -2841,29 +2840,20 @@ async function renderTeamCompare() {
         <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${gB}</span>
       </div>
     </div>`;
-  // Retrievals & Exits composites section (Issue 3b)
-  const rA=profA.retrievalsPct, rB=profB.retrievalsPct;
-  const eA=profA.exitsPct, eB=profB.exitsPct;
-  if (rA!=null || rB!=null || eA!=null || eB!=null) {
-    html += `<div class="cmp-section-hd">Retrievals &amp; Exits <span style="font-size:.62rem;font-weight:400;color:var(--text3);">(TOI-weighted composites)</span></div>`;
-    const cmpRow = (label, vA, vB) => {
-      if (vA == null && vB == null) return '';
-      const va = vA??0, vb = vB??0;
-      const winner = va>vb?'A':vb>va?'B':null;
-      return `<div class="cmp-bar-row">
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
-          <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${winner==='A'?'var(--teal)':'var(--text3)'};">${vA??'–'}</span>
-          <div style="width:${Math.round(va*1.4)}px;max-width:130px;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${winner==='A'?1:.45};"></div>
-        </div>
-        <div class="cmp-cat-name">${label}</div>
-        <div style="display:flex;align-items:center;gap:4px;">
-          <div style="width:${Math.round(vb*1.4)}px;max-width:130px;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${winner==='B'?1:.45};"></div>
-          <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${winner==='B'?'var(--blue)':'var(--text3)'};">${vB??'–'}</span>
-        </div>
-      </div>`;
-    };
-    html += cmpRow('Retrievals', rA, rB);
-    html += cmpRow('Def. Zone Exits', eA, eB);
+  // Inject Retrievals & Def. Zone Exits into Defense group result before rendering
+  {
+    const rA=profA.retrievalsPct, rB=profB.retrievalsPct;
+    const eA=profA.exitsPct,      eB=profB.exitsPct;
+    if (!profA.result['Defense']) profA.result['Defense'] = [];
+    if (!profB.result['Defense']) profB.result['Defense'] = [];
+    if (rA!=null || rB!=null) {
+      profA.result['Defense'].push({name:'Retrievals',      avg: rA??null});
+      profB.result['Defense'].push({name:'Retrievals',      avg: rB??null});
+    }
+    if (eA!=null || eB!=null) {
+      profA.result['Defense'].push({name:'Def. Zone Exits', avg: eA??null});
+      profB.result['Defense'].push({name:'Def. Zone Exits', avg: eB??null});
+    }
   }
   html+=`</div></div>`;
   out.innerHTML=html;
