@@ -95,13 +95,13 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .tag-style{background:var(--blue-dim);color:var(--blue);}
 .overall-badge{flex-shrink:0;display:flex;flex-direction:row;gap:1px;background:var(--border);border:1px solid rgba(45,212,160,.25);border-radius:var(--radius-sm);overflow:hidden;}
 .overall-tile{display:flex;flex-direction:column;align-items:center;padding:.6rem .85rem;background:var(--teal-dim);min-width:66px;}
-.overall-num{font-family:'DM Mono',monospace;font-size:2rem;font-weight:500;color:var(--teal);line-height:1;}
+.overall-num{font-family:"DM Mono",monospace;font-size:2rem;font-weight:500;color:var(--teal);line-height:1;}
 .overall-lbl{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);opacity:.7;margin-top:4px;}
 .stat-strip{display:flex;flex-wrap:nowrap;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
 .stat-cell-slim{flex:0 0 9vw;max-width:54px;min-width:36px;}
 @media (min-width:560px){.stat-cell-slim{flex:1;max-width:none;min-width:0;}}
 .stat-cell{display:flex;flex-direction:column;align-items:center;background:var(--surface2);padding:.4rem .15rem;min-width:0;flex:1;overflow:hidden;}
-.stat-val{font-family:'DM Mono',monospace;font-size:.76rem;font-weight:500;white-space:nowrap;}
+.stat-val{font-family:"DM Mono",monospace;font-size:.76rem;font-weight:500;white-space:nowrap;}
 .stat-lbl{font-size:.54rem;color:var(--text3);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;white-space:nowrap;}
 .nhl-stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
@@ -134,7 +134,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .cat-row{display:flex;align-items:center;gap:.75rem;padding:3px 0;position:relative;}
 .cat-name-wrap{width:152px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;gap:5px;}
 .cat-name{font-size:.8rem;color:var(--text2);text-align:right;}
-.info-btn{width:13px;height:13px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:8px;color:var(--text3);font-family:'DM Mono',monospace;transition:all .15s;}
+.info-btn{width:13px;height:13px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:8px;color:var(--text3);font-family:"DM Mono",monospace;transition:all .15s;}
 .info-btn:hover{border-color:var(--text2);color:var(--text2);}
 .tooltip-box{display:none;position:absolute;left:0;top:22px;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;font-size:.75rem;color:var(--text2);line-height:1.5;z-index:50;width:260px;pointer-events:none;}
 .tooltip-box.vis{display:block;}
@@ -143,7 +143,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .cat-fill.strong{background:var(--teal);}
 .cat-fill.mid{background:var(--mid);}
 .cat-fill.weak{background:var(--coral);}
-.cat-pct{font-family:'DM Mono',monospace;font-size:.78rem;font-weight:500;width:28px;text-align:right;flex-shrink:0;}
+.cat-pct{font-family:"DM Mono",monospace;font-size:.78rem;font-weight:500;width:28px;text-align:right;flex-shrink:0;}
 .cat-pct.strong{color:var(--teal);}
 .cat-pct.mid{color:var(--mid);}
 .cat-pct.weak{color:var(--coral);}
@@ -164,12 +164,12 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .comp-info{flex:1;min-width:0;}
 .comp-name{font-size:.85rem;font-weight:500;color:var(--text);}
 .comp-yr{font-size:.72rem;color:var(--text3);}
-.comp-sim{font-family:'DM Mono',monospace;font-size:.8rem;color:var(--text2);}
+.comp-sim{font-family:"DM Mono",monospace;font-size:.8rem;color:var(--text2);}
 .contract-strip{display:flex;border-bottom:1px solid var(--border);flex-wrap:wrap;}
 .c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);}
 .c-item:last-child{border-right:none;}
 .c-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:3px;}
-.c-val{font-family:'DM Mono',monospace;font-size:.9rem;font-weight:500;}
+.c-val{font-family:"DM Mono",monospace;font-size:.9rem;font-weight:500;}
 .c-val.pos{color:var(--teal);}
 .c-val.neg{color:var(--coral);}
 .contract-chart-wrap{padding:1rem 1.25rem;}
@@ -186,22 +186,22 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .lb-table td{padding:.55rem 1rem;border-bottom:1px solid var(--border);color:var(--text2);}
 .lb-table tr:last-child td{border-bottom:none;}
 .lb-table tr:hover td{background:var(--surface2);cursor:pointer;}
-.lb-rank{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--text3);width:36px;}
+.lb-rank{font-family:"DM Mono",monospace;font-size:.75rem;color:var(--text3);width:36px;}
 .lb-player-name{color:var(--text);font-weight:500;}
-.lb-overall{font-family:'DM Mono',monospace;font-weight:500;}
+.lb-overall{font-family:"DM Mono",monospace;font-weight:500;}
 .lb-bar-cell{width:100px;}
 .lb-bar-bg{background:var(--surface3);border-radius:3px;height:5px;overflow:hidden;}
 .lb-bar-fill{height:100%;border-radius:3px;}
-.lb-money{font-family:'DM Mono',monospace;font-size:.82rem;}
+.lb-money{font-family:"DM Mono",monospace;font-size:.82rem;}
 .tm-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:1rem;}
 .tm-cat-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .8rem;}
 .tm-cat-name{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
 .tm-cat-bar{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:3px;}
 .tm-cat-fill{height:100%;border-radius:3px;}
-.tm-cat-pct{font-family:'DM Mono',monospace;font-size:.78rem;font-weight:500;}
+.tm-cat-pct{font-family:"DM Mono",monospace;font-size:.78rem;font-weight:500;}
 .tm-summary-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
 .tm-stat{background:var(--surface);padding:.7rem 1rem;}
-.tm-stat-val{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:500;}
+.tm-stat-val{font-family:"DM Mono",monospace;font-size:1.1rem;font-weight:500;}
 .tm-stat-lbl{font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
 #loading-msg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:.85rem;color:var(--text2);letter-spacing:.08em;z-index:999;}
 .pulse{animation:pulse 1.4s ease-in-out infinite;}
@@ -218,11 +218,11 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .award-row{display:flex;align-items:center;gap:.75rem;padding:.6rem 1.25rem;border-bottom:1px solid var(--border);transition:background .12s;cursor:pointer;}
 .award-row:last-child{border-bottom:none;}
 .award-row:hover{background:var(--surface2);}
-.award-rank{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:500;width:32px;color:var(--text3);flex-shrink:0;text-align:right;}
+.award-rank{font-family:"DM Mono",monospace;font-size:.85rem;font-weight:500;width:32px;color:var(--text3);flex-shrink:0;text-align:right;}
 .award-rank.gold{color:#f5c542;}.award-rank.silver{color:#9ca3af;}.award-rank.bronze{color:#cd7f32;}
 .award-score-bar{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;}
 .award-score-fill{height:100%;border-radius:3px;background:var(--teal);}
-.award-score-num{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--teal);width:32px;text-align:right;flex-shrink:0;}
+.award-score-num{font-family:"DM Mono",monospace;font-size:.82rem;color:var(--teal);width:32px;text-align:right;flex-shrink:0;}
 .award-player-info{min-width:160px;}
 .award-player-name{font-size:.9rem;font-weight:500;color:var(--text);}
 .award-player-meta{font-size:.72rem;color:var(--text3);}
@@ -240,7 +240,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .goalie-info-meta{font-size:.75rem;color:var(--text3);}
 .goalie-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);}
 .goalie-stat{background:var(--surface);padding:.5rem .4rem;text-align:center;}
-.goalie-stat-val{font-family:'DM Mono',monospace;font-size:.95rem;font-weight:500;color:var(--text);}
+.goalie-stat-val{font-family:"DM Mono",monospace;font-size:.95rem;font-weight:500;color:var(--text);}
 .goalie-stat-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-top:1px;}
 .goalie-contract{display:flex;gap:.5rem;padding:.6rem 1rem;border-top:1px solid var(--border);font-size:.75rem;color:var(--text2);}
 .goalie-contract span{color:var(--text3);}
@@ -276,8 +276,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .smooth-lbl{width:140px;flex-shrink:0;font-size:.78rem;color:var(--text2);text-align:right;}
 .smooth-bar-wrap{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
 .smooth-bar-fill{height:100%;border-radius:3px;}
-.smooth-val{font-family:'DM Mono',monospace;font-size:.78rem;font-weight:500;width:28px;text-align:right;flex-shrink:0;}
-.smooth-change{font-family:'DM Mono',monospace;font-size:.66rem;width:38px;text-align:right;flex-shrink:0;}
+.smooth-val{font-family:"DM Mono",monospace;font-size:.78rem;font-weight:500;width:28px;text-align:right;flex-shrink:0;}
+.smooth-change{font-family:"DM Mono",monospace;font-size:.66rem;width:38px;text-align:right;flex-shrink:0;}
 
 /* ── PHASE 2: Category Stats leaderboard ─────────────────────────────────── */
 .catboard-grp{margin-bottom:.35rem;}
@@ -291,7 +291,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .gc-header::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),transparent 60%);}
 .gc-stat-strip{display:flex;flex-wrap:nowrap;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
 .gc-stat-cell{display:flex;flex-direction:column;align-items:center;background:var(--surface2);padding:.55rem .15rem;flex:1;overflow:hidden;}
-.gc-stat-val{font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;white-space:nowrap;}
+.gc-stat-val{font-family:"DM Mono",monospace;font-size:.88rem;font-weight:500;white-space:nowrap;}
 .gc-stat-lbl{font-size:.56rem;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;white-space:nowrap;}
 
 /* ── PHASE 2: Matchup Tool ────────────────────────────────────────────── */
@@ -309,7 +309,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .fa-contract-row{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);}
 .fa-contract-cell{background:var(--surface);padding:.3rem .5rem;text-align:center;}
 .fa-contract-lbl{font-size:.56rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);}
-.fa-contract-val{font-family:'DM Mono',monospace;font-size:.75rem;font-weight:500;}
+.fa-contract-val{font-family:"DM Mono",monospace;font-size:.75rem;font-weight:500;}
 
     .ost-tab { background:var(--surface2); border:1px solid var(--border); color:var(--text2); border-radius:6px; padding:.3rem .8rem; font-size:.78rem; cursor:pointer; transition:.15s; }
     .ost-tab.active { background:var(--teal); border-color:var(--teal); color:#000; font-weight:600; }
@@ -713,7 +713,7 @@ function renderDropdown(results, ddEl) {
     <div class="dd-item" data-idx="${i}">
       <span class="dd-pos-badge ${p._type}">${p.pos || p._type}</span>
       <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.team||''} · ${p._type==='G'?'Goalie':(p.actual_role||p.role||'')}</div></div>
-      <div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:.8rem;color:var(--teal);">${p._type==='G'?(p.overall_2526??'–'):(p.overall_pct??'–')}</div>
+      <div style="margin-left:auto;font-family:"DM Mono",monospace;font-size:.8rem;color:var(--teal);">${p._type==='G'?(p.overall_2526??'–'):(p.overall_pct??'–')}</div>
     </div>`).join('');
   ddEl.querySelectorAll('.dd-item').forEach((el, i) => {
     el.addEventListener('mousedown', e => {
@@ -1537,7 +1537,7 @@ function renderLeaderboard() {
       <td class="lb-money">${fmt$(p.cap)}</td>
       <td class="lb-money">${fmt$(p.value)}</td>
       <td class="lb-money" style="color:${sv>=0?'var(--teal)':'var(--coral)'};">${fmtSurplus(sv)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${p.yoy_delta==null?'var(--text3)':p.yoy_delta>0?'var(--teal)':'var(--coral)'};">${p.yoy_delta==null?'–':p.yoy_delta>0?'+'+p.yoy_delta:p.yoy_delta}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;color:${p.yoy_delta==null?'var(--text3)':p.yoy_delta>0?'var(--teal)':'var(--coral)'};">${p.yoy_delta==null?'–':p.yoy_delta>0?'+'+p.yoy_delta:p.yoy_delta}</td>
     </tr>`;
   }).join('');
   document.querySelectorAll('#lb-body tr').forEach(row => {
@@ -1757,7 +1757,7 @@ async function renderTeamView(teamCode) {
             <td style="font-size:.78rem;color:var(--text3);">${p.actual_role||'–'}</td>
             <td class="lb-overall" style="color:${pac};">${ov}</td>
             <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${ov}%;background:${barColor(ov)};"></div></div></td>
-            <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${p.toi_per_gp||'–'}</td>
+            <td style="font-family:"DM Mono",monospace;font-size:.82rem;">${p.toi_per_gp||'–'}</td>
             <td class="lb-money">${fmt$(p.cap)}</td>
             <td class="lb-money" style="color:${sv>=0?'var(--teal)':'var(--coral)'};">${fmtSurplus(sv)}</td>
           </tr>`;
@@ -2105,7 +2105,7 @@ function renderSeasonPanel(p) {
       <div class="panel-hd" style="cursor:pointer;user-select:none;" id="season-panel-hd">
         <span class="panel-title">Season view</span>
         <div style="display:flex;align-items:center;gap:.5rem;">
-          <span style="font-size:.75rem;color:${ac};font-family:'DM Mono',monospace;" id="season-panel-current-label">
+          <span style="font-size:.75rem;color:${ac};font-family:"DM Mono",monospace;" id="season-panel-current-label">
             ${currentSeasonView === '4yr-avg' ? '4-yr avg' : SEASON_LABELS_SHORT[currentSeasonView] || currentSeasonView}
           </span>
           <span style="font-size:.65rem;color:var(--text3);" id="season-panel-toggle-icon">▼</span>
@@ -2385,8 +2385,8 @@ function renderCatBoard() {
       <td style="color:var(--text2);font-size:.82rem;">${p.current_team||p.team||'\u2013'}</td>
       <td style="font-size:.78rem;color:${p._type==='D'?'#5b9cf6':'#2dd4a0'};font-weight:500;">${p.role||'\u2013'}</td>
       <td style="font-size:.78rem;color:var(--text3);">${p.actual_role||'\u2013'}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:500;color:${barColor(ov)};">${ov}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:${clr};">${val}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;font-weight:500;color:${barColor(ov)};">${ov}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.9rem;font-weight:600;color:${clr};">${val}</td>
       <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${val}%;background:${clr};"></div></div></td>
     </tr>`;
   }).join('');
@@ -2672,8 +2672,8 @@ async function renderTeamCompare() {
         {lbl:'Goalie score',       vA:profA.goalieScore,vB:profB.goalieScore,clrA:profA.goalieScore>=60?'var(--teal)':profA.goalieScore>=50?'var(--mid)':'var(--coral)',clrB:profB.goalieScore>=60?'var(--teal)':profB.goalieScore>=50?'var(--mid)':'var(--coral)'},
         {lbl:'Proj. pts (\u00b1'+Math.round(PTS_MAE)+')', vA:profA.projPts, vB:profB.projPts, clrA:profA.projClr, clrB:profB.projClr},
       ].map(r=>`
-        <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamA} ${r.lbl}</div><div style="font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;color:${r.clrA};">${r.vA}</div></div>
-        <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamB} ${r.lbl}</div><div style="font-family:'DM Mono',monospace;font-size:.88rem;font-weight:500;color:${r.clrB};">${r.vB}</div></div>`).join('')}
+        <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamA} ${r.lbl}</div><div style="font-family:"DM Mono",monospace;font-size:.88rem;font-weight:500;color:${r.clrA};">${r.vA}</div></div>
+        <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamB} ${r.lbl}</div><div style="font-family:"DM Mono",monospace;font-size:.88rem;font-weight:500;color:${r.clrB};">${r.vB}</div></div>`).join('')}
     </div>
     <div class="panel">
       <div class="panel-hd"><span class="panel-title">Category comparison</span><span class="panel-note">TOI-weighted team averages</span></div>
@@ -2691,13 +2691,13 @@ async function renderTeamCompare() {
       const winner=vA>vB?'A':vB>vA?'B':null;
       html+=`<div class="cmp-bar-row">
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
-          <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:${winner==='A'?'var(--teal)':'var(--text3)'};">${avgA??'\u2013'}</span>
+          <span style="font-family:"DM Mono",monospace;font-size:.7rem;color:${winner==='A'?'var(--teal)':'var(--text3)'};">${avgA??'\u2013'}</span>
           <div style="width:${Math.round(vA*1.4)}px;max-width:130px;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${winner==='A'?1:.45};"></div>
         </div>
         <div class="cmp-cat-name">${name}</div>
         <div style="display:flex;align-items:center;gap:4px;">
           <div style="width:${Math.round(vB*1.4)}px;max-width:130px;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${winner==='B'?1:.45};"></div>
-          <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:${winner==='B'?'var(--blue)':'var(--text3)'};">${avgB??'\u2013'}</span>
+          <span style="font-family:"DM Mono",monospace;font-size:.7rem;color:${winner==='B'?'var(--blue)':'var(--text3)'};">${avgB??'\u2013'}</span>
         </div>
       </div>`;
     }
@@ -2708,13 +2708,13 @@ async function renderTeamCompare() {
   html+=`<div class="cmp-section-hd">Goaltending</div>
     <div class="cmp-bar-row">
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
-        <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:${gWinner==='A'?'var(--teal)':'var(--text3)'};">${gA}</span>
+        <span style="font-family:"DM Mono",monospace;font-size:.7rem;color:${gWinner==='A'?'var(--teal)':'var(--text3)'};">${gA}</span>
         <div style="width:${Math.round(gA*1.4)}px;max-width:130px;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${gWinner==='A'?1:.45};"></div>
       </div>
       <div class="cmp-cat-name">Goalie score</div>
       <div style="display:flex;align-items:center;gap:4px;">
         <div style="width:${Math.round(gB*1.4)}px;max-width:130px;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${gWinner==='B'?1:.45};"></div>
-        <span style="font-family:'DM Mono',monospace;font-size:.7rem;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${gB}</span>
+        <span style="font-family:"DM Mono",monospace;font-size:.7rem;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${gB}</span>
       </div>
     </div>`;
   html+=`</div></div>`;
@@ -2791,10 +2791,10 @@ function renderFATracker() {
     const typeLabel = p.expiry_type || '–';
     const typeClr = typeLabel === 'UFA' ? 'var(--blue)' : 'var(--teal)';
     const attrVal = isAttrSort ? getPlayer4yrAttr(p, attrName) : null;
-    const mono = "font-family:'DM Mono',monospace;font-size:.82rem;";
+    const mono = "font-family:"DM Mono",monospace;font-size:.82rem;";
     return `<tr style="cursor:pointer;" data-name="${p.name}">
       <td class="lb-rank">${i+1}</td>
-      <td style="font-weight:500;">${p.name}${attrVal!=null?` <span style="font-size:.68rem;color:${barColor(attrVal)};font-family:'DM Mono',monospace;">${attrVal}</span>`:''}</td>
+      <td style="font-weight:500;">${p.name}${attrVal!=null?` <span style="font-size:.68rem;color:${barColor(attrVal)};font-family:"DM Mono",monospace;">${attrVal}</span>`:''}</td>
       <td style="color:var(--text3);font-size:.82rem;">${p._type||p.pos||'–'}</td>
       <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
       <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
@@ -2880,24 +2880,24 @@ function renderBreakoutAward(type) {
       ).join('');
       return `<div class="award-card" data-name="${p.name}" style="cursor:pointer;margin-bottom:.5rem;">
         <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;">
-          <div style="font-family:'DM Mono',monospace;font-size:.85rem;color:var(--text3);width:20px;text-align:right;flex-shrink:0;">${i+1}</div>
+          <div style="font-family:"DM Mono",monospace;font-size:.85rem;color:var(--text3);width:20px;text-align:right;flex-shrink:0;">${i+1}</div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:.5rem;">
               <span style="font-size:.88rem;font-weight:500;">${p.name}</span>
               <span style="font-size:.7rem;color:var(--text3);">${p.team} \u00b7 Age ${Math.floor(p.age)}</span>
             </div>
-            <div style="font-size:.7rem;color:var(--text3);">Overall: <span style="color:${barColor(p.overall)};font-family:'DM Mono',monospace;">${p.overall}</span> &nbsp;\u00b7&nbsp; GP: ${p.gp}</div>
+            <div style="font-size:.7rem;color:var(--text3);">Overall: <span style="color:${barColor(p.overall)};font-family:"DM Mono",monospace;">${p.overall}</span> &nbsp;\u00b7&nbsp; GP: ${p.gp}</div>
             <div style="display:flex;gap:1px;height:5px;margin-top:4px;border-radius:2px;overflow:hidden;">${scoreBar}</div>
           </div>
           <div style="text-align:right;flex-shrink:0;">
-            <div style="font-family:'DM Mono',monospace;font-size:1.15rem;font-weight:500;color:${ac};">${p.score}</div>
+            <div style="font-family:"DM Mono",monospace;font-size:1.15rem;font-weight:500;color:${ac};">${p.score}</div>
             <div style="font-size:.62rem;color:var(--text3);">score</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);">
           ${comps.map(c => `<div style="background:var(--surface2);padding:.25rem .4rem;text-align:center;">
             <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">${c.l}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:.75rem;font-weight:500;color:${c.c};">${c.v||0}</div>
+            <div style="font-family:"DM Mono",monospace;font-size:.75rem;font-weight:500;color:${c.c};">${c.v||0}</div>
           </div>`).join('')}
         </div>
       </div>`;
@@ -2947,7 +2947,7 @@ function renderProjLeaders() {
       const pct = p.proj_norm ?? 0;
       const clr = barColor(pct);
       return `<div class="award-card" data-name="${p.name}" style="cursor:pointer;display:flex;align-items:center;gap:.75rem;padding:.65rem 1rem;margin-bottom:.4rem;">
-        <div style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--text3);width:22px;text-align:right;flex-shrink:0;">${i+1}</div>
+        <div style="font-family:"DM Mono",monospace;font-size:.75rem;color:var(--text3);width:22px;text-align:right;flex-shrink:0;">${i+1}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:.88rem;font-weight:500;">${p.name}</div>
           <div style="font-size:.72rem;color:var(--text3);">${p.team} \u00b7 ${p.pos} \u00b7 Age ${Math.floor(p.age||0)} in ${seasonKey}</div>
@@ -2955,12 +2955,12 @@ function renderProjLeaders() {
             <div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;">
               <div style="height:100%;border-radius:3px;background:${clr};width:${pct}%;"></div>
             </div>
-            <div style="font-family:'DM Mono',monospace;font-size:.75rem;font-weight:500;color:${clr};width:28px;text-align:right;">${pct}</div>
+            <div style="font-family:"DM Mono",monospace;font-size:.75rem;font-weight:500;color:${clr};width:28px;text-align:right;">${pct}</div>
           </div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:.68rem;color:var(--text3);">Now</div>
-          <div style="font-family:'DM Mono',monospace;font-size:.82rem;color:${barColor(p.current_overall||0)};">${p.current_overall??'\u2013'}</div>
+          <div style="font-family:"DM Mono",monospace;font-size:.82rem;color:${barColor(p.current_overall||0)};">${p.current_overall??'\u2013'}</div>
         </div>
       </div>`;
     }).join('')}`;
@@ -3077,8 +3077,8 @@ function renderTeamRankings() {
     return `<tr>
       <td class="lb-rank">${i+1}</td>
       <td style="font-weight:600;font-size:.95rem;">${p.teamCode}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:600;color:var(--text);">${sortVal??'–'}</td>
-      <td style="font-family:'DM Mono',monospace;color:${ovClr};">${p.avgOverall}</td>
+      <td style="font-family:"DM Mono",monospace;font-weight:600;color:var(--text);">${sortVal??'–'}</td>
+      <td style="font-family:"DM Mono",monospace;color:${ovClr};">${p.avgOverall}</td>
     </tr>`;
   }).join('');
 }
@@ -3213,19 +3213,19 @@ function renderExtCandidates() {
     const veClr = p.norm_at_expiry ? barColor(p.norm_at_expiry) : 'var(--text3)';
     return `<tr style="cursor:pointer;" data-name="${p.name}">
       <td class="lb-rank">${i+1}</td>
-      <td style="font-weight:500;">${p.name}${isExtAttr&&getPlayer4yrAttr(p,extAttrName)!=null?` <span style="font-size:.68rem;color:${barColor(getPlayer4yrAttr(p,extAttrName))};font-family:'DM Mono',monospace;">${getPlayer4yrAttr(p,extAttrName)}</span>`:''}</td>
+      <td style="font-weight:500;">${p.name}${isExtAttr&&getPlayer4yrAttr(p,extAttrName)!=null?` <span style="font-size:.68rem;color:${barColor(getPlayer4yrAttr(p,extAttrName))};font-family:"DM Mono",monospace;">${getPlayer4yrAttr(p,extAttrName)}</span>`:''}</td>
       <td style="color:var(--text3);font-size:.82rem;">${p._type||p.pos||'–'}</td>
       <td style="font-size:.82rem;">${p.current_team||p.team||'–'}</td>
       <td><span style="font-size:.72rem;font-weight:600;color:${typeClr};border:1px solid ${typeClr};border-radius:999px;padding:.1rem .45rem;">${typeLabel}</span></td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${p.age?Math.floor(p.age):'–'}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:600;color:${ovClr};">${ov}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${veClr};">${fmtM(p.value_at_expiry)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.ext_1yr)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.ext_4yr)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.ext_8yr)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.cap)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;">${fmtM(p.value)}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:.82rem;color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;">${p.age?Math.floor(p.age):'–'}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;font-weight:600;color:${ovClr};">${ov}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;color:${veClr};">${fmtM(p.value_at_expiry)}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;">${fmtM(p.ext_1yr)}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;">${fmtM(p.ext_4yr)}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;">${fmtM(p.ext_8yr)}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;">${fmtM(p.cap)}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;">${fmtM(p.value)}</td>
+      <td style="font-family:"DM Mono",monospace;font-size:.82rem;color:${sClr};">${surplus>0?'+':''}${fmtM(surplus)}</td>
     </tr>`;
   }).join('');
 
@@ -3375,7 +3375,7 @@ function renderCombos(newSortKey) {
 
   const fmtNum = (v,d=2) => v!=null?(+v).toFixed(d):'–';
   const fmtPm  = v => v!=null?(v>=0?'+':'')+v.toFixed(2):'–';
-  const mono   = "font-family:'DM Mono',monospace;font-size:.8rem;";
+  const mono   = "font-family:"DM Mono",monospace;font-size:.8rem;";
   const statClr = (key,val) => {
     if (val==null) return 'var(--text3)';
     const r={xgf_pct:[40,60],gf_pct:[35,65],xgf_60:[2,5],xga_60:[2,5],xg_pm:[-2,2],g_pm:[-3,3]}[key];
@@ -3472,7 +3472,7 @@ function renderCalcResult() {
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:2px;">
         <span style="color:var(--text2);">${label}</span>
-        <span style="font-family:'DM Mono',monospace;font-weight:600;color:${clr};">${val}</span>
+        <span style="font-family:"DM Mono",monospace;font-weight:600;color:${clr};">${val}</span>
       </div>
       <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;">
         <div style="height:100%;border-radius:3px;background:${clr};width:${val}%;transition:width .3s;"></div>
@@ -3522,7 +3522,7 @@ function updateCalcAAV() {
   }
   const clr = barColor(p.overall_pct||50);
   el.innerHTML = `
-    <div style="font-size:1.5rem;font-weight:600;font-family:'DM Mono',monospace;color:${clr};">${fmtM(aav)}<span style="font-size:.85rem;color:var(--text3);">/yr</span></div>
+    <div style="font-size:1.5rem;font-weight:600;font-family:"DM Mono",monospace;color:${clr};">${fmtM(aav)}<span style="font-size:.85rem;color:var(--text3);">/yr</span></div>
     <div style="font-size:.8rem;color:var(--text3);margin-top:.15rem;">Avg implied value · ${calcTerm}-yr deal starting ${expYear}–26 · Total: ${fmtM(total)}</div>
     <div style="font-size:.72rem;color:var(--text3);margin-top:.1rem;">Current cap hit: ${fmtM(p.cap)}</div>`;
 }
@@ -3582,7 +3582,7 @@ function renderPlayerChem(player) {
   panel.style.display = 'block';
 
   const rec  = window.CHEM_DATA[player.name];
-  const mono = "font-family:'DM Mono',monospace;font-size:.8rem;";
+  const mono = "font-family:"DM Mono",monospace;font-size:.8rem;";
   const ov   = player.overall_pct ?? 0;
 
   // ── Header ──────────────────────────────────────────────────────────────────
@@ -4098,7 +4098,7 @@ function renderGMTeamSelect() {
             <div style="font-weight:600;font-size:.9rem;">${tc}</div>
             <div style="font-size:.7rem;color:var(--text3);">${fmtM(cap)} cap · ${prof.projPts} proj pts</div>
           </div>
-          <div style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:${prof.projClr};">${prof.projPts}</div>
+          <div style="font-family:"DM Mono",monospace;font-size:.9rem;font-weight:600;color:${prof.projClr};">${prof.projPts}</div>
         </div>`).join('')}
     </div>`;
   // Wire delegated click on team grid
@@ -4158,7 +4158,7 @@ function renderGMDashboard() {
     :`<span style="color:var(--coral);font-size:.8rem;">${ptsDiff} pts</span>`);
   const fmtM  = v => v!=null?'$'+(Math.abs(v)/1e6).toFixed(2)+'M':'–';
   const capClr = capLeft<0?'var(--coral)':capLeft<5e6?'#f5a623':'var(--teal)';
-  const mono  = "font-family:'DM Mono',monospace;font-size:.82rem;";
+  const mono  = "font-family:"DM Mono",monospace;font-size:.82rem;";
 
   // Build depth chart — used for chemistry and display
   const dc = buildDepthChart(roster);
@@ -4198,7 +4198,7 @@ function renderGMDashboard() {
     const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:33%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
-      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
+      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:"DM Mono",monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
       <div style="font-size:.68rem;color:var(--text3);">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
@@ -4211,7 +4211,7 @@ function renderGMDashboard() {
     const expClr = r.p.exp_year==='2026'?'var(--coral)':r.p.exp_year==='2027'?'#f5a623':'transparent';
     const roleLbl = {current:'',signed:'★',traded_in:'⇄',resigned:'✓'}[r.gmRole]||'';
     return `<td style="width:50%;padding:.3rem .5rem;vertical-align:top;border-left:2px solid ${expClr};">
-      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:'DM Mono',monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
+      <div style="font-size:.78rem;font-weight:500;">${r.p.name} <span style="font-size:.62rem;font-family:"DM Mono",monospace;color:${barColor(r.p.overall_pct||0)};">${r.p.overall_pct||'–'}</span> <span style="font-size:.65rem;color:var(--teal);">${roleLbl}</span></div>
       <div style="font-size:.68rem;color:var(--text3);">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)}${r.p.playstyle?' · '+r.p.playstyle:''}</div>
       <div style="font-size:.65rem;color:${badge.color};" title="${badge.title}">${badge.label}</div>
     </td>`;
@@ -4232,7 +4232,7 @@ function renderGMDashboard() {
   const scratchHtml = dc.scratches.filter(r=>r.p._type!=='G').length
     ? dc.scratches.filter(r=>r.p._type!=='G').map(r=>{
         const ov = r.p.overall_pct ?? r.p.overall_2526;
-        const ovStr = ov != null ? ` <span style="color:var(--teal);font-family:'DM Mono',monospace;font-size:.68rem;">${ov}</span>` : '';
+        const ovStr = ov != null ? ` <span style="color:var(--teal);font-family:"DM Mono",monospace;font-size:.68rem;">${ov}</span>` : '';
         return `<span style="font-size:.72rem;color:var(--text3);margin-right:.5rem;">${r.p.name} (${posDisplayGlobal(r.p)})${ovStr}</span>`;
       }).join('')
     : '<span style="color:var(--text3);font-size:.72rem;">None</span>';
@@ -4309,8 +4309,8 @@ function renderGMDashboard() {
           <div style="display:inline-flex;align-items:center;gap:.4rem;margin:.2rem .3rem 0 0;padding:.2rem .5rem;background:var(--surface2);border-radius:4px;font-size:.72rem;">
             <span style="color:var(--text2);font-weight:500;">${r.p.name}</span>
             <span style="color:var(--text3);">${r.p.age?r.p.age.toFixed(0)+'y':''} · ${fmtM(r.gmCap||r.p.cap)} cap</span>
-            <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--text3);">Value: ${fmtM(gmTradeValue(r.p))}</span>
-            <span style="color:var(--teal);font-family:'DM Mono',monospace;">${r.p.overall_2526??'–'}</span>
+            <span style="font-family:"DM Mono",monospace;font-size:.75rem;color:var(--text3);">Value: ${fmtM(gmTradeValue(r.p))}</span>
+            <span style="color:var(--teal);font-family:"DM Mono",monospace;">${r.p.overall_2526??'–'}</span>
           </div>`).join('')}
       </div>`:''}
       ${dc.scratches.length?`<div style="margin-top:.35rem;font-size:.7rem;color:var(--text3);">Press box: ${scratchHtml}</div>`:''}
@@ -4341,7 +4341,7 @@ function renderGMDashboard() {
 function gmRosterRow(r, linemates) {  // linemates = roster entries for this player's line
   const p = r.p;
   const fmtM = v => v!=null?'$'+(v/1e6).toFixed(2)+'M':'–';
-  const mono = "font-family:'DM Mono',monospace;font-size:.78rem;";
+  const mono = "font-family:"DM Mono",monospace;font-size:.78rem;";
   const roleClr = {current:'var(--text2)', signed:'var(--teal)', traded_in:'#a78bfa', resigned:'var(--blue)'}[r.gmRole]||'var(--text2)';
   const roleLbl = {current:'Roster',signed:'Signed',traded_in:'Acquired',resigned:'Re-signed'}[r.gmRole]||r.gmRole;
   const tv = gmTradeValue(p);
@@ -4436,7 +4436,7 @@ function gmOpenResign() {
         <button class="calc-term-btn" style="color:var(--coral);border-color:var(--coral);" onclick="gmLetWalkFromResign()">Let Walk</button>
         <button class="calc-term-btn" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
       </div>
-      <div id="gm-resign-preview" style="font-size:.78rem;color:var(--teal);margin-top:.5rem;font-family:'DM Mono',monospace;"></div>
+      <div id="gm-resign-preview" style="font-size:.78rem;color:var(--teal);margin-top:.5rem;font-family:"DM Mono",monospace;"></div>
     </div>`;
   gmUpdateResignTerms();
   // Check if initial player is a goalie and hide terms
@@ -4567,7 +4567,7 @@ function gmOpenSignUFA() {
     document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
       <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.actual_role||p.role||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
-        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:${barColor(p.overall_pct??p.overall_2526??0)};" >${p.overall_pct??p.overall_2526??'–'}</span>
+        <span style="font-family:"DM Mono",monospace;font-size:.75rem;color:${barColor(p.overall_pct??p.overall_2526??0)};" >${p.overall_pct??p.overall_2526??'–'}</span>
       </div>`).join('') || '<div style="color:var(--text3);padding:.5rem;">No matches</div>';
   }
   renderUFAList();
@@ -4653,8 +4653,8 @@ function gmOpenTrade() {
           <div id="gm-trade-out" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
           <div style="margin-top:.4rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-out-list">
             ${myRoster.map(r=>`<div onclick="gmToggleTradeOut('${r.p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
-              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct??r.p.overall_2526??''}</span>
-              <span style="font-family:'DM Mono',monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
+              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:"DM Mono",monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct??r.p.overall_2526??''}</span>
+              <span style="font-family:"DM Mono",monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
             </div>`).join('')}
           </div>
         </div>
@@ -4681,7 +4681,7 @@ function gmOpenTrade() {
         <button class="calc-term-btn" onclick="gmConfirmTrade()">Confirm Trade</button>
         <button class="calc-term-btn" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
       </div>
-      <div id="gm-trade-cap-summary" style="font-size:.75rem;color:var(--text3);margin-top:.4rem;font-family:'DM Mono',monospace;min-height:1.2rem;"></div>
+      <div id="gm-trade-cap-summary" style="font-size:.75rem;color:var(--text3);margin-top:.4rem;font-family:"DM Mono",monospace;min-height:1.2rem;"></div>
     </div>`;
 
   window._gmTradeOut = new Set();
@@ -4709,7 +4709,7 @@ function gmOpenTrade() {
     document.getElementById('gm-trade-in-list').innerHTML = filtered.map(p=>`
       <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${(p.current_team||p.team||'').split('/').pop()}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
-        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:'DM Mono',monospace;font-size:.72rem;">
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:"DM Mono",monospace;font-size:.72rem;">
           <span style="color:var(--teal);">${p.overall_pct??p.overall_2526??''}</span>
           <span style="color:var(--text3);"> · ${fmtM(gmTradeValue(p))}</span>
         </span>
@@ -4945,13 +4945,13 @@ function gmAnalyze() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
         <div>
           <div style="font-size:.7rem;color:var(--text3);">Projected Points</div>
-          <div style="font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:600;color:${projPts>=100?'var(--teal)':projPts>=88?'var(--text)':'var(--coral)'};">${projPts} pts</div>
+          <div style="font-family:"DM Mono",monospace;font-size:1.8rem;font-weight:600;color:${projPts>=100?'var(--teal)':projPts>=88?'var(--text)':'var(--coral)'};">${projPts} pts</div>
           <div style="font-size:.78rem;color:var(--text3);">vs original: ${projPts>basePts?'+':''}<span style="color:${projPts>=basePts?'var(--teal)':'var(--coral)'};">${projPts-basePts} pts</span></div>
           <div style="font-size:.78rem;color:var(--text3);margin-top:.2rem;">Estimated rank: <strong style="color:var(--text)">#${rank} of 32</strong> (±9 pts MAE)</div>
         </div>
         <div>
           <div style="font-size:.7rem;color:var(--text3);">Cap situation</div>
-          <div style="font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:600;">${fmtM(capUsed)} used</div>
+          <div style="font-family:"DM Mono",monospace;font-size:1.1rem;font-weight:600;">${fmtM(capUsed)} used</div>
           <div style="font-size:.78rem;color:${capLeft<0?'var(--coral)':'var(--teal)'};">${capLeft<0?'OVER CAP by '+fmtM(Math.abs(capLeft)):fmtM(capLeft)+' space remaining'}</div>
         </div>
       </div>
@@ -4989,7 +4989,7 @@ const posDisplayGlobal = p => {
 };
 
 window._pcSearch = (function() {
-  const MONO = "font-family:'DM Mono',monospace;font-size:.8rem;";
+  const MONO = "font-family:"DM Mono",monospace;font-size:.8rem;";
   let _results = [];
   function getEls() {
     return { inp: document.getElementById('pc-search'),
@@ -5028,7 +5028,7 @@ window._pcSearch = (function() {
 
 // ── Contract Calculator search — global handler ────────────────────────────────
 window._calcSearch = (function() {
-  const MONO = "font-family:'DM Mono',monospace;font-size:.8rem;";
+  const MONO = "font-family:"DM Mono",monospace;font-size:.8rem;";
   let _results = [];
   function getEls() {
     return { inp: document.getElementById('calc-search'),
@@ -5136,11 +5136,11 @@ function ostRenderTable() {
     <tr data-team="${tc}" onclick="ostShowTeam('${tc}')" style="border-bottom:1px solid var(--border);cursor:pointer;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <td style="padding:.4rem .5rem;color:var(--text3);font-size:.72rem;">${i+1}</td>
       <td style="padding:.4rem .5rem;font-weight:700;font-size:.88rem;">${tc}</td>
-      <td style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:${clr(v.pv)};">${fmtM(v.pv)}</td>
-      <td style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:var(--text2);">${fmtMP(v.rv)}</td>
-      <td style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:${clr(v.sc)};">${fmtM(v.sc)}</td>
-      <td style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:${clr(v.ps)};">${fmtM(v.ps)}</td>
-      <td class="ost-td-aav" style="padding:.4rem .5rem;text-align:right;font-family:'DM Mono',monospace;font-size:.82rem;color:${clr(v.fvs)};${isG?'display:none':''}">${fmtM(v.fvs)}</td>
+      <td style="padding:.4rem .5rem;text-align:right;font-family:"DM Mono",monospace;font-size:.82rem;color:${clr(v.pv)};">${fmtM(v.pv)}</td>
+      <td style="padding:.4rem .5rem;text-align:right;font-family:"DM Mono",monospace;font-size:.82rem;color:var(--text2);">${fmtMP(v.rv)}</td>
+      <td style="padding:.4rem .5rem;text-align:right;font-family:"DM Mono",monospace;font-size:.82rem;color:${clr(v.sc)};">${fmtM(v.sc)}</td>
+      <td style="padding:.4rem .5rem;text-align:right;font-family:"DM Mono",monospace;font-size:.82rem;color:${clr(v.ps)};">${fmtM(v.ps)}</td>
+      <td class="ost-td-aav" style="padding:.4rem .5rem;text-align:right;font-family:"DM Mono",monospace;font-size:.82rem;color:${clr(v.fvs)};${isG?'display:none':''}">${fmtM(v.fvs)}</td>
       <td style="padding:.4rem .5rem;font-size:.7rem;color:var(--text2);">${v.a||0} in &middot; ${v.l||0} out &middot; ${v.r||0} re-sign</td>
       <td style="padding:.4rem .5rem;color:var(--text3);">&#9658;</td>
     </tr>`).join('');
@@ -5181,7 +5181,7 @@ function ostShowTeam(tc) {
         '<div style="font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+t.name+'</div>'+
         (sub?'<div style="font-size:.62rem;color:var(--text3);">'+sub+'</div>':'')+
       '</div>'+
-      '<div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0;font-family:'DM Mono',monospace;">'+
+      '<div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0;font-family:"DM Mono",monospace;">'+
         '<div style="text-align:center;min-width:44px;">'+
           '<div style="font-size:.78rem;font-weight:600;color:var(--text);">'+fmtM(t.new_cap)+'</div>'+
           '<div style="font-size:.55rem;color:var(--text3);">cap</div>'+
@@ -6441,9 +6441,9 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Overall</div>
-          <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;" id="calc-ov"></div>
+          <div style="font-family:"DM Mono",monospace;font-size:1.6rem;font-weight:600;" id="calc-ov"></div>
           <div style="font-size:.62rem;color:var(--text3);margin-top:.25rem;">Composite</div>
-          <div style="font-family:'DM Mono',monospace;font-size:.9rem;" id="calc-cmp"></div>
+          <div style="font-family:"DM Mono",monospace;font-size:.9rem;" id="calc-cmp"></div>
         </div>
       </div>
 
@@ -6532,7 +6532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div style="text-align:right;">
           <div style="font-size:.6rem;color:var(--text3);">OVERALL</div>
-          <div style="font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:600;" id="pc-ov"></div>
+          <div style="font-family:"DM Mono",monospace;font-size:1.4rem;font-weight:600;" id="pc-ov"></div>
         </div>
       </div>
       <div id="pc-body"></div>
