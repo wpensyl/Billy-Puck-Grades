@@ -314,7 +314,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     .ost-tab { background:var(--surface2); border:1px solid var(--border); color:var(--text2); border-radius:6px; padding:.3rem .8rem; font-size:.78rem; cursor:pointer; transition:.15s; }
     .ost-tab.active { background:var(--teal); border-color:var(--teal); color:#000; font-weight:600; }
     .ost-tab:hover:not(.active) { border-color:var(--text3); color:var(--text); }
-    .ost-player-card { background:var(--surface3); border-radius:8px; padding:.6rem .8rem; margin-bottom:.5rem; cursor:pointer; transition:.15s; display:flex; align-items:center; gap:.75rem; }
+    .ost-player-card { background:var(--surface3); border-radius:8px; padding:.6rem .8rem; margin-bottom:0; cursor:pointer; transition:.15s; display:flex; align-items:center; gap:.75rem; }
     .ost-player-card:hover { border:1px solid var(--teal); }
     .ost-section-hd { font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text3); font-weight:600; margin:.75rem 0 .4rem; }
 </style>
@@ -407,11 +407,21 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <div class="leg-item"><div class="leg-dot" style="background:var(--coral);"></div>Weak (≤30th)</div>
       </div>
     </div>
+    <!-- ── Playoff Rankings expandable panel ── -->
+    <div class="panel" id="playoff-panel" style="margin-top:.75rem;">
+      <div class="panel-hd" id="playoff-hd" onclick="togglePlayoffPanel()" style="cursor:pointer;user-select:none;">
+        <span class="panel-title">2025–26 Playoff Rankings</span>
+        <span id="playoff-value-badge" style="margin-left:.6rem;font-size:.8rem;font-weight:700;"></span>
+        <span id="playoff-toggle-icon" style="margin-left:auto;font-size:.78rem;color:var(--text3);">▼ Expand</span>
+      </div>
+      <div id="playoff-body" style="display:none;">
+        <div id="playoff-content" style="padding:.5rem 1.25rem .75rem;"></div>
+      </div>
+    </div>
     <!-- ── Microstat expandable panel ── -->
     <div class="panel" id="microstat-panel" style="margin-top:.75rem;">
       <div class="panel-hd" id="microstat-hd" onclick="toggleMicrostatPanel()" style="cursor:pointer;user-select:none;">
         <span class="panel-title">Microstat Detail</span>
-        <span class="panel-note" style="margin-left:.5rem;">Granular zone-entry / exit / retrieval analytics</span>
         <span id="microstat-toggle-icon" style="margin-left:auto;font-size:.78rem;color:var(--text3);">▼ Expand</span>
       </div>
       <div id="microstat-body" style="display:none;">
@@ -595,7 +605,7 @@ let currentSeasonView = '2025-26';  // active season in season selector
 async function loadData() {
   const loading = document.getElementById('loading-msg');
   try {
-    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes, snapRes, combosRes, chemRes] = await Promise.all([
+    const [fwdRes, dmanRes, gRes, cfwdRes, cdmanRes, bkRes, snapRes, combosRes, chemRes, playoffRes] = await Promise.all([
       fetch("players_fwd.json"),
       fetch("players_dman.json"),
       fetch("players_goalie.json"),
@@ -605,6 +615,7 @@ async function loadData() {
       fetch('roster_snapshots.json').catch(() => null),
       fetch("combos.json").catch(() => null),
       fetch("player_chemistry.json").catch(() => null),
+      fetch("players_playoff.json").catch(() => null),
     ]);
     if (!fwdRes.ok || !dmanRes.ok) throw new Error('Failed to load player data');
     const [fwds, dmans, goalies, cfwd, cdman, bkData] = await Promise.all([
@@ -627,6 +638,10 @@ async function loadData() {
       const chemRaw = chemRes ? await chemRes.json().catch(()=>null) : null;
       window.CHEM_DATA = chemRaw || {};
     } catch(e) { window.CHEM_DATA = {}; }
+    try {
+      const playoffRaw = (playoffRes && playoffRes.ok) ? await playoffRes.json().catch(()=>null) : null;
+      window.PLAYOFF_DATA = playoffRaw || {};
+    } catch(e) { window.PLAYOFF_DATA = {}; }
     try {
       const snapRaw = snapRes ? await snapRes.json().catch(()=>null) : null;
       window.ROSTER_SNAPSHOTS = snapRaw?.snapshots || {};
@@ -979,6 +994,7 @@ async function showPlayer(p) {
   document.getElementById('nhl-analytics-strip').innerHTML = '';
   renderAnalyticsStrip(p);
   renderCategories(p);
+  renderPlayoffPanel(p);
   renderMicrostatPanel(p);
   renderProgression(p);
   document.getElementById('comp-list').innerHTML = '<div class="comp-loading"><span class="pulse">Loading comparables...</span></div>';
@@ -2491,6 +2507,112 @@ function populateCatBoardTeams() {
   if (!sel || sel.options.length > 1) return;
   const teams = [...new Set(ALL_PLAYERS.map(p=>p.current_team||p.team).filter(Boolean))].sort();
   teams.forEach(t => { const o=document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o); });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PLAYOFF RANKINGS PANEL
+// ══════════════════════════════════════════════════════════════════════════════
+
+function togglePlayoffPanel() {
+  const body = document.getElementById('playoff-body');
+  const icon = document.getElementById('playoff-toggle-icon');
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if (icon) icon.textContent = open ? '▼ Expand' : '▲ Collapse';
+}
+
+function renderPlayoffPanel(p) {
+  const panel   = document.getElementById('playoff-panel');
+  const body    = document.getElementById('playoff-body');
+  const badge   = document.getElementById('playoff-value-badge');
+  const content = document.getElementById('playoff-content');
+  const icon    = document.getElementById('playoff-toggle-icon');
+  if (!panel || !badge || !content) return;
+
+  // Always collapse when switching players
+  if (body) body.style.display = 'none';
+  if (icon) icon.textContent = '▼ Expand';
+
+  // Lookup playoff record from PLAYOFF_DATA (loaded from players_playoff.json)
+  const pl = (window.PLAYOFF_DATA || {})[p.name];
+
+  if (!pl) {
+    // Player not in playoffs (or data not loaded)
+    panel.style.display = '';
+    badge.textContent  = '2025–26 Playoff Value — N/A';
+    badge.style.color  = 'var(--text3)';
+    badge.style.fontWeight = '400';
+    badge.style.fontSize = '.78rem';
+    content.innerHTML  = '<div style="color:var(--text3);font-size:.82rem;padding:.25rem 0;">No 2025–26 playoff data on record.</div>';
+    return;
+  }
+
+  panel.style.display = '';
+
+  // ── Value badge: % change from reg-season to playoff overall ──────────────
+  const regPct  = p.overall_pct;     // 0-100 from players_fwd/dman.json
+  const playPct = pl.overall_pct;    // 0-100 from players_playoff.json
+  if (regPct != null && playPct != null) {
+    const delta = playPct - regPct;
+    const sign  = delta >= 0 ? '+' : '';
+    const clr   = delta > 2 ? 'var(--teal)' : delta < -2 ? 'var(--coral)' : 'var(--text2)';
+    badge.innerHTML = `Prior Season Playoff Value vs. Regular Season Value: <span style="color:${clr};font-weight:700;">${sign}${delta.toFixed(0)}%</span>`;
+    badge.style.color = 'var(--text2)';
+    badge.style.fontWeight = '400';
+    badge.style.fontSize = '.8rem';
+  } else {
+    badge.textContent = '';
+  }
+
+  // ── Rankings summary strip (Off Prod / Def Prod / Off Analytics / Def Analytics) ──
+  const bc = v => v == null ? 'var(--text3)' : v >= 70 ? 'var(--teal)' : v <= 30 ? 'var(--coral)' : 'var(--mid)';
+  const tiles = [
+    { val: pl.off_prod,      lbl: 'Off Production' },
+    { val: pl.def_prod,      lbl: 'Def Production' },
+    { val: pl.off_analytics, lbl: 'Off Analytics'  },
+    { val: pl.def_analytics, lbl: 'Def Analytics'  },
+  ].filter(t => t.val != null);
+
+  const stripHtml = tiles.length ? `
+    <div style="display:grid;grid-template-columns:repeat(${tiles.length},1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:.75rem;">
+      <div style="grid-column:1/-1;background:var(--surface2);padding:.3rem .9rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+        <span style="font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Rankings Summary (0–100)</span>
+        <span style="font-size:.6rem;color:var(--text3);">5v5 · 2025–26 Playoffs</span>
+      </div>
+      ${tiles.map(t => `<div class="stat-cell"><div class="stat-val" style="color:${bc(t.val)};font-size:.9rem;">${t.val}</div><div class="stat-lbl">${t.lbl}</div></div>`).join('')}
+    </div>` : '';
+
+  // ── Category breakdown grid ───────────────────────────────────────────────
+  const cats = pl.categories || {};
+  const barClr = v => v>=65?'var(--teal)':v>=55?'rgba(45,212,160,0.55)':v>=45?'var(--mid)':v>=35?'rgba(244,98,74,0.55)':'var(--coral)';
+
+  let catHtml = '';
+  for (const [grp, items] of Object.entries(cats)) {
+    catHtml += `<div style="margin-bottom:.6rem;">
+      <div style="font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.35rem;">${grp}</div>
+      <div class="tm-cat-grid">`;
+    for (const item of items) {
+      const pv = item.pct ?? 0;
+      const c  = barClr(pv);
+      catHtml += `<div class="tm-cat-card">
+        <div class="tm-cat-name">${item.name}</div>
+        <div class="tm-cat-bar"><div class="tm-cat-fill" style="width:${pv}%;background:${c};"></div></div>
+        <div class="tm-cat-pct" style="color:${c};">${item.pct != null ? item.pct : '–'}</div>
+      </div>`;
+    }
+    catHtml += '</div></div>';
+  }
+
+  // ── Legend ────────────────────────────────────────────────────────────────
+  const legendHtml = `
+    <div class="cat-legend" style="margin-top:.5rem;">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--teal);"></div>Strong (≥70th)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--mid);"></div>Average</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--coral);"></div>Weak (≤30th)</div>
+    </div>`;
+
+  content.innerHTML = stripHtml + catHtml + legendHtml;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -5324,11 +5446,14 @@ function ostShowTeam(tc) {
     const clickAttr = known ? ' onclick="ostNavIdx('+idx+')"' : '';
     const cursor    = known ? 'cursor:pointer' : 'cursor:default;opacity:.88';
     const isGoalieCard = t.pos_type === 'G';
-    return '<div class="ost-player-card"'+clickAttr+' style="'+cursor+';padding:.45rem .6rem;display:flex;align-items:center;gap:.5rem;">'+
+    // Wrap in overflow-x:auto so on mobile the name stays visible at left
+    // and the user can swipe right to see cap/value/delta metrics.
+    return '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;margin-bottom:.5rem;">'+
+    '<div class="ost-player-card"'+clickAttr+' style="'+cursor+';padding:.45rem .6rem;display:flex;align-items:center;gap:.5rem;margin-bottom:0;min-width:max-content;">'+
       '<div style="font-size:.65rem;font-weight:700;color:var(--text3);width:15px;flex-shrink:0;text-align:center;">'+t.pos_type+'</div>'+
-      '<div style="flex:1;min-width:0;overflow:hidden;">'+
+      '<div style="min-width:130px;max-width:180px;flex-shrink:0;">'+
         '<div style="font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+t.name+'</div>'+
-        (sub?'<div style="font-size:.62rem;color:var(--text3);">'+sub+'</div>':'')+
+        (sub?'<div style="font-size:.62rem;color:var(--text3);white-space:nowrap;">'+sub+'</div>':'')+
       '</div>'+
       '<div style="display:flex;gap:.5rem;align-items:center;flex-shrink:0;font-family:DM Mono,monospace;">'+
         '<div style="text-align:center;min-width:44px;">'+
@@ -5353,7 +5478,8 @@ function ostShowTeam(tc) {
         '</div>' : '')+
       '</div>'+
       (known?'<div style="color:var(--text3);font-size:.7rem;flex-shrink:0;margin-left:2px;">&#9658;</div>':'')+
-    '</div>';
+    '</div>'+ // close ost-player-card
+    '</div>'; // close scroll wrapper
   };
 
   const hd = s=>'<div class="ost-section-hd">'+s+'</div>';
