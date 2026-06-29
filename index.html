@@ -764,8 +764,8 @@ const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCa
 const ANALYTICS_TIPS = {
   "On-Ice Offense":   "How much his team outplays opponents offensively when he's on the ice at even strength.",
   "On-Ice Defense":   "How well his team suppresses opponents when he's on the ice at even strength.",
-  "Relative offense": "How much better the team's offensive performance is when he is on the ice vs. when his teammates are on the ice without him.",
-  "Relative defense": "How much better the team's defensive performance is when he is on the ice vs. when his teammates are on the ice without him.",
+  "Relative Offense": "How much better the team's offensive performance is when he is on the ice vs. when his teammates are on the ice without him.",
+  "Relative Defense": "How much better the team's defensive performance is when he is on the ice vs. when his teammates are on the ice without him.",
 };
 
 // ── NHL API ───────────────────────────────────────────────────────────────────
@@ -782,64 +782,74 @@ const ALL_NHL_TEAMS = Object.values(NHL_ABBREV);
 let rosterFetchDone = false;
 
 // Pre-warm: fetch all 32 rosters in background to build name->id map
+function _refreshSearchDropdowns() {
+  // Re-render any open search dropdowns after live roster data updates current_team.
+  // Called progressively after each chunk of roster fetches so updates appear
+  // as soon as partial data is available rather than waiting for all 32 teams.
+  try {
+    // Landing page search
+    const lInp = document.getElementById('landing-search');
+    const lDD  = document.getElementById('landing-dd');
+    if (lInp && lDD && lInp.value.trim().length >= 2 && lDD.classList.contains('open')) {
+      renderDropdown(searchPlayers(lInp.value, 'all'), lDD);
+    }
+    // Card-view / nav search
+    const cInp = document.getElementById('card-search');
+    const cDD  = document.getElementById('card-dd');
+    if (cInp && cDD && cInp.value.trim().length >= 2 && cDD.classList.contains('open')) {
+      renderDropdown(searchPlayers(cInp.value, 'all'), cDD);
+    }
+    // Update team display on an open player card
+    if (currentPlayer) {
+      const teamEl = document.getElementById('ph-team');
+      const live = currentPlayer.current_team || currentPlayer.team;
+      if (teamEl && live && teamEl.textContent !== live) teamEl.textContent = live;
+      // Jersey number
+      const num = nhlJerseyCache[currentPlayer.name];
+      const jerseyEl = document.getElementById('ph-jersey');
+      if (jerseyEl && num) jerseyEl.textContent = ' #' + num;
+    }
+  } catch(e) {}
+}
+
 async function prefetchAllRosters() {
   if (rosterFetchDone || window.location.protocol === 'file:') return;
   rosterFetchDone = true;
-  // Stagger fetches to avoid hammering the API
+  // Fetch in four chunks of 8 — reconcile + refresh after EACH chunk so the
+  // dropdown shows live teams progressively rather than all-or-nothing at the end.
   const chunk = async (teams) => {
     await Promise.allSettled(teams.map(t => fetchRosterIds(t)));
+    reconcileCurrentTeams();
+    _refreshSearchDropdowns();
   };
   const teams = ALL_NHL_TEAMS;
   await chunk(teams.slice(0, 8));
   await chunk(teams.slice(8, 16));
   await chunk(teams.slice(16, 24));
   await chunk(teams.slice(24));
-  // Reconcile current_team for multi-team players using live roster as truth
-  reconcileCurrentTeams();
-  // Re-render open search dropdown so live team shows immediately
-  try {
-    const inp = document.getElementById('card-search');
-    const dd  = document.getElementById('card-dd');
-    if (inp && dd && inp.value.trim().length >= 2 && dd.classList.contains('open')) {
-      const results = searchPlayers(inp.value, 'all');
-      renderDropdown(results, dd);
-    }
-  } catch(e) {}
-  // Update jersey number display if a player card is open
-  if (currentPlayer) {
-    const num = nhlJerseyCache[currentPlayer.name];
-    const el = document.getElementById('ph-jersey');
-    if (el && num) el.textContent = ' #' + num;
-  }
 }
 
 function reconcileCurrentTeams() {
-  // nhlRosterCache: Map<teamAbbrev, Set<playerName>>
-  // For any player with >1 team listed, find which team they actually appear on now
+  // Build a reverse lookup: playerName -> teamAbbrev (model style) from live roster data
   const NHL_MODEL_MAP = {'LAK':'L.A','NJD':'N.J','SJS':'S.J','TBL':'T.B'};
-
-  // Fix skaters with comma-separated teams (e.g. "MIN, VAN")
-  for (const p of ALL_PLAYERS) {
-    if (!p.team || !p.team.includes(',')) continue;
-    let found = null;
-    for (const [abbrev, names] of Object.entries(nhlRosterCache)) {
-      if (names.has(p.name)) { found = NHL_MODEL_MAP[abbrev] || abbrev; break; }
-    }
-    if (found) p.current_team = found;
+  const liveTeamOf = {};  // name -> model-style abbrev
+  for (const [abbrev, names] of Object.entries(nhlRosterCache)) {
+    const modelAbbrev = NHL_MODEL_MAP[abbrev] || abbrev;
+    for (const name of names) liveTeamOf[name] = modelAbbrev;
   }
 
-  // Fix goalies (and any player) with slash-separated teams (e.g. "EDM/PIT")
+  // Full sweep: update current_team for EVERY skater/goalie found in live rosters.
+  // This catches single-team players who have been traded since the JSON was built,
+  // not just the multi-team comma/slash cases.
   for (const p of [...ALL_PLAYERS, ...(ALL_GOALIES||[])]) {
-    if (!p.current_team || !p.current_team.includes('/')) continue;
-    let found = null;
-    for (const [abbrev, names] of Object.entries(nhlRosterCache)) {
-      if (names.has(p.name)) { found = NHL_MODEL_MAP[abbrev] || abbrev; break; }
-    }
-    if (found) { p.current_team = found; p.team = found; }
-    else {
-      // Fallback: take last team after slash (most recently traded TO)
-      const last = p.current_team.split('/').pop().trim();
-      p.current_team = last; p.team = last;
+    const live = liveTeamOf[p.name];
+    if (live) {
+      p.current_team = live;
+      // Also sync p.team so leaderboard/OST filters stay consistent
+      if (p.team && !p.team.includes(',') && !p.team.includes('/')) p.team = live;
+    } else if (p.current_team?.includes('/')) {
+      // Fallback for slash teams not found in live cache yet
+      p.current_team = p.current_team.split('/').pop().trim();
     }
   }
 }
@@ -1845,9 +1855,9 @@ const AWARDS = [
     desc:'Best Defensive Forward — weighted toward shot suppression, QoC, and penalty kill.',
     pool:'F', minGp:40, ageMax:null, sortBy:'score',
     weights:[['Defense','Shot Suppression',.20],['Analytics','On-Ice Defense',.15],
-             ['Analytics','Relative defense',.13],['Defense','Entry Defense',.10],
+             ['Analytics','Relative Defense',.13],['Defense','Entry Defense',.10],
              ['Defense','Takeaways',.12],['Defense','Def. Zone Exits',.08],
-             ['Special Teams','Penalty Kill',.14],['Usage','Quality of comp.',.08]] },
+             ['Special Teams','Penalty Kill',.14],['Usage','Quality of Comp.',.08]] },
   { id:'byng', name:'Lady Byng', trophy:'🕊',
     desc:'Sportsmanship + Skill — Elite/Top Line/Top Pair players with fewest penalty minutes.',
     pool:'all', minGp:40, ageMax:null, sortBy:'pim', eliteOnly:true },
@@ -2352,22 +2362,22 @@ function buildSmoothedContent(p, acHex) {
 // These match EXACTLY the category groups/names used in FWD_CATS and DMAN_CATS
 // in update.py, which is what populates p.categories on every player object.
 const FWD_CAT_GROUPS = {
-  'Usage':             ['Time on ice','Quality of comp.'],
+  'Usage':             ['Time on Ice','Quality of Comp.'],
   'Athletic & Compete':['Speed','Endurance','Physicality'],
   'Scoring':           ['Goalscoring','Finishing','Shot Volume','Shot Quality','Shot Speed'],
   'Offense':           ['Passing','Playdriving','Rush Offense','Forecheck Offense','Cycle Offense','Net-Front Presence','Faceoffs'],
   'Defense':           ['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways'],
   'Special Teams':     ['Power Play','Penalty Kill','Penalty Differential'],
-  'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative offense','Relative defense'],
+  'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative Offense','Relative Defense'],
 };
 const DMAN_CAT_GROUPS = {
-  'Usage':             ['Time on ice','Quality of comp.'],
+  'Usage':             ['Time on Ice','Quality of Comp.'],
   'Athletic & Compete':['Speed','Endurance','Physicality'],
   'Scoring':           ['Goalscoring','Finishing','Shot Volume','Shot Quality','Shot Speed'],
   'Offense':           ['Passing','Playdriving','Transition Offense','Off. Zone Involvement'],
   'Defense':           ['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways','Giveaways'],
   'Special Teams':     ['Power Play','Penalty Kill','Penalty Differential'],
-  'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative offense','Relative defense'],
+  'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative Offense','Relative Defense'],
 };
 
 function getCatPct(p, grp, cat) {
@@ -2519,7 +2529,7 @@ function renderMicrostatPanel(p) {
 
   // ── Grouped microstat bars ───────────────────────────────────────────────
   const MICRO_GROUPS = [
-    { label: 'In-Zone Offense',       keys: ['Rebounds Created','Shots off Dangerous Passes','One Timer Assists','One Timers',...((p._type==='D'||p._type==='LD'||p._type==='RD')?['Cycle Offense Rate']:[])], },
+    { label: 'In-Zone Offense',       keys: ['Rebounds Created','Shots off Dangerous Passes','One Timer Assists','One Timers',...((p._type==='D'||p._type==='LD'||p._type==='RD')?['Cycle Offense Contribution']:[])], },
     { label: 'Forecheck',             keys: ['Forecheck Work Rate','Forecheck Recovery Success'] },
     { label: 'Offensive Zone Entries',keys: ['Zone Entry Work Rate','% of Entries Carried In','Zone Entry Failure Rate'] },
     { label: 'Entry Defense',         keys: ['Entry Denial Rate','Frequency of Chances Allowed'] },
@@ -3947,9 +3957,9 @@ function buildDepthChart(roster) {
     ((p.categories||{})[grp]||[]).find(c=>c.name===name)?.pct ?? 50;
   const gmDepthScore = r => {
     const p = r.p;
-    const toiPct = getAttrPct(p, 'Usage', 'Time on ice') / 100;
+    const toiPct = getAttrPct(p, 'Usage', 'Time on Ice') / 100;
     const gpPct  = Math.min(1, (p.gp||0) / 82);
-    const qocPct = getAttrPct(p, 'Usage', 'Quality of comp.') / 100;
+    const qocPct = getAttrPct(p, 'Usage', 'Quality of Comp.') / 100;
     return 0.5*toiPct + 0.3*gpPct + 0.2*qocPct;
   };
   const byScore = (a,b) => gmDepthScore(b) - gmDepthScore(a);
@@ -4978,8 +4988,8 @@ function gmConfirmTrade() {
 function gmGetCategoryRanks(overrideRoster) {
   const tc      = gmState.teamCode;
   const DOTTED  = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
-  const EXCLUDE_CATS = new Set(['On-Ice Offense','On-Ice Defense','Relative offense',
-    'Relative defense','Shot Suppression','Quality of comp.','Time on ice']);
+  const EXCLUDE_CATS = new Set(['On-Ice Offense','On-Ice Defense','Relative Offense',
+    'Relative Defense','Shot Suppression','Quality of Comp.','Time on Ice']);
 
   // Get all team profiles
   const allProfiles = {};
@@ -6100,7 +6110,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="attr_Giveaways">Giveaways</option>
           <option value="attr_Entry Defense">Entry Defense</option>
           <option value="attr_Def. Zone Exits">Def. Zone Exits</option>
-          <option value="attr_Quality of comp.">Quality of competition</option>
+          <option value="attr_Quality of Comp.">Quality of competition</option>
           <option value="attr_Power Play">Power Play</option>
           <option value="attr_Penalty Kill">Penalty Kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
@@ -6360,7 +6370,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="attr_Giveaways">Giveaways</option>
           <option value="attr_Entry Defense">Entry Defense</option>
           <option value="attr_Def. Zone Exits">Def. Zone Exits</option>
-          <option value="attr_Quality of comp.">Quality of competition</option>
+          <option value="attr_Quality of Comp.">Quality of competition</option>
           <option value="attr_Power Play">Power Play</option>
           <option value="attr_Penalty Kill">Penalty Kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
