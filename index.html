@@ -397,7 +397,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <div id="nhl-analytics-strip"></div>
     <div class="panel" id="cat-panel">
       <div class="panel-hd">
-        <span class="panel-title">Category breakdown</span>
+        <span class="panel-title">Rankings Breakdown</span>
         <span class="panel-note">Percentile vs. all NHL players at position</span>
       </div>
       <div class="cat-section" id="cat-list"></div>
@@ -727,7 +727,7 @@ function renderDropdown(results, ddEl) {
   ddEl.innerHTML = results.map((p, i) => `
     <div class="dd-item" data-idx="${i}">
       <span class="dd-pos-badge ${p._type}">${p.pos || p._type}</span>
-      <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.team||''} · ${p._type==='G'?'Goalie':(p.actual_role||p.role||'')}</div></div>
+      <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.current_team||p.team||''} · ${p._type==='G'?'Goalie':(p.actual_role||p.role||'')}</div></div>
       <div style="margin-left:auto;font-family:DM Mono,monospace;font-size:.8rem;color:var(--teal);">${p._type==='G'?(p.overall_2526??'–'):(p.overall_pct??'–')}</div>
     </div>`).join('');
   ddEl.querySelectorAll('.dd-item').forEach((el, i) => {
@@ -762,8 +762,8 @@ const barColor = p => p >= 70 ? '#2dd4a0' : p <= 30 ? '#f4624a' : '#6b7280';
 const initials = n => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
 const ANALYTICS_TIPS = {
-  "On-ice offense":   "How much his team outplays opponents offensively when he's on the ice at even strength.",
-  "On-ice defense":   "How well his team suppresses opponents when he's on the ice at even strength.",
+  "On-Ice Offense":   "How much his team outplays opponents offensively when he's on the ice at even strength.",
+  "On-Ice Defense":   "How well his team suppresses opponents when he's on the ice at even strength.",
   "Relative offense": "How much better the team's offensive performance is when he is on the ice vs. when his teammates are on the ice without him.",
   "Relative defense": "How much better the team's defensive performance is when he is on the ice vs. when his teammates are on the ice without him.",
 };
@@ -1625,18 +1625,18 @@ async function renderTeamView(teamCode) {
   // Category breakdown
   const ALL_CATS = posFilter === 'D' ? [
     ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
-    ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot volume"],["Scoring","Shot quality"],["Scoring","Shot speed"],
-    ["Offense","Passing"],["Offense","Playdriving"],["Offense","Transition offense"],["Offense","Off. Zone Involvement"],
-    ["Defense","Entry defense"],["Defense","Shot suppression"],["Defense","Takeaways"],["Defense","Giveaways"],
-    ["Special teams","Power play"],["Special teams","Penalty kill"],["Special teams","Penalty differential"],
-    ["Analytics","On-ice offense"],["Analytics","On-ice defense"],
+    ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot Volume"],["Scoring","Shot Quality"],["Scoring","Shot Speed"],
+    ["Offense","Passing"],["Offense","Playdriving"],["Offense","Transition Offense"],["Offense","Off. Zone Involvement"],
+    ["Defense","Entry Defense"],["Defense","Shot Suppression"],["Defense","Takeaways"],["Defense","Giveaways"],
+    ["Special Teams","Power Play"],["Special Teams","Penalty Kill"],["Special Teams","Penalty Differential"],
+    ["Analytics","On-Ice Offense"],["Analytics","On-Ice Defense"],
   ] : [
     ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
-    ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot volume"],["Scoring","Shot quality"],["Scoring","Shot speed"],
-    ["Offense","Passing"],["Offense","Playdriving"],["Offense","Rush offense"],["Offense","Forecheck offense"],["Offense","Cycle offense"],["Offense","Net-front presence"],["Offense","Faceoffs"],
-    ["Defense","Entry defense"],["Defense","Shot suppression"],["Defense","Takeaways"],
-    ["Special teams","Power play"],["Special teams","Penalty kill"],["Special teams","Penalty differential"],
-    ["Analytics","On-ice offense"],["Analytics","On-ice defense"],
+    ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot Volume"],["Scoring","Shot Quality"],["Scoring","Shot Speed"],
+    ["Offense","Passing"],["Offense","Playdriving"],["Offense","Rush Offense"],["Offense","Forecheck Offense"],["Offense","Cycle Offense"],["Offense","Net-Front Presence"],["Offense","Faceoffs"],
+    ["Defense","Entry Defense"],["Defense","Shot Suppression"],["Defense","Takeaways"],
+    ["Special Teams","Power Play"],["Special Teams","Penalty Kill"],["Special Teams","Penalty Differential"],
+    ["Analytics","On-Ice Offense"],["Analytics","On-Ice Defense"],
   ];
 
   // Parse "M:SS" TOI string to decimal minutes
@@ -1728,7 +1728,7 @@ async function renderTeamView(teamCode) {
     .slice(0, 6);
 
   for (const [grp, name] of ALL_CATS) {
-    const isSpecialTeams = grp === 'Special teams' && (name === 'Power play' || name === 'Penalty kill');
+    const isSpecialTeams = grp === 'Special Teams' && (name === 'Power Play' || name === 'Penalty Kill');
     const isFaceoffs = name === 'Faceoffs';
     const pool = isFaceoffs ? faceoffTop6 : players;
     let weightedSum = 0, weightedTotal = 0;
@@ -1850,10 +1850,10 @@ const AWARDS = [
   { id:'selke', name:'Selke Trophy', trophy:'🔒',
     desc:'Best Defensive Forward — weighted toward shot suppression, QoC, and penalty kill.',
     pool:'F', minGp:40, ageMax:null, sortBy:'score',
-    weights:[['Defense','Shot suppression',.20],['Analytics','On-ice defense',.15],
-             ['Analytics','Relative defense',.13],['Defense','Entry defense',.10],
+    weights:[['Defense','Shot Suppression',.20],['Analytics','On-Ice Defense',.15],
+             ['Analytics','Relative defense',.13],['Defense','Entry Defense',.10],
              ['Defense','Takeaways',.12],['Defense','Def. Zone Exits',.08],
-             ['Special teams','Penalty kill',.14],['Usage','Quality of comp.',.08]] },
+             ['Special Teams','Penalty Kill',.14],['Usage','Quality of comp.',.08]] },
   { id:'byng', name:'Lady Byng', trophy:'🕊',
     desc:'Sportsmanship + Skill — Elite/Top Line/Top Pair players with fewest penalty minutes.',
     pool:'all', minGp:40, ageMax:null, sortBy:'pim', eliteOnly:true },
@@ -1864,7 +1864,7 @@ const AWARDS = [
 function getCat(p,grp,name){const cats=(p.categories||{})[grp]||[];const m=cats.find(c=>c.name===name);return m&&m.pct!=null?m.pct:null;}
 function awardScore(p,weights){if(!Array.isArray(weights))return null;let tw=0,ts=0;for(const[g,n,w]of weights){const v=getCat(p,g,n);if(v!=null){ts+=v*w;tw+=w;}}return tw>0?Math.round(ts/tw):null;}
 const ELITE_ROLES=new Set(['Elite','Top Line','Top Pair']);
-function getPenaltyDiffPct(p){return(p.categories?.['Special teams']||[]).find(c=>c.name==='Penalty differential')?.pct??null;}
+function getPenaltyDiffPct(p){return(p.categories?.['Special Teams']||[]).find(c=>c.name==='Penalty Differential')?.pct??null;}
 function computeAward(award){
   let pool=ALL_PLAYERS;
   if(award.pool==='F')pool=pool.filter(p=>p._type==='F');
@@ -1994,9 +1994,14 @@ function renderAnalyticsStrip(p) {
   ];
   const clr = v => v==null?'var(--text3)':v>=70?'var(--teal)':v<=30?'var(--coral)':'var(--mid)';
   el.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
-  el.innerHTML = tiles.map(t =>
-    `<div class="stat-cell"><div class="stat-val" style="color:${clr(t.val)};font-size:.9rem;">${t.val??'–'}</div><div class="stat-lbl">${t.lbl}</div></div>`
-  ).join('');
+  el.innerHTML =
+    `<div style="grid-column:1/-1;background:var(--surface2);padding:.35rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+      <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Rankings Summary (0–100)</span>
+      <span style="font-size:.65rem;color:var(--text3);">5v5</span>
+    </div>` +
+    tiles.map(t =>
+      `<div class="stat-cell"><div class="stat-val" style="color:${clr(t.val)};font-size:.9rem;">${t.val??'–'}</div><div class="stat-lbl">${t.lbl}</div></div>`
+    ).join('');
 }
 
 // ── GOALIES ───────────────────────────────────────────────────────────────────
@@ -2355,20 +2360,20 @@ function buildSmoothedContent(p, acHex) {
 const FWD_CAT_GROUPS = {
   'Usage':             ['Time on ice','Quality of comp.'],
   'Athletic & Compete':['Speed','Endurance','Physicality'],
-  'Scoring':           ['Goalscoring','Finishing','Shot volume','Shot quality','Shot speed'],
-  'Offense':           ['Passing','Playdriving','Rush offense','Forecheck offense','Cycle offense','Net-front presence','Faceoffs'],
-  'Defense':           ['Entry defense','Def. Zone Exits','Shot suppression','Takeaways'],
-  'Special teams':     ['Power play','Penalty kill','Penalty differential'],
-  'Analytics':         ['On-ice offense','On-ice defense','Relative offense','Relative defense'],
+  'Scoring':           ['Goalscoring','Finishing','Shot Volume','Shot Quality','Shot Speed'],
+  'Offense':           ['Passing','Playdriving','Rush Offense','Forecheck Offense','Cycle Offense','Net-Front Presence','Faceoffs'],
+  'Defense':           ['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways'],
+  'Special Teams':     ['Power Play','Penalty Kill','Penalty Differential'],
+  'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative offense','Relative defense'],
 };
 const DMAN_CAT_GROUPS = {
   'Usage':             ['Time on ice','Quality of comp.'],
   'Athletic & Compete':['Speed','Endurance','Physicality'],
-  'Scoring':           ['Goalscoring','Finishing','Shot volume','Shot quality','Shot speed'],
-  'Offense':           ['Passing','Playdriving','Transition offense','Off. Zone Involvement'],
-  'Defense':           ['Entry defense','Def. Zone Exits','Shot suppression','Takeaways','Giveaways'],
-  'Special teams':     ['Power play','Penalty kill','Penalty differential'],
-  'Analytics':         ['On-ice offense','On-ice defense','Relative offense','Relative defense'],
+  'Scoring':           ['Goalscoring','Finishing','Shot Volume','Shot Quality','Shot Speed'],
+  'Offense':           ['Passing','Playdriving','Transition Offense','Off. Zone Involvement'],
+  'Defense':           ['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways','Giveaways'],
+  'Special Teams':     ['Power Play','Penalty Kill','Penalty Differential'],
+  'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative offense','Relative defense'],
 };
 
 function getCatPct(p, grp, cat) {
@@ -2439,7 +2444,7 @@ function buildCatBoardNav() {
 
   // Show both FWD and DMAN groups by default; filter happens in renderCatBoard
   // Use FWD groups as the base (they're a superset for shared categories)
-  // DMAN-only cats (Transition offense, Def. Zone Exits, Giveaways, Off. Zone Involvement)
+  // DMAN-only cats (Transition Offense, Def. Zone Exits, Giveaways, Off. Zone Involvement)
   // are shown only when D filter is active
   const combinedGroups = {};
   for (const [grp, cats] of Object.entries(FWD_CAT_GROUPS)) {
@@ -2515,28 +2520,18 @@ function renderMicrostatPanel(p) {
 
   // ── Composites: Retrievals and Exits ────────────────────────────────────
   const bc = v => v >= 70 ? 'var(--teal)' : v >= 40 ? 'var(--mid)' : 'var(--coral)';
-  const composites = [];
-  if (p.retrievals_pct != null) composites.push({label:'Retrievals', sub:'Work Rate + Success Rate avg', val:p.retrievals_pct});
-  if (p.exits_pct != null)      composites.push({label:'Def. Zone Exits', sub:'Exit Rate + Failure Rate avg', val:p.exits_pct});
-
-  compEl.innerHTML = composites.map(c => `
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.5rem .75rem;min-width:140px;flex:1;">
-      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.2rem;">${c.label}</div>
-      <div style="font-family:DM Mono,monospace;font-size:1.1rem;font-weight:700;color:${bc(c.val)};">${c.val}</div>
-      <div style="font-size:.58rem;color:var(--text3);margin-top:.1rem;">${c.sub}</div>
-    </div>`).join('');
+  // Composites rendered inline within bar groups — no top card tiles
+  compEl.style.display = 'none';
 
   // ── Grouped microstat bars ───────────────────────────────────────────────
-  // Define display groups for organisation
   const MICRO_GROUPS = [
-    { label: 'Individual Stats',   keys: ['Rebounds Created','Penalty Minutes','Penalties Drawn','Hits','Shots Blocked'] },
-    { label: 'Offensive',          keys: ['One Timer Assists','One Timers','Shots off Dangerous Passes'] },
-    { label: 'Zone Entries',       keys: ['Zone Entry Work Rate','% of Entries Carried In','Zone Entry Failure Rate'] },
-    { label: 'Entry Defense',      keys: ['Entry Defense Work Rate','Entry Denial Rate','Rate of Chances Allowed on Entries'] },
-    { label: 'Defensive Zone Involvement', keys: ['Def. Zone Involvement','Forecheck Work Rate','Forecheck Recovery Success'] },
-    { label: 'Retrievals',         keys: ['Retrievals Work Rate','Retrievals Success Rate','Exits off Retrievals%'] },
-    { label: 'Def. Zone Exits',    keys: ['Missed Pass/DZ Exchange','Def. Zone Exit Rate','Rate of Def. Zone Exit Failures','Exits w/ Possession per 60','Def. Zone Exit Assist Rate','Assists from the Def. Zone'] },
-    { label: 'Forwards Only',      keys: ['Giveaways Rate'] },
+    { label: 'In-Zone Offense',       keys: ['Rebounds Created','Shots off Dangerous Passes','One Timer Assists','One Timers'] },
+    { label: 'Forecheck',             keys: ['Forecheck Work Rate','Forecheck Recovery Success'] },
+    { label: 'Offensive Zone Entries',keys: ['Zone Entry Work Rate','% of Entries Carried In','Zone Entry Failure Rate'] },
+    { label: 'Entry Defense',         keys: ['Entry Denial Rate','Frequency of Chances Allowed'] },
+    { label: 'In-Zone Defense',       keys: ['Def. Zone Involvement','Shot Block Rate','Puck Retrievals Score','Retrievals Work Rate','Retrievals Success Rate','Exits off Retrievals%','Missed Pass/DZ Exchange'] },
+    { label: 'Def. Zone Exits',       keys: ['Def. Zone Exit Work Rate','Zone Exit Failure Rate','Rate of Assisted Exits','Rate of Exits w/ Possession','Assists from the Def. Zone'] },
+    { label: 'Physical Play & Penalties', keys: ['Hits','Giveaways Rate','Penalty Minutes','Penalties Drawn'] },
   ];
 
   const microMap = {};
@@ -2550,7 +2545,7 @@ function renderMicrostatPanel(p) {
       <div style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.35rem;">${grp.label}</div>`;
     for (const m of items) {
       const clr = bc(m.pct);
-      const invertNote = m.invert ? ' <span style="font-size:.55rem;color:var(--text3);">(lower=better, already adjusted)</span>' : '';
+      const invertNote = (m.invert && m.name !== 'Puck Retrievals Score') ? ' <span style="font-size:.55rem;color:var(--text3);">(lower=better)</span>' : '';
       html += `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.28rem;">
         <div style="width:170px;font-size:.7rem;color:var(--text2);text-align:right;flex-shrink:0;">${m.name}${invertNote}</div>
         <div style="flex:1;background:var(--surface3);border-radius:3px;height:8px;overflow:hidden;">
@@ -2726,13 +2721,13 @@ function getTeamCategoryProfile(teamCode, posFilter='all') {
   const totalTOI = Object.values(toiMap).reduce((s,t)=>s+(t||0),0);
   const CMP_CATS = [
     ['Athletic & Compete','Speed'],['Athletic & Compete','Endurance'],['Athletic & Compete','Physicality'],
-    ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot volume'],['Scoring','Shot quality'],['Scoring','Shot speed'],
-    ['Offense','Passing'],['Offense','Playdriving'],['Offense','Rush offense'],['Offense','Forecheck offense'],['Offense','Cycle offense'],['Offense','Net-front presence'],['Offense','Faceoffs'],
-    ['Offense','Transition offense'],['Offense','Off. Zone Involvement'],
-    ['Defense','Entry defense'],['Defense','Shot suppression'],['Defense','Takeaways'],
+    ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot Volume'],['Scoring','Shot Quality'],['Scoring','Shot Speed'],
+    ['Offense','Passing'],['Offense','Playdriving'],['Offense','Rush Offense'],['Offense','Forecheck Offense'],['Offense','Cycle Offense'],['Offense','Net-Front Presence'],['Offense','Faceoffs'],
+    ['Offense','Transition Offense'],['Offense','Off. Zone Involvement'],
+    ['Defense','Entry Defense'],['Defense','Shot Suppression'],['Defense','Takeaways'],
     ['Defense','Giveaways'],
-    ['Special teams','Power play'],['Special teams','Penalty kill'],['Special teams','Penalty differential'],
-    ['Analytics','On-ice offense'],['Analytics','On-ice defense'],
+    ['Special Teams','Power Play'],['Special Teams','Penalty Kill'],['Special Teams','Penalty Differential'],
+    ['Analytics','On-Ice Offense'],['Analytics','On-Ice Defense'],
   ];
   const result = {};
   for (const [grp, name] of CMP_CATS) {
@@ -2870,7 +2865,7 @@ function getPlayer4yrAttr(p, attrName) {
     if (c) return c.pct ?? null;
   }
   // Fallback: current season categories
-  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special teams','Analytics'];
+  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics'];
   for (const grp of CAT_GROUPS) {
     const c = ((p.categories || {})[grp] || []).find(x => x.name === attrName);
     if (c) return c.pct ?? null;
@@ -3003,8 +2998,8 @@ function renderBreakoutAward(type) {
   el.innerHTML = `
     <div style="font-size:.72rem;color:var(--text3);padding:.5rem 1rem 0;">
       ${type==='F'
-        ? 'Score = TOI\u00d733% + Physicality\u00d725% + Shot speed\u00d721% + Playdriving\u00d721%'
-        : 'Score = Power play\u00d730% + Shot suppression\u00d728% + Physicality\u00d726% + TOI\u00d717%'}
+        ? 'Score = TOI\u00d733% + Physicality\u00d725% + Shot Speed\u00d721% + Playdriving\u00d721%'
+        : 'Score = Power Play\u00d730% + Shot Suppression\u00d728% + Physicality\u00d726% + TOI\u00d717%'}
       &nbsp;\u00b7&nbsp; Age &lt;25, Overall &lt;80th pct, min 20 GP
     </div>
     ${top.map((p, i) => {
@@ -3042,8 +3037,8 @@ function renderBreakoutAward(type) {
     <div style="font-size:.7rem;color:var(--text3);margin-top:1rem;padding:1rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);line-height:1.6;">
       <div style="font-weight:600;color:var(--text2);margin-bottom:.35rem;">Methodology — ${type==='F'?'Forward':'Defenseman'} Breakout Model</div>
       ${type==='F'
-        ? 'Trained on 64 pre-breakout FWD seasons vs 379 non-breakout. AUC predictors: TOI deployment (coaching trust), Physicality (physical development precedes skill), Shot speed (translates to offensive danger), Playdriving (upside not yet in overall). Historical validation: ~50% hit rate on top-10 candidates.'
-        : 'Trained on 27 pre-breakout DMAN seasons vs 209 non-breakout. Strongest predictors: Power play role (coaching trust), Shot suppression (defensive foundation at young age), Physicality. Note: Shot speed and Playdriving do not add independent signal for DMAN.'}
+        ? 'Trained on 64 pre-breakout FWD seasons vs 379 non-breakout. AUC predictors: TOI deployment (coaching trust), Physicality (physical development precedes skill), Shot Speed (translates to offensive danger), Playdriving (upside not yet in overall). Historical validation: ~50% hit rate on top-10 candidates.'
+        : 'Trained on 27 pre-breakout DMAN seasons vs 209 non-breakout. Strongest predictors: Power Play role (coaching trust), Shot Suppression (defensive foundation at young age), Physicality. Note: Shot Speed and Playdriving do not add independent signal for DMAN.'}
     </div>`;
   el.querySelectorAll('.award-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -3150,11 +3145,11 @@ function getTeamProfile(teamCode, posFilter, snapRoster) {
   const avgOverall = wt>0 ? Math.round(ws/wt) : 0;
   const CAT_GROUPS = {
     'Athletic & Compete':['Speed','Endurance','Physicality'],
-    'Scoring':['Goalscoring','Finishing','Shot volume','Shot quality','Shot speed'],
-    'Offense':['Passing','Playdriving','Rush offense','Forecheck offense','Cycle offense','Net-front presence','Faceoffs'],
-    'Defense':['Entry defense','Def. Zone Exits','Shot suppression','Takeaways'],
-    'Special teams':['Power play','Penalty kill','Penalty differential'],
-    'Analytics':['On-ice offense','On-ice defense'],
+    'Scoring':['Goalscoring','Finishing','Shot Volume','Shot Quality','Shot Speed'],
+    'Offense':['Passing','Playdriving','Rush Offense','Forecheck Offense','Cycle Offense','Net-Front Presence','Faceoffs'],
+    'Defense':['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways'],
+    'Special Teams':['Power Play','Penalty Kill','Penalty Differential'],
+    'Analytics':['On-Ice Offense','On-Ice Defense'],
   };
   const catAvgs = {};
   for (const [grp, cats] of Object.entries(CAT_GROUPS)) {
@@ -3206,13 +3201,15 @@ function renderTeamRankings() {
     profiles.push(prof);
   }
   const getSortVal = p => {
-    if (sortKey==='proj_pts')       return p.projPts||0;
-    if (sortKey==='skater_overall') return p.avgOverall||0;
-    if (sortKey==='goalie_score')   return p.goalieScore||0;
+    if (sortKey==='proj_pts')         return p.projPts||0;
+    if (sortKey==='skater_overall')   return p.avgOverall||0;
+    if (sortKey==='goalie_score')     return p.goalieScore||0;
+    if (sortKey==='Retrievals')       return p.retrievalsPct??0;
+    if (sortKey==='Def. Zone Exits')  return p.exitsPct??0;
     return p.catAvgs[sortKey]??0;
   };
   profiles.sort((a,b) => getSortVal(b)-getSortVal(a));
-  const hdrLabels = {'proj_pts':'Proj. Points','skater_overall':'Skater Overall','goalie_score':'Goalie Score'};
+  const hdrLabels = {'proj_pts':'Proj. Points','skater_overall':'Skater Overall','goalie_score':'Goalie Score','Retrievals':'Retrievals','Def. Zone Exits':'Def. Zone Exits'};
   if (colHdr) colHdr.textContent = hdrLabels[sortKey] || sortKey;
   if (!profiles.length) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text3);">No team data yet — visit the Teams tab first to load rosters, then come back here.</td></tr>';
@@ -3414,7 +3411,7 @@ function getAttrScore(players, attrName) {
     const avg = valids.length ? Math.round(valids.reduce((s,x)=>s+x.val,0)/valids.length) : null;
     return {avg, scores};
   }
-  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special teams','Analytics'];
+  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics'];
   const scores = players.map(name => {
     const p=findPlayer(name); let val=null;
     for (const grp of CAT_GROUPS) { const f=getCatPctForPlayer(p,grp,attrName); if(f!=null){val=f;break;} }
@@ -3830,23 +3827,23 @@ const GM_SEASON = 2027;          // first season of new contracts
 
 // Complementarity model (from regression analysis)
 const GM_COMP_FWD = {
-  'Playdriving':       ['Shot quality','Passing'],
-  'Forecheck offense': ['Passing','Shot quality'],
-  'Passing':           ['Shot quality','Forecheck offense'],
-  'Shot quality':      ['Passing','Playdriving'],
-  'Entry defense':     ['Playdriving'],
+  'Playdriving':       ['Shot Quality','Passing'],
+  'Forecheck Offense': ['Passing','Shot Quality'],
+  'Passing':           ['Shot Quality','Forecheck Offense'],
+  'Shot Quality':      ['Passing','Playdriving'],
+  'Entry Defense':     ['Playdriving'],
   'Physicality':       ['Passing','Playdriving'],
   'Speed':             ['Playdriving'],
-  'Endurance':         ['Forecheck offense'],
+  'Endurance':         ['Forecheck Offense'],
 };
 const GM_COMP_DMAN = {
-  'Entry defense':         ['Playdriving'],
-  'Playdriving':           ['Entry defense','Passing'],
-  'Passing':               ['Shot quality','Playdriving'],
-  'Shot quality':          ['Passing'],
+  'Entry Defense':         ['Playdriving'],
+  'Playdriving':           ['Entry Defense','Passing'],
+  'Passing':               ['Shot Quality','Playdriving'],
+  'Shot Quality':          ['Passing'],
   'Def. Zone Exits':          ['Playdriving'],
-  'Transition offense':    ['Entry defense'],
-  'Off. Zone Involvement': ['Penalty kill','Entry defense'],
+  'Transition Offense':    ['Entry Defense'],
+  'Off. Zone Involvement': ['Penalty Kill','Entry Defense'],
 };
 const GM_ATTR_THRESHOLD = 70;
 
@@ -4987,8 +4984,8 @@ function gmConfirmTrade() {
 function gmGetCategoryRanks(overrideRoster) {
   const tc      = gmState.teamCode;
   const DOTTED  = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
-  const EXCLUDE_CATS = new Set(['On-ice offense','On-ice defense','Relative offense',
-    'Relative defense','Shot suppression','Quality of comp.','Time on ice']);
+  const EXCLUDE_CATS = new Set(['On-Ice Offense','On-Ice Defense','Relative offense',
+    'Relative defense','Shot Suppression','Quality of comp.','Time on ice']);
 
   // Get all team profiles
   const allProfiles = {};
@@ -5005,7 +5002,7 @@ function gmGetCategoryRanks(overrideRoster) {
   }
 
   // Rank each category (higher = better for all except negatives)
-  const NEG_CATS = new Set(['Giveaways','Penalty minutes']);
+  const NEG_CATS = new Set(['Giveaways','Penalty Minutes']);
   const allCats  = new Set(Object.values(allProfiles).flatMap(a=>Object.keys(a)));
   const catRanks = {};
 
@@ -6091,23 +6088,23 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="attr_Physicality">Physicality</option>
           <option value="attr_Goalscoring">Goalscoring</option>
           <option value="attr_Finishing">Finishing</option>
-          <option value="attr_Shot speed">Shot speed</option>
-          <option value="attr_Shot volume">Shot volume</option>
-          <option value="attr_Shot quality">Shot quality</option>
+          <option value="attr_Shot Speed">Shot Speed</option>
+          <option value="attr_Shot Volume">Shot Volume</option>
+          <option value="attr_Shot Quality">Shot Quality</option>
           <option value="attr_Playdriving">Playdriving</option>
           <option value="attr_Passing">Passing</option>
-          <option value="attr_Rush offense">Rush offense</option>
-          <option value="attr_Forecheck offense">Forecheck offense</option>
-          <option value="attr_Cycle offense">Cycle offense</option>
-          <option value="attr_Net-front presence">Net-front presence</option>
-          <option value="attr_Shot suppression">Shot suppression</option>
+          <option value="attr_Rush Offense">Rush Offense</option>
+          <option value="attr_Forecheck Offense">Forecheck Offense</option>
+          <option value="attr_Cycle Offense">Cycle Offense</option>
+          <option value="attr_Net-Front Presence">Net-Front Presence</option>
+          <option value="attr_Shot Suppression">Shot Suppression</option>
           <option value="attr_Takeaways">Takeaways</option>
           <option value="attr_Giveaways">Giveaways</option>
-          <option value="attr_Entry defense">Entry defense</option>
+          <option value="attr_Entry Defense">Entry Defense</option>
           <option value="attr_Def. Zone Exits">Def. Zone Exits</option>
           <option value="attr_Quality of comp.">Quality of competition</option>
-          <option value="attr_Power play">Power play</option>
-          <option value="attr_Penalty kill">Penalty kill</option>
+          <option value="attr_Power Play">Power Play</option>
+          <option value="attr_Penalty Kill">Penalty Kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
         </optgroup>
       </select>
@@ -6230,25 +6227,26 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="Physicality">Physicality</option>
         <option value="Goalscoring">Goalscoring</option>
         <option value="Finishing">Finishing</option>
-        <option value="Shot volume">Shot volume</option>
-        <option value="Shot quality">Shot quality</option>
-        <option value="Shot speed">Shot speed</option>
+        <option value="Shot Volume">Shot Volume</option>
+        <option value="Shot Quality">Shot Quality</option>
+        <option value="Shot Speed">Shot Speed</option>
         <option value="Passing">Passing</option>
         <option value="Playdriving">Playdriving</option>
-        <option value="Rush offense">Rush offense</option>
-        <option value="Forecheck offense">Forecheck offense</option>
-        <option value="Cycle offense">Cycle offense</option>
-        <option value="Net-front presence">Net-front presence</option>
+        <option value="Rush Offense">Rush Offense</option>
+        <option value="Forecheck Offense">Forecheck Offense</option>
+        <option value="Cycle Offense">Cycle Offense</option>
+        <option value="Net-Front Presence">Net-Front Presence</option>
         <option value="Faceoffs">Faceoffs</option>
-        <option value="Entry defense">Entry defense</option>
+        <option value="Entry Defense">Entry Defense</option>
+        <option value="Retrievals">Retrievals</option>
         <option value="Def. Zone Exits">Def. Zone Exits</option>
-        <option value="Shot suppression">Shot suppression</option>
+        <option value="Shot Suppression">Shot Suppression</option>
         <option value="Takeaways">Takeaways</option>
-        <option value="Power play">Power play</option>
-        <option value="Penalty kill">Penalty kill</option>
-        <option value="Penalty differential">Penalty differential</option>
-        <option value="On-ice offense">On-ice offense</option>
-        <option value="On-ice defense">On-ice defense</option>
+        <option value="Power Play">Power Play</option>
+        <option value="Penalty Kill">Penalty Kill</option>
+        <option value="Penalty Differential">Penalty Differential</option>
+        <option value="On-Ice Offense">On-Ice Offense</option>
+        <option value="On-Ice Defense">On-Ice Defense</option>
       </select>
       <select class="lb-select" id="tr-pos">
         <option value="all">All skaters</option>
@@ -6350,23 +6348,23 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="attr_Physicality">Physicality</option>
           <option value="attr_Goalscoring">Goalscoring</option>
           <option value="attr_Finishing">Finishing</option>
-          <option value="attr_Shot speed">Shot speed</option>
-          <option value="attr_Shot volume">Shot volume</option>
-          <option value="attr_Shot quality">Shot quality</option>
+          <option value="attr_Shot Speed">Shot Speed</option>
+          <option value="attr_Shot Volume">Shot Volume</option>
+          <option value="attr_Shot Quality">Shot Quality</option>
           <option value="attr_Playdriving">Playdriving</option>
           <option value="attr_Passing">Passing</option>
-          <option value="attr_Rush offense">Rush offense</option>
-          <option value="attr_Forecheck offense">Forecheck offense</option>
-          <option value="attr_Cycle offense">Cycle offense</option>
-          <option value="attr_Net-front presence">Net-front presence</option>
-          <option value="attr_Shot suppression">Shot suppression</option>
+          <option value="attr_Rush Offense">Rush Offense</option>
+          <option value="attr_Forecheck Offense">Forecheck Offense</option>
+          <option value="attr_Cycle Offense">Cycle Offense</option>
+          <option value="attr_Net-Front Presence">Net-Front Presence</option>
+          <option value="attr_Shot Suppression">Shot Suppression</option>
           <option value="attr_Takeaways">Takeaways</option>
           <option value="attr_Giveaways">Giveaways</option>
-          <option value="attr_Entry defense">Entry defense</option>
+          <option value="attr_Entry Defense">Entry Defense</option>
           <option value="attr_Def. Zone Exits">Def. Zone Exits</option>
           <option value="attr_Quality of comp.">Quality of competition</option>
-          <option value="attr_Power play">Power play</option>
-          <option value="attr_Penalty kill">Penalty kill</option>
+          <option value="attr_Power Play">Power Play</option>
+          <option value="attr_Penalty Kill">Penalty Kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
         </optgroup>
       </select>
@@ -6478,26 +6476,26 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="attr_Physicality">Physicality</option>
           <option value="attr_Goalscoring">Goalscoring</option>
           <option value="attr_Finishing">Finishing</option>
-          <option value="attr_Shot speed">Shot speed</option>
-          <option value="attr_Shot volume">Shot volume</option>
-          <option value="attr_Shot quality">Shot quality</option>
-          <option value="attr_Net-front presence">Net-front presence</option>
+          <option value="attr_Shot Speed">Shot Speed</option>
+          <option value="attr_Shot Volume">Shot Volume</option>
+          <option value="attr_Shot Quality">Shot Quality</option>
+          <option value="attr_Net-Front Presence">Net-Front Presence</option>
           <option value="attr_Playdriving">Playdriving</option>
           <option value="attr_Passing">Passing</option>
-          <option value="attr_Rush offense">Rush offense</option>
-          <option value="attr_Forecheck offense">Forecheck offense</option>
-          <option value="attr_Cycle offense">Cycle offense</option>
+          <option value="attr_Rush Offense">Rush Offense</option>
+          <option value="attr_Forecheck Offense">Forecheck Offense</option>
+          <option value="attr_Cycle Offense">Cycle Offense</option>
           <option value="attr_On-Ice Offense">On-Ice Offense</option>
           <option value="attr_Def. Zone Exits">Def. Zone Exits</option>
-          <option value="attr_Shot suppression">Shot suppression</option>
+          <option value="attr_Shot Suppression">Shot Suppression</option>
           <option value="attr_Takeaways">Takeaways</option>
           <option value="attr_Giveaways">Giveaways</option>
-          <option value="attr_Entry defense">Entry defense</option>
+          <option value="attr_Entry Defense">Entry Defense</option>
           <option value="attr_On-Ice Defense">On-Ice Defense</option>
           <option value="attr_Off. Zone Involvement">Off. Zone Involvement</option>
           <option value="attr_Penalty Differential">Penalty Differential</option>
-          <option value="attr_Power play">Power play</option>
-          <option value="attr_Penalty kill">Penalty kill</option>
+          <option value="attr_Power Play">Power Play</option>
+          <option value="attr_Penalty Kill">Penalty Kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
         </optgroup>
       </select>
