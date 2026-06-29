@@ -796,6 +796,15 @@ async function prefetchAllRosters() {
   await chunk(teams.slice(24));
   // Reconcile current_team for multi-team players using live roster as truth
   reconcileCurrentTeams();
+  // Re-render open search dropdown so live team shows immediately
+  try {
+    const inp = document.getElementById('card-search');
+    const dd  = document.getElementById('card-dd');
+    if (inp && dd && inp.value.trim().length >= 2 && dd.classList.contains('open')) {
+      const results = searchPlayers(inp.value, 'all');
+      renderDropdown(results, dd);
+    }
+  } catch(e) {}
   // Update jersey number display if a player card is open
   if (currentPlayer) {
     const num = nhlJerseyCache[currentPlayer.name];
@@ -976,22 +985,7 @@ async function showPlayer(p) {
     const fallEl = document.getElementById('ph-init');
     if (imgEl && fallEl) tryHeadshot(pid, imgEl, fallEl, p.name);
     fetchNHLBoxScore(p.name).then(stats => { if (stats) renderNHLStats(stats, p); });
-    // Dynamically update team from NHL API (handles trades not yet in JSON)
-    fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent('https://api-web.nhle.com/v1/player/'+pid+'/landing')}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data) return;
-        const liveTeam = data.currentTeamAbbrev || data.fullTeamName;
-        if (liveTeam) {
-          const teamEl = document.getElementById('ph-team');
-          if (teamEl && teamEl.textContent !== liveTeam) {
-            teamEl.textContent = liveTeam;
-            teamEl.title = 'Team updated live from NHL API';
-            teamEl.style.borderBottom = '1px dashed var(--teal)';
-            teamEl.style.cursor = 'help';
-          }
-        }
-      }).catch(() => {});
+    // Team already reconciled via /nhl-api roster proxy in reconcileCurrentTeams()
   });
   // Async: comps
   const compData = await loadComps(p._type);
@@ -2525,7 +2519,7 @@ function renderMicrostatPanel(p) {
 
   // ── Grouped microstat bars ───────────────────────────────────────────────
   const MICRO_GROUPS = [
-    { label: 'In-Zone Offense',       keys: ['Rebounds Created','Shots off Dangerous Passes','One Timer Assists','One Timers'] },
+    { label: 'In-Zone Offense',       keys: ['Rebounds Created','Shots off Dangerous Passes','One Timer Assists','One Timers',...((p._type==='D'||p._type==='LD'||p._type==='RD')?['Cycle Offense Rate']:[])], },
     { label: 'Forecheck',             keys: ['Forecheck Work Rate','Forecheck Recovery Success'] },
     { label: 'Offensive Zone Entries',keys: ['Zone Entry Work Rate','% of Entries Carried In','Zone Entry Failure Rate'] },
     { label: 'Entry Defense',         keys: ['Entry Denial Rate','Frequency of Chances Allowed'] },
@@ -2545,7 +2539,7 @@ function renderMicrostatPanel(p) {
       <div style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.35rem;">${grp.label}</div>`;
     for (const m of items) {
       const clr = bc(m.pct);
-      const invertNote = (m.invert && m.name !== 'Puck Retrievals Score') ? ' <span style="font-size:.55rem;color:var(--text3);">(lower=better)</span>' : '';
+      const invertNote = (m.invert && m.name !== 'Puck Retrievals Score') ? ' <span style="font-size:.55rem;color:var(--text3);">(high score=less)</span>' : '';
       html += `<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.28rem;">
         <div style="width:170px;font-size:.7rem;color:var(--text2);text-align:right;flex-shrink:0;">${m.name}${invertNote}</div>
         <div style="flex:1;background:var(--surface3);border-radius:3px;height:8px;overflow:hidden;">
@@ -5330,6 +5324,10 @@ function ostShowTeam(tc) {
         '<div style="text-align:center;min-width:44px;">'+
           '<div style="font-size:.78rem;font-weight:600;color:var(--text);">'+fmtM(t.new_cap)+'</div>'+
           '<div style="font-size:.55rem;color:var(--text3);">cap</div>'+
+        '</div>'+
+        '<div style="text-align:center;min-width:44px;">'+
+          '<div style="font-size:.78rem;font-weight:600;color:var(--text2);">'+fmtM(t.prev_value)+'</div>'+
+          '<div style="font-size:.55rem;color:var(--text3);">25-26 val</div>'+
         '</div>'+
         '<div style="text-align:center;min-width:44px;">'+
           '<div style="font-size:.78rem;font-weight:700;color:var(--teal);">'+fmtM(t.comp_value)+'</div>'+
