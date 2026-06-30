@@ -2565,51 +2565,70 @@ function renderPlayoffPanel(p) {
     badge.textContent = '';
   }
 
-  // ── Rankings summary strip (Off Prod / Def Prod / Off Analytics / Def Analytics) ──
-  const bc = v => v == null ? 'var(--text3)' : v >= 70 ? 'var(--teal)' : v <= 30 ? 'var(--coral)' : 'var(--mid)';
-  const tiles = [
-    { val: pl.off_prod,      lbl: 'Off Production' },
-    { val: pl.def_prod,      lbl: 'Def Production' },
-    { val: pl.off_analytics, lbl: 'Off Analytics'  },
-    { val: pl.def_analytics, lbl: 'Def Analytics'  },
-  ].filter(t => t.val != null);
+  // Helper: build a "(+N)"/"(-N)" delta string vs the reg-season value for the
+  // same named stat. Looks up the reg-season pct from p.categories by name.
+  const regCatLookup = {};
+  for (const rows of Object.values(p.categories || {})) {
+    for (const c of rows) regCatLookup[c.name] = c.pct;
+  }
+  const deltaSuffix = (name, playVal, regVal) => {
+    const rv = regVal != null ? regVal : regCatLookup[name];
+    if (playVal == null || rv == null) return '';
+    const d = playVal - rv;
+    const sign = d >= 0 ? '+' : '\u2212';
+    return ` <span style="font-size:.68rem;color:${d>0?'var(--teal)':d<0?'var(--coral)':'var(--text3)'};font-weight:500;">(${sign}${Math.abs(d)})</span>`;
+  };
 
-  const stripHtml = tiles.length ? `
-    <div style="display:grid;grid-template-columns:repeat(${tiles.length},1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:.75rem;">
-      <div style="grid-column:1/-1;background:var(--surface2);padding:.3rem .9rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
-        <span style="font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Rankings Summary (0–100)</span>
-        <span style="font-size:.6rem;color:var(--text3);">5v5 · 2025–26 Playoffs</span>
+  // ── Rankings summary strip — identical markup/classes to the main one ─────
+  const bcStrip = v => v==null?'var(--text3)':v>=70?'var(--teal)':v<=30?'var(--coral)':'var(--mid)';
+  const stripTiles = [
+    { val: pl.off_prod,      reg: p.progression?.off_prod?.find ? null : null, regKey: 'off_prod',      lbl: 'Off Production' },
+    { val: pl.def_prod,      regKey: 'def_prod',      lbl: 'Def Production' },
+    { val: pl.off_analytics, regKey: 'off_analytics', lbl: 'Off Analytics'  },
+    { val: pl.def_analytics, regKey: 'def_analytics', lbl: 'Def Analytics'  },
+  ];
+  // Reg-season equivalent for these four comes from the progression track's
+  // most recent 2025-26 entry (same source renderAnalyticsStrip() uses).
+  const lastProgPct = (key) => {
+    const arr = p.progression?.[key];
+    if (!Array.isArray(arr) || !arr.length) return null;
+    for (let i = arr.length-1; i>=0; i--) { const v = arr[i]?.pct; if (v!=null && v!=='' && !isNaN(v)) return v; }
+    return null;
+  };
+  const stripHtml = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;">
+      <div style="grid-column:1/-1;background:var(--surface2);padding:.35rem 1rem;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Rankings Summary (0\u2013100)</span>
+        <span style="font-size:.65rem;color:var(--text3);">5v5 \u00b7 Playoffs</span>
       </div>
-      ${tiles.map(t => `<div class="stat-cell"><div class="stat-val" style="color:${bc(t.val)};font-size:.9rem;">${t.val}</div><div class="stat-lbl">${t.lbl}</div></div>`).join('')}
-    </div>` : '';
+      ${stripTiles.map(t => {
+        const regV = lastProgPct(t.regKey);
+        return `<div class="stat-cell"><div class="stat-val" style="color:${bcStrip(t.val)};font-size:.85rem;white-space:nowrap;">${t.val??'\u2013'}${deltaSuffix(t.lbl, t.val, regV)}</div><div class="stat-lbl">${t.lbl}</div></div>`;
+      }).join('')}
+    </div>`;
 
-  // ── Category breakdown grid ───────────────────────────────────────────────
+  // ── Category breakdown — EXACT same markup/classes as the main Rankings Breakdown ──
   const cats = pl.categories || {};
-  const barClr = v => v>=65?'var(--teal)':v>=55?'rgba(45,212,160,0.55)':v>=45?'var(--mid)':v>=35?'rgba(244,98,74,0.55)':'var(--coral)';
-
   let catHtml = '';
-  for (const [grp, items] of Object.entries(cats)) {
-    catHtml += `<div style="margin-bottom:.6rem;">
-      <div style="font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.35rem;">${grp}</div>
-      <div class="tm-cat-grid">`;
-    for (const item of items) {
-      const pv = item.pct ?? 0;
-      const c  = barClr(pv);
-      catHtml += `<div class="tm-cat-card">
-        <div class="tm-cat-name">${item.name}</div>
-        <div class="tm-cat-bar"><div class="tm-cat-fill" style="width:${pv}%;background:${c};"></div></div>
-        <div class="tm-cat-pct" style="color:${c};">${item.pct != null ? item.pct : '–'}</div>
+  for (const [grp, rows] of Object.entries(cats)) {
+    catHtml += `<div class="grp-hd"><span class="grp-label">${grp}</span><div class="grp-line"></div></div>`;
+    for (const cat of rows) {
+      const pc  = cat.pct ?? 0;
+      const cls = barClass(pc);
+      catHtml += `<div class="cat-row">
+        <div class="cat-name-wrap"><span class="cat-name">${cat.name}</span></div>
+        <div class="cat-track"><div class="cat-fill ${cls}" style="width:${pc}%;"></div></div>
+        <span class="cat-pct ${cls}" style="width:auto;white-space:nowrap;">${cat.pct != null ? cat.pct : '\u2013'}${deltaSuffix(cat.name, cat.pct)}</span>
       </div>`;
     }
-    catHtml += '</div></div>';
   }
 
-  // ── Legend ────────────────────────────────────────────────────────────────
+  // ── Legend — identical to the main one ────────────────────────────────────
   const legendHtml = `
     <div class="cat-legend" style="margin-top:.5rem;">
-      <div class="leg-item"><div class="leg-dot" style="background:var(--teal);"></div>Strong (≥70th)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--teal);"></div>Strong (\u226570th)</div>
       <div class="leg-item"><div class="leg-dot" style="background:var(--mid);"></div>Average</div>
-      <div class="leg-item"><div class="leg-dot" style="background:var(--coral);"></div>Weak (≤30th)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--coral);"></div>Weak (\u226430th)</div>
     </div>`;
 
   content.innerHTML = stripHtml + catHtml + legendHtml;
