@@ -1718,7 +1718,7 @@
       "is_acquisition": true
     },
     {
-      "name": "Martin Feh\u00e9rv\u00e1ry",
+      "name": "Martin Fehérváry",
       "new_cap": 6000000,
       "prev_value": 6408994,
       "comp_value": 7890127,
@@ -2888,6 +2888,23 @@
       "old_team": "SJS",
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "is_acquisition": false
+    },
+    {
+      "name": "Carl Grundstrom",
+      "new_cap": 1000000,
+      "prev_value": 1967237,
+      "comp_value": 1967237,
+      "proj_surplus": 967237,
+      "old_cap": 1800000,
+      "surplus_2526": 167237,
+      "change_in_surplus": 800000,
+      "change_in_surplus_loss": 800000,
+      "new_team": "PHI",
+      "old_team": "PHI",
+      "fv_aav": null,
+      "avg_surplus_fv": null,
+      "pos_type": "F",
       "is_acquisition": false
     }
   ],
