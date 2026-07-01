@@ -89,11 +89,12 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .player-name{font-family:'DM Serif Display',serif;font-size:1.75rem;line-height:1.1;margin-bottom:.35rem;}
 .player-sub{font-size:.85rem;color:var(--text2);display:flex;align-items:center;gap:.5rem;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:.6rem;white-space:nowrap;}
 .sep{color:var(--text3);}
-.tags{display:flex;gap:.4rem;flex-wrap:wrap;}
-.tag{font-size:.72rem;font-weight:600;letter-spacing:.05em;padding:3px 9px;border-radius:4px;text-transform:uppercase;}
+.tags{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;}
+.tag{font-size:.72rem;font-weight:600;letter-spacing:.05em;padding:3px 9px;border-radius:4px;text-transform:uppercase;display:inline-flex;flex-direction:column;align-items:center;text-align:center;line-height:1.2;}
 .tag-contract{background:var(--surface3);color:var(--text2);}
 .tag-style{background:var(--blue-dim);color:var(--blue);}
 .overall-badge{flex-shrink:0;display:flex;flex-direction:column;background:var(--border);border:1px solid rgba(45,212,160,.25);border-radius:var(--radius-sm);overflow:hidden;}
+.gc-badge-wrap{margin-top:.5rem;display:inline-block;}
 .badge-hdr{font-size:.55rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:.3rem .5rem .15rem;background:var(--surface2);white-space:nowrap;}
 .badge-tiles{display:flex;flex-direction:row;gap:1px;background:var(--border);}
 .deal-expiry{font-size:.78rem;color:var(--text3);margin-top:.3rem;}
@@ -128,7 +129,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .deal-expiry{font-size:.68rem;margin-top:.2rem;}
   /* Badge: full width below the photo+info row, compact height */
   .overall-badge{flex:0 0 100%;flex-direction:row;margin-top:.5rem;justify-content:center;}
-  .badge-hdr{display:none;}
+  .badge-hdr{font-size:.5rem;padding:.2rem .4rem .1rem;}
   .badge-tiles{flex:1;display:flex;flex-direction:row;gap:1px;background:var(--border);}
   .overall-tile{flex:1;padding:.3rem .5rem;min-width:0;}
   .overall-num{font-size:1.3rem;}
@@ -415,7 +416,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <div id="nhl-analytics-strip"></div>
     <div class="panel" id="cat-panel">
       <div class="panel-hd">
-        <span class="panel-title">Rankings Breakdown</span>
+        <span class="panel-title">Rating Breakdown</span>
         <span class="panel-note">Percentile vs. all NHL players at position</span>
       </div>
       <div class="cat-section" id="cat-list"></div>
@@ -428,7 +429,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     <!-- ── Playoff Rankings expandable panel ── -->
     <div class="panel" id="playoff-panel" style="margin-top:.75rem;">
       <div class="panel-hd" id="playoff-hd" onclick="togglePlayoffPanel()" style="cursor:pointer;user-select:none;">
-        <span class="panel-title">2025–26 Playoff Rankings</span>
+        <span class="panel-title">2025–26 Playoff Rating</span>
         <span id="playoff-value-badge" style="margin-left:.6rem;font-size:.8rem;font-weight:700;"></span>
         <span id="playoff-toggle-icon" style="margin-left:auto;font-size:.78rem;color:var(--text3);">▼ Expand</span>
       </div>
@@ -1055,14 +1056,14 @@ function renderHeader(p) {
       </div>
       <div class="tags">
         <span class="tag tag-contract">${posDisplayGlobal(p)}</span>
-        ${p.role ? `<span class="tag" style="background:${ac}22;color:${ac};"><span style="opacity:.6;font-size:.62em;margin-right:2px;">TIER</span>${displayTier(p.role,p._type)}</span>` : ''}
-        ${p.actual_role ? `<span class="tag tag-contract"><span style="opacity:.6;font-size:.62em;margin-right:2px;">ROLE</span>${displayRole(p.actual_role,p._type)}</span>` : ''}
-        ${p.playstyle ? `<span class="tag tag-style">${p._type!=='D'?'<span style="opacity:.6;font-size:.62em;margin-right:2px;">STYLE</span>':''}${p.playstyle}</span>` : ''}
+        ${p.role ? `<span class="tag" style="background:${ac}22;color:${ac};"><span style="opacity:.6;font-size:.62em;display:block;line-height:1;">TIER</span>${displayTier(p.role,p._type)}</span>` : ''}
+        ${p.actual_role ? `<span class="tag tag-contract"><span style="opacity:.6;font-size:.62em;display:block;line-height:1;">ROLE</span>${displayRole(p.actual_role,p._type)}</span>` : ''}
+        ${p.playstyle ? `<span class="tag tag-style">${p._type!=='D'?'<span style="opacity:.6;font-size:.62em;display:block;line-height:1;">STYLE</span>':''}${p.playstyle}</span>` : ''}
       </div>
       ${exp ? `<div class="deal-expiry">Deal Expiry: ${exp}</div>` : ''}
     </div>
     <div class="overall-badge" style="border-color:${ac}33;">
-      <div class="badge-hdr" style="color:${ac};">Ranking (0–100)</div>
+      <div class="badge-hdr" style="color:${ac};">Rating (0–100)</div>
       <div class="badge-tiles">
         <div class="overall-tile" style="background:${ac}18;">
           <div class="overall-num" style="color:${ac};">${p.overall_pct??'–'}</div>
@@ -2040,7 +2041,7 @@ function renderAnalyticsStrip(p) {
   el.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
   el.innerHTML =
     `<div style="grid-column:1/-1;background:var(--surface2);padding:.35rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
-      <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Rankings Summary (0–100)</span>
+      <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Rating Summary (0–100)</span>
       <span style="font-size:.65rem;color:var(--text3);">5v5</span>
     </div>` +
     tiles.map(t =>
@@ -2622,7 +2623,7 @@ function renderPlayoffPanel(p) {
   const stripHtml = `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;">
       <div style="grid-column:1/-1;background:var(--surface2);padding:.35rem 1rem;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Playoff Rankings Summary (And Comparison with Regular Season)</span>
+        <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Playoff Rating Summary (Comparison with Regular Season)</span>
         <span style="font-size:.65rem;color:var(--text3);">5v5 \u00b7 Playoffs</span>
       </div>
       ${stripTiles.map(t => {
@@ -2631,7 +2632,7 @@ function renderPlayoffPanel(p) {
       }).join('')}
     </div>`;
 
-  // ── Category breakdown — EXACT same markup/classes as the main Rankings Breakdown ──
+  // ── Category breakdown — EXACT same markup/classes as the main Rating Breakdown ──
   const cats = pl.categories || {};
   let catHtml = '';
   for (const [grp, rows] of Object.entries(cats)) {
@@ -2761,17 +2762,19 @@ function renderGoalieCard(g) {
           <span class="sep">\u00b7</span><span>${g.height||'\u2013'} \u00b7 ${g.weight?g.weight+' lbs':'\u2013'}</span>
         </div>
         ${g.exp_year?`<div class="deal-expiry">Deal Expiry: ${g.exp_year} ${g.expiry_type||''}</div>`:''}
-      </div>
-      <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
-        <div class="badge-hdr" style="color:var(--blue);">Ranking (0–100)</div>
-        <div class="badge-tiles">
-          <div class="overall-tile" style="background:rgba(91,156,246,0.12);">
-            <div class="overall-num" style="color:var(--blue);">${ov}</div>
-            <div class="overall-lbl" style="color:var(--blue);">2025\u201326</div>
-          </div>
-          <div class="overall-tile" style="background:rgba(91,156,246,0.07);">
-            <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.comp_value_norm??'\u2013'}</div>
-            <div class="overall-lbl" style="color:var(--blue);opacity:.75;">Historical</div>
+        <div class="gc-badge-wrap">
+          <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
+            <div class="badge-hdr" style="color:var(--blue);">Rating (0–100)</div>
+            <div class="badge-tiles">
+              <div class="overall-tile" style="background:rgba(91,156,246,0.12);">
+                <div class="overall-num" style="color:var(--blue);">${ov}</div>
+                <div class="overall-lbl" style="color:var(--blue);">2025\u201326</div>
+              </div>
+              <div class="overall-tile" style="background:rgba(91,156,246,0.07);">
+                <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.comp_value_norm??'\u2013'}</div>
+                <div class="overall-lbl" style="color:var(--blue);opacity:.75;">Historical</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
