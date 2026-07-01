@@ -2906,6 +2906,23 @@
       "avg_surplus_fv": null,
       "pos_type": "F",
       "is_acquisition": false
+    },
+    {
+      "name": "Jack St. Ivany",
+      "new_cap": 850000,
+      "prev_value": 5239434,
+      "comp_value": 5239434,
+      "proj_surplus": 4464434,
+      "old_cap": 850000,
+      "surplus_2526": 4389434,
+      "change_in_surplus": 75000,
+      "change_in_surplus_loss": 75000,
+      "new_team": "WPG",
+      "old_team": "PIT",
+      "fv_aav": null,
+      "avg_surplus_fv": null,
+      "pos_type": "D",
+      "is_acquisition": true
     }
   ],
   "team_summary": {
