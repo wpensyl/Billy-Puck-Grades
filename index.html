@@ -89,7 +89,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .player-name{font-family:'DM Serif Display',serif;font-size:1.75rem;line-height:1.1;margin-bottom:.35rem;}
 .player-sub{font-size:.85rem;color:var(--text2);display:flex;align-items:center;gap:.5rem;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:.6rem;white-space:nowrap;}
 .sep{color:var(--text3);}
-.tags{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center;}
+.tags{display:flex;gap:.4rem;flex-wrap:wrap;}
 .tag{font-size:.72rem;font-weight:600;letter-spacing:.05em;padding:3px 9px;border-radius:4px;text-transform:uppercase;display:inline-flex;flex-direction:column;align-items:center;text-align:center;line-height:1.2;}
 .tag-contract{background:var(--surface3);color:var(--text2);}
 .tag-style{background:var(--blue-dim);color:var(--blue);}
@@ -127,10 +127,10 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .tags{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:1px;justify-content:center;align-items:center;}
   .tag{font-size:.64rem;padding:2px 6px;}
   .deal-expiry{font-size:.68rem;margin-top:.2rem;}
-  /* Badge: full width below the photo+info row, compact height */
-  .overall-badge{flex:0 0 100%;flex-direction:row;margin-top:.5rem;justify-content:center;}
-  .badge-hdr{font-size:.5rem;padding:.2rem .4rem .1rem;}
-  .badge-tiles{flex:1;display:flex;flex-direction:row;gap:1px;background:var(--border);}
+  /* Badge: full width below photo+info row; header on top, tiles below */
+  .overall-badge{flex:0 0 100%;flex-direction:column !important;margin-top:.5rem;width:100%;}
+  .badge-hdr{font-size:.5rem;padding:.2rem .4rem .1rem;display:block !important;width:100%;}
+  .badge-tiles{display:flex !important;flex-direction:row;gap:1px;background:var(--border);width:100%;}
   .overall-tile{flex:1;padding:.3rem .5rem;min-width:0;}
   .overall-num{font-size:1.3rem;}
   .overall-lbl{font-size:.52rem;}
