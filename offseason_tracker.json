@@ -2923,6 +2923,23 @@
       "avg_surplus_fv": null,
       "pos_type": "D",
       "is_acquisition": true
+    },
+    {
+      "name": "Jonatan Berggren",
+      "new_cap": 2000000,
+      "prev_value": 2417045,
+      "comp_value": 1985340,
+      "proj_surplus": 417045,
+      "old_cap": 1825000,
+      "surplus_2526": 592045,
+      "change_in_surplus": -175000,
+      "change_in_surplus_loss": -175000,
+      "new_team": "STL",
+      "old_team": "STL",
+      "fv_aav": null,
+      "avg_surplus_fv": null,
+      "pos_type": "F",
+      "is_acquisition": false
     }
   ],
   "team_summary": {
