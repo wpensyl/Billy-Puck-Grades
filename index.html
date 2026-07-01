@@ -123,7 +123,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .player-name{font-size:1rem;margin-bottom:.15rem;}
   .player-sub{font-size:.72rem;margin-bottom:.25rem;}
   /* Tags on one scrollable line */
-  .tags{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:1px;}
+  .tags{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:1px;justify-content:center;align-items:center;}
   .tag{font-size:.64rem;padding:2px 6px;}
   .deal-expiry{font-size:.68rem;margin-top:.2rem;}
   /* Badge: full width below the photo+info row, compact height */
@@ -4745,7 +4745,8 @@ function gmOpenResign() {
           ${fas.map(r=>`<option value="${r.p.name}">${r.p.name} — ${r.p.pos||r.p._type} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · Current: ${'$'+(((r.gmCap||r.p.cap)||0)/1e6).toFixed(2)}M</option>`).join('')}
         </select>
         <div id="gm-resign-goalie-note" style="display:none;font-size:.82rem;color:var(--text3);margin-bottom:.4rem;">Goalie re-sign · Offer: <span id="gm-goalie-offer-val" style="color:var(--teal);font-weight:600;">–</span>/yr</div><div id="gm-resign-terms" style="display:flex;gap:.35rem;flex-wrap:wrap;"></div>
-        <button class="calc-term-btn" onclick="gmConfirmResign()">Confirm Re-sign</button>
+        <button class="calc-term-btn" id="gm-confirm-resign-btn" style="color:var(--text3);border-color:var(--text3);opacity:.6;" onclick="gmConfirmResign()">Confirm Re-sign</button>
+        <div style="font-size:.65rem;color:var(--text3);margin-top:.3rem;width:100%;">Select a term above, then confirm</div>
         <button class="calc-term-btn" style="color:var(--coral);border-color:var(--coral);" onclick="gmLetWalkFromResign()">Let Walk</button>
         <button class="calc-term-btn" onclick="document.getElementById('gm-action-area').innerHTML=''">Cancel</button>
       </div>
@@ -4784,6 +4785,14 @@ function gmUpdateResignCap() {
   const name = document.getElementById('gm-resign-player')?.value;
   const r = gmState.roster.find(r=>r.p.name===name);
   const isGoalie = r?.p._type === 'G';
+  // Reset confirm button when player changes
+  const confirmBtn2 = document.getElementById('gm-confirm-resign-btn');
+  if (confirmBtn2) {
+    confirmBtn2.style.color = 'var(--text3)';
+    confirmBtn2.style.borderColor = 'var(--text3)';
+    confirmBtn2.style.opacity = '.6';
+    confirmBtn2.style.fontWeight = '';
+  }
   const termsEl = document.getElementById('gm-resign-terms');
   if (termsEl) termsEl.style.display = isGoalie ? 'none' : '';
   const goalieArea = document.getElementById('gm-resign-goalie-note');
@@ -4813,6 +4822,14 @@ function gmSetResignTerm(t) {
   document.querySelectorAll('#gm-resign-terms .calc-term-btn').forEach(b=>{
     b.classList.toggle('active', +b.textContent[0]===t);
   });
+  // Activate Confirm Re-sign button in teal once a term is selected
+  const confirmBtn = document.getElementById('gm-confirm-resign-btn');
+  if (confirmBtn) {
+    confirmBtn.style.color = 'var(--teal)';
+    confirmBtn.style.borderColor = 'var(--teal)';
+    confirmBtn.style.opacity = '1';
+    confirmBtn.style.fontWeight = '700';
+  }
 }
 
 function gmConfirmResign() {
