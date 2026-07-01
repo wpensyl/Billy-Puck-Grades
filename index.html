@@ -109,8 +109,9 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 
 /* ── MOBILE: Portrait fixes (≤600px) ─────────────────────────────────────── */
 @media(max-width:600px){
-  .player-header{flex-wrap:wrap;}
-  .overall-badge{flex-direction:row;width:100%;justify-content:center;margin-top:.5rem;}
+  .player-header{flex-wrap:nowrap;overflow:hidden;}
+  .player-sub{font-size:.72rem;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;}
+  .overall-badge{flex-direction:row;flex-shrink:0;}
   .overall-tile{padding:.4rem .75rem;}
   .overall-num{font-size:1.5rem;}
   .player-name{font-size:1.25rem;}
@@ -1429,7 +1430,7 @@ function renderContract(p) {
       <div class="contract-chart-title">Projected value vs. cap hit \u2014 2025\u201326 through 2034\u201335</div>
       <div style="position:relative;height:160px;"><canvas id="contract-chart"></canvas></div>
       <div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">
-        <div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Proj. value</span></div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Value / Proj. value</span></div>
         <div class="leg-item"><div class="leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="font-size:.72rem;color:var(--text3);">Cap hit</span></div>
       </div>
     </div>`;
@@ -1450,7 +1451,10 @@ function renderContract(p) {
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
-        callbacks:{label:ctx=>`${ctx.dataset.label}: $${Math.round(ctx.raw||0).toLocaleString()}`}}},
+        callbacks:{label:ctx=>{
+            const lbl = (ctx.datasetIndex===0 && ctx.dataIndex===0) ? 'Value' : ctx.dataset.label;
+            return `${lbl}: $${Math.round(ctx.raw||0).toLocaleString()}`;
+          }}}},
       scales:{
         x:{grid:{display:false},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
         y:{min:0,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#555a6a',font:{family:'Karla',size:10},callback:v=>v>=1e6?'$'+(v/1e6).toFixed(0)+'M':''}},
