@@ -84,8 +84,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .panel-note{font-size:.7rem;color:var(--text3);}
 .player-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem;display:flex;gap:1.25rem;align-items:flex-start;position:relative;overflow:hidden;}
 .player-header::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--teal),transparent 60%);}
-.player-photo{width:72px;height:72px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--border2);}
-.player-initials{width:72px;height:72px;border-radius:50%;flex-shrink:0;background:var(--surface3);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--text2);}
+.player-photo{width:84px;height:84px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--border2);}
+.player-initials{width:84px;height:84px;border-radius:50%;flex-shrink:0;background:var(--surface3);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--text2);}
 .player-name{font-family:'DM Serif Display',serif;font-size:1.75rem;line-height:1.1;margin-bottom:.35rem;}
 .player-sub{font-size:.85rem;color:var(--text2);display:flex;align-items:center;gap:.5rem;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:.6rem;white-space:nowrap;}
 .sep{color:var(--text3);}
@@ -117,14 +117,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .player-header{flex-wrap:wrap;align-items:flex-start;padding:.85rem .9rem;gap:.6rem;}
   .gc-header{flex-wrap:wrap;align-items:flex-start;padding:.85rem .9rem;gap:.6rem;}
   /* Photo row: photo + info side by side, full width */
-  .player-photo,.player-initials{width:50px;height:50px;font-size:1rem;flex-shrink:0;}
+  .player-photo,.player-initials{width:58px;height:58px;font-size:1.1rem;flex-shrink:0;}
   /* Info block takes remaining width */
   .player-header>div[style*="flex:1"],.gc-header>div[style*="flex:1"]{flex:1;min-width:0;}
   /* Compact text */
   .player-name{font-size:1rem;margin-bottom:.15rem;}
   .player-sub{font-size:.72rem;margin-bottom:.25rem;}
   /* Tags on one scrollable line */
-  .tags{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:1px;justify-content:center;align-items:center;}
+  .tags{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:1px;align-items:center;}
   .tag{font-size:.64rem;padding:2px 6px;}
   .deal-expiry{font-size:.68rem;margin-top:.2rem;}
   /* Badge: full width below photo+info row; header on top, tiles below */
