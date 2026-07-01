@@ -93,7 +93,10 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .tag{font-size:.72rem;font-weight:600;letter-spacing:.05em;padding:3px 9px;border-radius:4px;text-transform:uppercase;}
 .tag-contract{background:var(--surface3);color:var(--text2);}
 .tag-style{background:var(--blue-dim);color:var(--blue);}
-.overall-badge{flex-shrink:0;display:flex;flex-direction:row;gap:1px;background:var(--border);border:1px solid rgba(45,212,160,.25);border-radius:var(--radius-sm);overflow:hidden;}
+.overall-badge{flex-shrink:0;display:flex;flex-direction:column;background:var(--border);border:1px solid rgba(45,212,160,.25);border-radius:var(--radius-sm);overflow:hidden;}
+.badge-hdr{font-size:.55rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:.3rem .5rem .15rem;background:var(--surface2);white-space:nowrap;}
+.badge-tiles{display:flex;flex-direction:row;gap:1px;background:var(--border);}
+.deal-expiry{font-size:.78rem;color:var(--text3);margin-top:.3rem;}
 .overall-tile{display:flex;flex-direction:column;align-items:center;padding:.6rem .85rem;background:var(--teal-dim);min-width:66px;}
 .overall-num{font-family:DM Mono,monospace;font-size:2rem;font-weight:500;color:var(--teal);line-height:1;}
 .overall-lbl{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);opacity:.7;margin-top:4px;}
@@ -109,17 +112,26 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 
 /* ── MOBILE: Portrait fixes (≤600px) ─────────────────────────────────────── */
 @media(max-width:600px){
-  /* Wrap the badge below the photo+info row */
-  .player-header{flex-wrap:wrap;align-items:flex-start;}
-  .gc-header{flex-wrap:wrap;align-items:flex-start;}
-  /* Photo + name take up their natural space; badge wraps to new row */
-  .overall-badge{flex:0 0 100%;max-width:100%;flex-direction:row;margin-top:.6rem;justify-content:flex-start;}
-  .overall-tile{padding:.35rem .9rem;min-width:60px;}
-  .overall-num{font-size:1.4rem;}
-  .player-name{font-size:1.2rem;}
-  .player-sub{font-size:.78rem;}
-  /* Tags scroll horizontally instead of wrapping to new lines */
-  .tags{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;}
+  /* Keep header as one row: photo | name+info | badge side by side */
+  .player-header{flex-wrap:nowrap;align-items:flex-start;padding:1rem .9rem;gap:.75rem;}
+  .gc-header{flex-wrap:nowrap;align-items:flex-start;padding:1rem .9rem;gap:.75rem;}
+  /* Shrink photo on mobile */
+  .player-photo,.player-initials{width:52px;height:52px;font-size:1.1rem;}
+  /* Compact name */
+  .player-name{font-size:1.05rem;margin-bottom:.2rem;}
+  .player-sub{font-size:.72rem;margin-bottom:.3rem;}
+  /* Tags stay on one scrollable line */
+  .tags{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:1px;}
+  .tag{font-size:.64rem;padding:2px 6px;}
+  .deal-expiry{font-size:.7rem;}
+  /* Badge on the right, compact */
+  .overall-badge{flex-shrink:0;align-self:flex-start;}
+  .badge-hdr{font-size:.48rem;padding:.2rem .4rem .1rem;}
+  .overall-tile{padding:.3rem .55rem;min-width:44px;}
+  .overall-num{font-size:1.25rem;}
+  .overall-lbl{font-size:.52rem;}
+  /* Center the badge on mobile */
+  .overall-badge{margin-left:auto;}
   .lb-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .lb-table{min-width:520px;}
   .stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;}
@@ -1044,18 +1056,21 @@ function renderHeader(p) {
         <span class="tag tag-contract">${posDisplayGlobal(p)}</span>
         ${p.role ? `<span class="tag" style="background:${ac}22;color:${ac};"><span style="opacity:.6;font-size:.62em;margin-right:2px;">TIER</span>${p.role}</span>` : ''}
         ${p.actual_role ? `<span class="tag tag-contract"><span style="opacity:.6;font-size:.62em;margin-right:2px;">ROLE</span>${p.actual_role}</span>` : ''}
-        ${exp ? `<span class="tag tag-contract">${exp}</span>` : ''}
-        ${p.playstyle ? `<span class="tag tag-style">${p.playstyle}</span>` : ''}
+        ${p.playstyle ? `<span class="tag tag-style">${p._type!=='D'?'<span style="opacity:.6;font-size:.62em;margin-right:2px;">STYLE</span>':''}${p.playstyle}</span>` : ''}
       </div>
+      ${exp ? `<div class="deal-expiry">Deal Expiry: ${exp}</div>` : ''}
     </div>
     <div class="overall-badge" style="border-color:${ac}33;">
-      <div class="overall-tile" style="background:${ac}18;">
-        <div class="overall-num" style="color:${ac};">${p.overall_pct??'–'}</div>
-        <div class="overall-lbl" style="color:${ac};">25–26</div>
-      </div>
-      <div class="overall-tile" style="background:${ac}0d;">
-        <div class="overall-num" style="color:${ac};opacity:.75;">${p.t1_composite!=null?Math.round(p.t1_composite):'–'}</div>
-        <div class="overall-lbl" style="color:${ac};opacity:.75;">Projected</div>
+      <div class="badge-hdr" style="color:${ac};">Ranking (0–100)</div>
+      <div class="badge-tiles">
+        <div class="overall-tile" style="background:${ac}18;">
+          <div class="overall-num" style="color:${ac};">${p.overall_pct??'–'}</div>
+          <div class="overall-lbl" style="color:${ac};">25–26</div>
+        </div>
+        <div class="overall-tile" style="background:${ac}0d;">
+          <div class="overall-num" style="color:${ac};opacity:.75;">${p.t1_composite!=null?Math.round(p.t1_composite):'–'}</div>
+          <div class="overall-lbl" style="color:${ac};opacity:.75;">Projected</div>
+        </div>
       </div>
     </div>`;
 }
@@ -2746,17 +2761,20 @@ function renderGoalieCard(g) {
         </div>
         <div class="tags">
           <span class="tag tag-contract">G</span>
-          ${g.exp_year?`<span class="tag tag-contract">${g.exp_year} ${g.expiry_type||''}</span>`:''}
         </div>
+        ${g.exp_year?`<div class="deal-expiry">Deal Expiry: ${g.exp_year} ${g.expiry_type||''}</div>`:''}
       </div>
       <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
-        <div class="overall-tile" style="background:rgba(91,156,246,0.12);">
-          <div class="overall-num" style="color:var(--blue);">${ov}</div>
-          <div class="overall-lbl" style="color:var(--blue);">25\u201326</div>
-        </div>
-        <div class="overall-tile" style="background:rgba(91,156,246,0.07);">
-          <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.comp_value_norm??'\u2013'}</div>
-          <div class="overall-lbl" style="color:var(--blue);opacity:.75;">Historical</div>
+        <div class="badge-hdr" style="color:var(--blue);">Ranking (0–100)</div>
+        <div class="badge-tiles">
+          <div class="overall-tile" style="background:rgba(91,156,246,0.12);">
+            <div class="overall-num" style="color:var(--blue);">${ov}</div>
+            <div class="overall-lbl" style="color:var(--blue);">25\u201326</div>
+          </div>
+          <div class="overall-tile" style="background:rgba(91,156,246,0.07);">
+            <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.comp_value_norm??'\u2013'}</div>
+            <div class="overall-lbl" style="color:var(--blue);opacity:.75;">Historical</div>
+          </div>
         </div>
       </div>
     </div>
