@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billy Puck Grades — Breaking News</title>
+<style>
+  :root {
+    --bg:#0d0f14; --surface:#14161d; --surface2:#1c1f28; --surface3:#242835;
+    --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+    --text:#e8eaf0; --text2:#8b90a0; --text3:#555a6a;
+    --teal:#2dd4a0; --teal-dim:rgba(45,212,160,0.12);
+    --coral:#f4624a; --coral-dim:rgba(244,98,74,0.12);
+    --mid:#6b7280; --blue:#5b9cf6; --blue-dim:rgba(91,156,246,0.15);
+    --radius:12px; --radius-sm:8px;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Karla',-apple-system,sans-serif; padding:1.25rem;
+    min-height:100vh;
+  }
+  .wrap { max-width:480px; margin:0 auto; }
+  h1 { font-size:1.3rem; margin:0 0 .15rem; }
+  .sub { color:var(--text3); font-size:.8rem; margin-bottom:1.5rem; }
+  .field { margin-bottom:1rem; }
+  label { display:block; font-size:.72rem; font-weight:600; letter-spacing:.05em;
+    text-transform:uppercase; color:var(--text2); margin-bottom:.4rem; }
+  input, select {
+    width:100%; padding:.7rem .85rem; border-radius:var(--radius-sm);
+    border:1px solid var(--border2); background:var(--surface2); color:var(--text);
+    font-size:1rem; font-family:inherit;
+  }
+  input:focus, select:focus { outline:none; border-color:var(--teal); }
+  input::placeholder { color:var(--text3); }
+  .hint { font-size:.7rem; color:var(--text3); margin-top:.3rem; }
+  button {
+    width:100%; padding:.85rem; border-radius:var(--radius-sm); border:none;
+    background:var(--teal); color:#06140f; font-weight:700; font-size:1rem;
+    cursor:pointer; margin-top:.5rem;
+  }
+  button:disabled { background:var(--surface3); color:var(--text3); cursor:not-allowed; }
+  button.secondary {
+    background:var(--surface2); color:var(--text); border:1px solid var(--border2);
+    margin-top:.5rem;
+  }
+  #result {
+    margin-top:1.25rem; padding:1rem; border-radius:var(--radius); display:none;
+    font-size:.85rem; line-height:1.5; white-space:pre-wrap; font-family:'DM Mono',monospace;
+  }
+  #result.success { background:var(--teal-dim); border:1px solid var(--teal); color:var(--text); }
+  #result.error   { background:var(--coral-dim); border:1px solid var(--coral); color:var(--text); }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+  .badge {
+    display:inline-block; font-size:.65rem; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; padding:.15rem .5rem; border-radius:4px;
+    background:var(--blue-dim); color:var(--blue); margin-bottom:1rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="badge">Breaking News Updater</span>
+  <h1>Billy Puck Grades</h1>
+  <div class="sub">Submit a contract update. Cap, surplus, and the Offseason Tracker update automatically — full model rerun still happens on your next desktop run.</div>
+
+  <form id="form">
+    <div class="field">
+      <label for="secret">Access Key</label>
+      <input type="password" id="secret" placeholder="Your shared secret" autocomplete="off" required>
+    </div>
+
+    <div class="field">
+      <label for="playerName">Player Name</label>
+      <input type="text" id="playerName" placeholder="e.g. Mitch Marner" required>
+      <div class="hint">Must match the name exactly as it appears on the site.</div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="newCap">New Cap Hit ($)</label>
+        <input type="number" id="newCap" placeholder="7500000" step="1">
+      </div>
+      <div class="field">
+        <label for="term">Term (years)</label>
+        <input type="number" id="term" placeholder="6" step="1">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="expiryType">Expiry Type</label>
+        <select id="expiryType">
+          <option value="">— no change —</option>
+          <option value="UFA">UFA</option>
+          <option value="RFA">RFA</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="newTeam">New Team (if traded)</label>
+        <input type="text" id="newTeam" placeholder="e.g. PIT" maxlength="3" style="text-transform:uppercase;">
+      </div>
+    </div>
+
+    <button type="button" id="dryRunBtn" class="secondary">Preview Changes (no write)</button>
+    <button type="submit" id="submitBtn">Submit Update — Goes Live</button>
+  </form>
+
+  <div id="result"></div>
+</div>
+
+<script>
+  // ── Configure this to point at your deployed Worker URL ──────────────────
+  const WORKER_URL = 'https://bpg-breaking-news.ncaap-fps.workers.dev';
+
+  const form = document.getElementById('form');
+  const resultEl = document.getElementById('result');
+  const submitBtn = document.getElementById('submitBtn');
+  const dryRunBtn = document.getElementById('dryRunBtn');
+
+  function getPayload() {
+    const newCap = document.getElementById('newCap').value;
+    const term = document.getElementById('term').value;
+    return {
+      playerName: document.getElementById('playerName').value.trim(),
+      newCap: newCap ? Number(newCap) : null,
+      term: term ? Number(term) : null,
+      expiryType: document.getElementById('expiryType').value || null,
+      newTeam: document.getElementById('newTeam').value.trim().toUpperCase() || null,
+    };
+  }
+
+  async function submit(dryRun) {
+    const secret = document.getElementById('secret').value;
+    const payload = getPayload();
+    if (!payload.playerName) {
+      showResult(false, 'Player name is required.');
+      return;
+    }
+    submitBtn.disabled = true; dryRunBtn.disabled = true;
+    resultEl.style.display = 'none';
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Auth-Secret': secret },
+        body: JSON.stringify({ ...payload, dryRun }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showResult(false, data.error || `Request failed (${res.status})`);
+      } else {
+        showResult(true, formatSuccess(data, dryRun));
+      }
+    } catch (err) {
+      showResult(false, 'Network error: ' + err.message);
+    } finally {
+      submitBtn.disabled = false; dryRunBtn.disabled = false;
+    }
+  }
+
+  function formatSuccess(data, dryRun) {
+    const lines = [];
+    lines.push((dryRun ? '[PREVIEW] ' : '[LIVE] ') + data.player + ' — ' + data.file.toUpperCase());
+    lines.push('');
+    lines.push('Cap:      ' + fmtMoney(data.before.cap) + '  →  ' + fmtMoney(data.after.cap));
+    lines.push('Surplus:  ' + fmtMoney(data.before.surplus) + '  →  ' + fmtMoney(data.after.surplus));
+    if (data.before.exp_year !== data.after.exp_year) lines.push('Exp Year: ' + data.before.exp_year + '  →  ' + data.after.exp_year);
+    if (data.before.expiry_type !== data.after.expiry_type) lines.push('Type:     ' + data.before.expiry_type + '  →  ' + data.after.expiry_type);
+    if (data.isTrade) lines.push('Team:     ' + data.before.current_team + '  →  ' + data.after.current_team);
+    if (!dryRun) {
+      lines.push('');
+      lines.push('OST: ' + data.offseasonTracker);
+      lines.push(data.note || '');
+    }
+    return lines.join('\n');
+  }
+
+  function fmtMoney(v) {
+    if (v == null) return '—';
+    return '$' + Math.round(v).toLocaleString();
+  }
+
+  function showResult(ok, text) {
+    resultEl.className = ok ? 'success' : 'error';
+    resultEl.textContent = text;
+    resultEl.style.display = 'block';
+  }
+
+  dryRunBtn.addEventListener('click', () => submit(true));
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!confirm('This will push live to GitHub and trigger a deploy. Continue?')) return;
+    submit(false);
+  });
+</script>
+</body>
+</html>
