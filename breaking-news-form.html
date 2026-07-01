@@ -100,6 +100,14 @@
         <label for="newTeam">New Team (if traded)</label>
         <input type="text" id="newTeam" placeholder="e.g. PIT" maxlength="3" style="text-transform:uppercase;">
       </div>
+      <div class="field">
+        <label for="posType">Position type <span style="font-weight:400;text-transform:none;font-size:.85em;color:var(--text3);">(helps speed — select before submitting)</span></label>
+        <select id="posType">
+          <option value="">— unknown —</option>
+          <option value="F">Forward (C / LW / RW)</option>
+          <option value="D">Defenseman (LD / RD)</option>
+        </select>
+      </div>
     </div>
 
     <button type="button" id="dryRunBtn" class="secondary">Preview Changes (no write)</button>
@@ -127,6 +135,7 @@
       term: term ? Number(term) : null,
       expiryType: document.getElementById('expiryType').value || null,
       newTeam: document.getElementById('newTeam').value.trim().toUpperCase() || null,
+      posType: document.getElementById('posType').value || null,
     };
   }
 
