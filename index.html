@@ -112,26 +112,27 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 
 /* ── MOBILE: Portrait fixes (≤600px) ─────────────────────────────────────── */
 @media(max-width:600px){
-  /* Keep header as one row: photo | name+info | badge side by side */
-  .player-header{flex-wrap:nowrap;align-items:flex-start;padding:1rem .9rem;gap:.75rem;}
-  .gc-header{flex-wrap:nowrap;align-items:flex-start;padding:1rem .9rem;gap:.75rem;}
-  /* Shrink photo on mobile */
-  .player-photo,.player-initials{width:52px;height:52px;font-size:1.1rem;}
-  /* Compact name */
-  .player-name{font-size:1.05rem;margin-bottom:.2rem;}
-  .player-sub{font-size:.72rem;margin-bottom:.3rem;}
-  /* Tags stay on one scrollable line */
+  /* Header: photo + text stacked, badge pushed BELOW everything */
+  .player-header{flex-wrap:wrap;align-items:flex-start;padding:.85rem .9rem;gap:.6rem;}
+  .gc-header{flex-wrap:wrap;align-items:flex-start;padding:.85rem .9rem;gap:.6rem;}
+  /* Photo row: photo + info side by side, full width */
+  .player-photo,.player-initials{width:50px;height:50px;font-size:1rem;flex-shrink:0;}
+  /* Info block takes remaining width */
+  .player-header>div[style*="flex:1"],.gc-header>div[style*="flex:1"]{flex:1;min-width:0;}
+  /* Compact text */
+  .player-name{font-size:1rem;margin-bottom:.15rem;}
+  .player-sub{font-size:.72rem;margin-bottom:.25rem;}
+  /* Tags on one scrollable line */
   .tags{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:1px;}
   .tag{font-size:.64rem;padding:2px 6px;}
-  .deal-expiry{font-size:.7rem;}
-  /* Badge on the right, compact */
-  .overall-badge{flex-shrink:0;align-self:flex-start;}
-  .badge-hdr{font-size:.48rem;padding:.2rem .4rem .1rem;}
-  .overall-tile{padding:.3rem .55rem;min-width:44px;}
-  .overall-num{font-size:1.25rem;}
+  .deal-expiry{font-size:.68rem;margin-top:.2rem;}
+  /* Badge: full width below the photo+info row, compact height */
+  .overall-badge{flex:0 0 100%;flex-direction:row;margin-top:.5rem;justify-content:center;}
+  .badge-hdr{display:none;}
+  .badge-tiles{flex:1;display:flex;flex-direction:row;gap:1px;background:var(--border);}
+  .overall-tile{flex:1;padding:.3rem .5rem;min-width:0;}
+  .overall-num{font-size:1.3rem;}
   .overall-lbl{font-size:.52rem;}
-  /* Center the badge on mobile */
-  .overall-badge{margin-left:auto;}
   .lb-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .lb-table{min-width:520px;}
   .stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;}
@@ -1054,8 +1055,8 @@ function renderHeader(p) {
       </div>
       <div class="tags">
         <span class="tag tag-contract">${posDisplayGlobal(p)}</span>
-        ${p.role ? `<span class="tag" style="background:${ac}22;color:${ac};"><span style="opacity:.6;font-size:.62em;margin-right:2px;">TIER</span>${p.role}</span>` : ''}
-        ${p.actual_role ? `<span class="tag tag-contract"><span style="opacity:.6;font-size:.62em;margin-right:2px;">ROLE</span>${p.actual_role}</span>` : ''}
+        ${p.role ? `<span class="tag" style="background:${ac}22;color:${ac};"><span style="opacity:.6;font-size:.62em;margin-right:2px;">TIER</span>${displayTier(p.role,p._type)}</span>` : ''}
+        ${p.actual_role ? `<span class="tag tag-contract"><span style="opacity:.6;font-size:.62em;margin-right:2px;">ROLE</span>${displayRole(p.actual_role,p._type)}</span>` : ''}
         ${p.playstyle ? `<span class="tag tag-style">${p._type!=='D'?'<span style="opacity:.6;font-size:.62em;margin-right:2px;">STYLE</span>':''}${p.playstyle}</span>` : ''}
       </div>
       ${exp ? `<div class="deal-expiry">Deal Expiry: ${exp}</div>` : ''}
@@ -1065,7 +1066,7 @@ function renderHeader(p) {
       <div class="badge-tiles">
         <div class="overall-tile" style="background:${ac}18;">
           <div class="overall-num" style="color:${ac};">${p.overall_pct??'–'}</div>
-          <div class="overall-lbl" style="color:${ac};">25–26</div>
+          <div class="overall-lbl" style="color:${ac};">2025–26</div>
         </div>
         <div class="overall-tile" style="background:${ac}0d;">
           <div class="overall-num" style="color:${ac};opacity:.75;">${p.t1_composite!=null?Math.round(p.t1_composite):'–'}</div>
@@ -2759,9 +2760,6 @@ function renderGoalieCard(g) {
           <span class="sep">\u00b7</span><span>Age ${g.age?Math.floor(g.age):'\u2013'}</span>
           <span class="sep">\u00b7</span><span>${g.height||'\u2013'} \u00b7 ${g.weight?g.weight+' lbs':'\u2013'}</span>
         </div>
-        <div class="tags">
-          <span class="tag tag-contract">G</span>
-        </div>
         ${g.exp_year?`<div class="deal-expiry">Deal Expiry: ${g.exp_year} ${g.expiry_type||''}</div>`:''}
       </div>
       <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
@@ -2769,7 +2767,7 @@ function renderGoalieCard(g) {
         <div class="badge-tiles">
           <div class="overall-tile" style="background:rgba(91,156,246,0.12);">
             <div class="overall-num" style="color:var(--blue);">${ov}</div>
-            <div class="overall-lbl" style="color:var(--blue);">25\u201326</div>
+            <div class="overall-lbl" style="color:var(--blue);">2025\u201326</div>
           </div>
           <div class="overall-tile" style="background:rgba(91,156,246,0.07);">
             <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.comp_value_norm??'\u2013'}</div>
@@ -5296,6 +5294,32 @@ function gmAnalyze() {
 
 // ── Player Chemistry search — global handler (avoids IIFE scope issues) ───────
 // Global position display helper (primary + alternates in parens)
+// Display-label remapping for tier/role values
+const displayTier = (tier, type) => {
+  if (!tier) return tier;
+  // Defensemen
+  if (type === 'D') {
+    if (tier === 'Fringe') return 'Depth';
+  }
+  // Forwards
+  if (type !== 'D' && type !== 'G') {
+    if (tier === 'T6') return 'Top 6';
+  }
+  return tier;
+};
+const displayRole = (role, type) => {
+  if (!role) return role;
+  // Defensemen
+  if (type === 'D') {
+    if (role === 'T7') return 'Depth';
+  }
+  // Forwards
+  if (type !== 'D' && type !== 'G') {
+    if (role === 'M6') return 'Middle 6';
+    if (role === 'Fringe') return 'Depth';
+  }
+  return role;
+};
 const posDisplayGlobal = p => {
   const nm = {'L':'LW','R':'RW','LD':'LD','RD':'RD','C':'C','LW':'LW','RW':'RW'};
   const pri = nm[p.pos] || p.pos || '–';
