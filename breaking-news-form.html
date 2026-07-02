@@ -139,6 +139,16 @@
     };
   }
 
+  async function callWorker(secret, payload, dryRun) {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Auth-Secret': secret },
+      body: JSON.stringify({ ...payload, dryRun }),
+    });
+    const data = await res.json();
+    return { res, data };
+  }
+
   async function submit(dryRun) {
     const secret = document.getElementById('secret').value;
     const payload = getPayload();
@@ -148,23 +158,37 @@
     }
     submitBtn.disabled = true; dryRunBtn.disabled = true;
     resultEl.style.display = 'none';
-    try {
-      const res = await fetch(WORKER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Auth-Secret': secret },
-        body: JSON.stringify({ ...payload, dryRun }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        showResult(false, data.error || `Request failed (${res.status})`);
-      } else {
-        showResult(true, formatSuccess(data, dryRun));
+
+    const MAX_RETRIES = 3;
+    const RETRY_DELAYS = [0, 2000, 5000]; // immediate, 2s, 5s
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const wait = RETRY_DELAYS[attempt];
+        showResult(false, `Network issue — retrying in ${wait/1000}s… (attempt ${attempt+1}/${MAX_RETRIES})`);
+        await new Promise(r => setTimeout(r, wait));
+        resultEl.style.display = 'none';
       }
-    } catch (err) {
-      showResult(false, 'Network error: ' + err.message);
-    } finally {
-      submitBtn.disabled = false; dryRunBtn.disabled = false;
+      try {
+        const { res, data } = await callWorker(secret, payload, dryRun);
+        // Don't retry auth errors or validation errors — only network/server issues
+        if (res.status === 401 || res.status === 400) {
+          showResult(false, data.error || `Request failed (${res.status})`);
+          break;
+        }
+        if (!res.ok || data.error) {
+          if (attempt < MAX_RETRIES - 1) continue; // retry on server errors
+          showResult(false, data.error || `Request failed (${res.status})`);
+        } else {
+          showResult(true, formatSuccess(data, dryRun));
+        }
+        break;
+      } catch (err) {
+        if (attempt < MAX_RETRIES - 1) continue; // retry on network errors
+        showResult(false, `Network error after ${MAX_RETRIES} attempts: ${err.message}`);
+      }
     }
+    submitBtn.disabled = false; dryRunBtn.disabled = false;
   }
 
   function formatSuccess(data, dryRun) {
