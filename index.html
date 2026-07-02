@@ -646,6 +646,10 @@ async function loadData() {
     goalies.forEach(p => p._type = 'G');
     ALL_PLAYERS = [...fwds, ...dmans];
     ALL_GOALIES = goalies;
+    // Seed ID cache from JSON so UFAs (no active roster) retain headshots & box scores
+    for (const p of [...ALL_PLAYERS, ...ALL_GOALIES]) {
+      if (p.nhl_id && !nhlIdCache[p.name]) nhlIdCache[p.name] = p.nhl_id;
+    }
     COMP_FWD = cfwd;
     COMP_DMAN = cdman;
     BREAKOUT_DATA = bkData || {};
@@ -920,10 +924,10 @@ async function fetchRosterIds(teamAbbrev) {
 async function fetchNHLPlayerData(playerName, onData) {
   if (nhlIdCache[playerName] === null) return;
   if (window.location.protocol === 'file:') { nhlIdCache[playerName] = null; return; }
-  // ID may already be cached from roster pre-fetch
+  // ID seeded from JSON at load (handles UFAs not on any active roster)
   if (nhlIdCache[playerName]) { onData({}, nhlIdCache[playerName]); return; }
-  // Poll until roster prefetch populates the ID (up to 8 seconds)
-  for (let i = 0; i < 16; i++) {
+  // Fall back: poll until roster prefetch populates it (up to 5s)
+  for (let i = 0; i < 10; i++) {
     await new Promise(r => setTimeout(r, 500));
     if (nhlIdCache[playerName] != null) {
       if (nhlIdCache[playerName]) onData({}, nhlIdCache[playerName]);
