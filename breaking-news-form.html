@@ -115,11 +115,13 @@
   </form>
 
   <div id="result"></div>
+  <div id="reload-countdown" style="display:none;margin-top:.75rem;text-align:center;font-size:.8rem;color:var(--text3);"></div>
 </div>
 
 <script>
   // ── Configure this to point at your deployed Worker URL ──────────────────
   const WORKER_URL = 'https://bpg-breaking-news.ncaap-fps.workers.dev';
+  const SITE_URL   = 'https://billypuckgrades.com';  // site to reload after submit
 
   const form = document.getElementById('form');
   const resultEl = document.getElementById('result');
@@ -181,6 +183,7 @@
           showResult(false, data.error || `Request failed (${res.status})`);
         } else {
           showResult(true, formatSuccess(data, dryRun));
+        if (!dryRun) startReloadCountdown();
         }
         break;
       } catch (err) {
@@ -225,6 +228,27 @@
     if (!confirm('This will push live to GitHub and trigger a deploy. Continue?')) return;
     submit(false);
   });
+
+  let countdownTimer = null;
+  function startReloadCountdown() {
+    const el = document.getElementById('reload-countdown');
+    if (!el) return;
+    let secs = 65;  // Cloudflare Pages typically redeploys in ~60s
+    if (countdownTimer) clearInterval(countdownTimer);
+    el.style.display = 'block';
+    el.textContent = `Site will refresh in ${secs}s to show updated data…`;
+    countdownTimer = setInterval(() => {
+      secs--;
+      if (secs <= 0) {
+        clearInterval(countdownTimer);
+        el.textContent = 'Reloading site…';
+        window.open(SITE_URL, '_blank');
+        el.textContent = `Done! Opened ${SITE_URL} — changes should be live.`;
+      } else {
+        el.textContent = `Site will refresh in ${secs}s to show updated data…`;
+      }
+    }, 1000);
+  }
 </script>
 </body>
 </html>
