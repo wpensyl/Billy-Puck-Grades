@@ -761,7 +761,7 @@ function renderDropdown(results, ddEl) {
   ddEl.innerHTML = results.map((p, i) => `
     <div class="dd-item" data-idx="${i}">
       <span class="dd-pos-badge ${p._type}">${p.pos || p._type}</span>
-      <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.current_team||p.team||''} · ${p._type==='G'?'Goalie':(p.actual_role||p.role||'')}</div></div>
+      <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.current_team||p.team||''} · ${p._type==='G'?'Goalie':(displayRole(p.actual_role,p._type)||p.actual_role||p.role||'')}</div></div>
       <div style="margin-left:auto;font-family:DM Mono,monospace;font-size:.8rem;color:var(--teal);">${p._type==='G'?(p.overall_2526??'–'):(p.overall_pct??'–')}</div>
     </div>`).join('');
   ddEl.querySelectorAll('.dd-item').forEach((el, i) => {
@@ -1154,7 +1154,12 @@ function renderCategories(p) {
       [...availableSeasons].reverse().forEach(s => {
         const btn = document.createElement('button');
         btn.className = 'season-btn' + (s !== '2025-26' ? ' blue' : '') + (currentSeasonView === s ? ' active' : '');
-        btn.textContent = SEA_SHORT[s] || s;
+        // Add team info if available from progression data
+        const teamEntry = ['overall','off_prod','def_prod'].map(k =>
+          (prog[k]||[]).find(e => e.season === s)
+        ).find(e => e?.team);
+        const teamStr = teamEntry?.team ? ' · ' + teamEntry.team : '';
+        btn.textContent = (SEA_SHORT[s] || s) + teamStr;
         btn.addEventListener('click', e => {
           e.stopPropagation();
           currentSeasonView = s;
@@ -1428,7 +1433,22 @@ function renderComps(p, tabKey, pool) {
 function renderContract(p) {
   const el = document.getElementById('contract-panel');
   const cc = p.contract_calc;
-  if (!cc) { el.innerHTML = ''; return; }
+  if (!cc) {
+    // Fallback for players without contract_calc (e.g. entry-level): show basic data
+    if (!p.proj_years || !p.proj_years.length) { el.innerHTML = ''; return; }
+    const fvM = v => v!=null ? '$'+(v/1e6).toFixed(2)+'M' : '\u2013';
+    const proj = p.proj_years[0];
+    const surp = p.surplus_2627 ?? (proj != null ? Math.round(proj - (p.cap||0)) : null);
+    el.innerHTML = `
+      <div class="panel-hd"><span class="panel-title">Contract calculator</span><span class="panel-note">Implied value vs. cap hit</span></div>
+      <div class="contract-strip">
+        <div class="c-item"><div class="c-lbl">Cap hit</div><div class="c-val">${fvM(p.cap)}</div></div>
+        <div class="c-item"><div class="c-lbl">Proj. 26–27 value</div><div class="c-val">${fvM(proj)}</div></div>
+        <div class="c-item"><div class="c-lbl">Proj. 26–27 surplus</div><div class="c-val ${(surp||0)>=0?'pos':'neg'}">${surp!=null?(surp>=0?'+':'')+fvM(surp):'–'}</div></div>
+        <div class="c-item"><div class="c-lbl">Exp. year</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
+      </div>`;
+    return;
+  }
   const avgAnnSurplus = cc.avg_aav_excess;
   const avgProjVal    = p.avg_proj_value || null;
   const proj2627      = (p.proj_years && p.proj_years[0]) || null;
@@ -1830,7 +1850,7 @@ async function renderTeamView(teamCode) {
             <td class="lb-rank">${i+1}</td>
             <td><span class="lb-player-name">${p.name}</span>${nhlJerseyCache[p.name]?' <span style="font-size:.72rem;color:var(--text3);font-family:\'DM Mono\',monospace;">(#'+nhlJerseyCache[p.name]+')</span>':''}</td>
             <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
-            <td style="font-size:.78rem;color:${pac};font-weight:500;">${p.role||'–'}</td>
+            <td style="font-size:.78rem;color:${pac};font-weight:500;">${displayRole(p.role,p._type)||p.role||'–'}</td>
             <td style="font-size:.78rem;color:var(--text3);">${p.actual_role||'–'}</td>
             <td class="lb-overall" style="color:${pac};">${ov}</td>
             <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${ov}%;background:${barColor(ov)};"></div></div></td>
@@ -3069,7 +3089,7 @@ function renderFATracker() {
     if (isAttrSort) {
       return (getPlayer4yrAttr(b,attrName)??-1) - (getPlayer4yrAttr(a,attrName)??-1);
     }
-    if (sortVal === 'overall') return (b.overall_pct||0) - (a.overall_pct||0);
+    if (sortVal === 'overall') return (b.t1_composite??b.overall_pct??0) - (a.t1_composite??a.overall_pct??0);
     if (sortVal === 'surplus') return (b.surplus||0)     - (a.surplus||0);
     if (sortVal === 'cap')     return (a.cap||0)         - (b.cap||0);
     if (sortVal === 'age')     return (a.age||0)         - (b.age||0);
@@ -3088,7 +3108,7 @@ function renderFATracker() {
   const fmtM = v => v ? '$' + (v/1000000).toFixed(2) + 'M' : '–';
 
   tbody.innerHTML = pool.map((p, i) => {
-    const ov      = p.overall_pct ?? 0;
+    const ov      = p.t1_composite != null ? Math.round(p.t1_composite) : (p.overall_pct ?? 0);
     const surplus = p.surplus || 0;
     const sClr    = surplus > 0 ? 'var(--teal)' : surplus < 0 ? 'var(--coral)' : 'var(--text3)';
     const ovClr   = barColor(ov);
@@ -3503,7 +3523,7 @@ function renderExtCandidates() {
     pool.sort((a,b) => (getPlayer4yrAttr(b,extAttrName)??-1)-(getPlayer4yrAttr(a,extAttrName)??-1));
   } else {
     const sortFn = {
-      overall: (a,b)=>(b.overall_pct||0)-(a.overall_pct||0),
+      overall: (a,b)=>(b.t1_composite??b.overall_pct??0)-(a.t1_composite??a.overall_pct??0),
       surplus: (a,b)=>(b.surplus||0)-(a.surplus||0),
       aav1:    (a,b)=>(b.aav_1yr||0)-(a.aav_1yr||0),
       cap:     (a,b)=>(b.cap||0)-(a.cap||0),
@@ -3520,7 +3540,7 @@ function renderExtCandidates() {
   }
 
   tbody.innerHTML = pool.map((p, i) => {
-    const ov    = p.overall_pct ?? 0;
+    const ov    = p.t1_composite != null ? Math.round(p.t1_composite) : (p.overall_pct ?? 0);
     const ovClr = barColor(ov);
     const surplus = p.surplus || 0;
     const sClr = surplus > 0 ? 'var(--teal)' : surplus < 0 ? 'var(--coral)' : 'var(--text3)';
@@ -3839,7 +3859,7 @@ function updateCalcAAV() {
   const clr = barColor(p.overall_pct||50);
   el.innerHTML = `
     <div style="font-size:1.5rem;font-weight:600;font-family:DM Mono,monospace;color:${clr};">${fmtM(aav)}<span style="font-size:.85rem;color:var(--text3);">/yr</span></div>
-    <div style="font-size:.8rem;color:var(--text3);margin-top:.15rem;">Avg implied value · ${calcTerm}-yr deal starting ${expYear}–26 · Total: ${fmtM(total)}</div>
+    <div style="font-size:.8rem;color:var(--text3);margin-top:.15rem;">Avg implied value · ${calcTerm}-yr deal starting ${expYear}–${String(expYear+calcTerm).slice(-2)} · Total: ${fmtM(total)}</div>
     <div style="font-size:.72rem;color:var(--text3);margin-top:.1rem;">Current cap hit: ${fmtM(p.cap)}</div>`;
 }
 
@@ -5324,6 +5344,7 @@ const displayTier = (tier, type) => {
   // Forwards
   if (type !== 'D' && type !== 'G') {
     if (tier === 'T6') return 'Top 6';
+    if (tier === 'Fringe') return 'Depth';  // fix 7a
   }
   return tier;
 };
@@ -6812,19 +6833,22 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:.78rem;color:var(--text3);margin-top:.1rem;" id="calc-meta2"></div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Overall</div>
-          <div style="font-family:DM Mono,monospace;font-size:1.6rem;font-weight:600;" id="calc-ov"></div>
-          <div style="font-size:.62rem;color:var(--text3);margin-top:.25rem;">Composite</div>
-          <div style="font-family:DM Mono,monospace;font-size:.9rem;" id="calc-cmp"></div>
+          <div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;">Projected</div>
+          <div style="font-family:DM Mono,monospace;font-size:1.6rem;font-weight:600;" id="calc-cmp"></div>
+          <div style="font-size:.62rem;color:var(--text3);margin-top:.25rem;">2025-26</div>
+          <div style="font-family:DM Mono,monospace;font-size:.9rem;" id="calc-ov"></div>
         </div>
       </div>
 
       <!-- Production bars -->
-      <div class="calc-card" style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
-        <div id="calc-offprod"></div>
-        <div id="calc-defprod"></div>
-        <div id="calc-offanal"></div>
-        <div id="calc-defanal"></div>
+      <div class="calc-card" style="margin-bottom:.75rem;">
+        <div style="font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);text-align:center;margin-bottom:.6rem;">2025-26 Ratings Summary</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+          <div id="calc-offprod"></div>
+          <div id="calc-defprod"></div>
+          <div id="calc-offanal"></div>
+          <div id="calc-defanal"></div>
+        </div>
       </div>
 
       <!-- Contract Calculator -->
