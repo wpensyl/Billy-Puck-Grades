@@ -1154,11 +1154,8 @@ function renderCategories(p) {
       [...availableSeasons].reverse().forEach(s => {
         const btn = document.createElement('button');
         btn.className = 'season-btn' + (s !== '2025-26' ? ' blue' : '') + (currentSeasonView === s ? ' active' : '');
-        // Add team info if available from progression data
-        const teamEntry = ['overall','off_prod','def_prod'].map(k =>
-          (prog[k]||[]).find(e => e.season === s)
-        ).find(e => e?.team);
-        const teamStr = teamEntry?.team ? ' · ' + teamEntry.team : '';
+        // Add team for this season from team_history
+        const teamStr = p.team_history && p.team_history[s] ? ' · ' + p.team_history[s] : '';
         btn.textContent = (SEA_SHORT[s] || s) + teamStr;
         btn.addEventListener('click', e => {
           e.stopPropagation();
