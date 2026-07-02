@@ -650,6 +650,31 @@ async function loadData() {
     for (const p of [...ALL_PLAYERS, ...ALL_GOALIES]) {
       if (p.nhl_id && !nhlIdCache[p.name]) nhlIdCache[p.name] = p.nhl_id;
     }
+    // Apply any pending Breaking News patches from localStorage immediately.
+    // This ensures trade/contract updates appear instantly on the player card
+    // even before Cloudflare Pages has redeployed the updated JSON (which takes
+    // up to 90 seconds). Patches expire after 7 days automatically.
+    try {
+      const bnPatches = JSON.parse(localStorage.getItem('bnPatches') || '[]');
+      const week = 7 * 24 * 3600 * 1000;
+      const fresh = bnPatches.filter(p => (Date.now() - (p._bnTs||0)) < week);
+      if (fresh.length !== bnPatches.length) {
+        localStorage.setItem('bnPatches', JSON.stringify(fresh));
+      }
+      for (const patch of fresh) {
+        const player = [...ALL_PLAYERS, ...ALL_GOALIES].find(p => p.name === patch.name);
+        if (!player) continue;
+        // Apply each non-null field from the patch
+        if (patch.current_team) { player.current_team = patch.current_team; }
+        if (patch.team)         { player.team         = patch.team; }
+        if (patch.cap    != null) player.cap     = patch.cap;
+        if (patch.surplus!= null) player.surplus = patch.surplus;
+        if (patch.exp_year)      player.exp_year     = patch.exp_year;
+        if (patch.expiry_type)   player.expiry_type  = patch.expiry_type;
+        player._bnTeam = true;  // protect from reconcileCurrentTeams overwrite
+      }
+      if (fresh.length > 0) console.log(`Applied ${fresh.length} Breaking News patch(es) from localStorage`);
+    } catch(e) {}
     COMP_FWD = cfwd;
     COMP_DMAN = cdman;
     BREAKOUT_DATA = bkData || {};
@@ -882,9 +907,15 @@ function reconcileCurrentTeams() {
   for (const p of [...ALL_PLAYERS, ...(ALL_GOALIES||[])]) {
     const live = liveTeamOf[p.name];
     if (live) {
-      p.current_team = live;
-      // Also sync p.team so leaderboard/OST filters stay consistent
-      if (p.team && !p.team.includes(',') && !p.team.includes('/')) p.team = live;
+      // Don't overwrite a team that was set by a Breaking News patch.
+      // live = what NHL API says; p.current_team = what JSON says.
+      // If they differ AND _bnTeam is set, trust the JSON (Breaking News is more current).
+      // If they differ AND _bnTeam is NOT set, trust the live API.
+      if (!p._bnTeam) {
+        p.current_team = live;
+        if (p.team && !p.team.includes(',') && !p.team.includes('/')) p.team = live;
+      }
+      // _bnTeam is set: leave current_team as-is (Breaking News patch is authoritative)
     } else if (p.current_team?.includes('/')) {
       // Fallback for slash teams not found in live cache yet
       p.current_team = p.current_team.split('/').pop().trim();
