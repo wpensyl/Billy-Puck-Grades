@@ -646,9 +646,10 @@ async function loadData() {
     goalies.forEach(p => p._type = 'G');
     ALL_PLAYERS = [...fwds, ...dmans];
     ALL_GOALIES = goalies;
-    // Seed ID cache from JSON so UFAs (no active roster) retain headshots & box scores
+    // Seed ID + headshot caches from JSON so UFAs retain their data
     for (const p of [...ALL_PLAYERS, ...ALL_GOALIES]) {
       if (p.nhl_id && !nhlIdCache[p.name]) nhlIdCache[p.name] = p.nhl_id;
+      if (p.headshot_url && !nhlHeadshotCache[p.name]) nhlHeadshotCache[p.name] = p.headshot_url;
     }
     // Apply any pending Breaking News patches from localStorage immediately.
     // This ensures trade/contract updates appear instantly on the player card
@@ -1291,6 +1292,20 @@ function renderCategories(p) {
         const ghd = document.createElement('div'); ghd.className = 'grp-hd';
         ghd.innerHTML = `<span class="grp-label">${grp}</span><div class="grp-line"></div>`;
         catList.appendChild(ghd);
+        // Inject Consistency bar at the end of Athletic & Compete
+        if (grp === 'Athletic & Compete' && p.consistency != null) {
+          const cons = Math.round(p.consistency);
+          const cls = barClass(cons);
+          const cr = document.createElement('div'); cr.className = 'cat-row';
+          const nw = document.createElement('div'); nw.className = 'cat-name-wrap';
+          nw.innerHTML = '<span class="cat-name">Consistency</span>';
+          const tr = document.createElement('div'); tr.className = 'cat-track';
+          tr.innerHTML = `<div class="cat-fill ${cls}" style="width:${cons}%;"></div>`;
+          const pe = document.createElement('span'); pe.className = `cat-pct ${cls}`; pe.textContent = cons;
+          cr.appendChild(nw); cr.appendChild(tr); cr.appendChild(pe);
+          // Will be appended after rows.forEach below — store for after
+          rows._appendConsistency = cr;
+        }
         rows.forEach(cat => {
           const pc = cat.pct ?? 0; const cls = barClass(pc);
           const row = document.createElement('div'); row.className = 'cat-row';
@@ -1313,6 +1328,8 @@ function renderCategories(p) {
           row.appendChild(nw); row.appendChild(track); row.appendChild(pctEl);
           catList.appendChild(row);
         });
+        // Append Consistency after Athletic & Compete rows
+        if (rows._appendConsistency) { catList.appendChild(rows._appendConsistency); delete rows._appendConsistency; }
       });
     } else {
       // Historical season: use cat_history for full per-category data
@@ -3023,7 +3040,7 @@ async function renderTeamCompare() {
           <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:16px;height:6px;border-radius:3px;background:var(--teal);"></div><span style="color:var(--teal);">${teamA}</span></div>
           <div style="display:flex;align-items:center;gap:.4rem;"><div style="width:16px;height:6px;border-radius:3px;background:var(--blue);"></div><span style="color:var(--blue);">${teamB}</span></div>
         </div>`;
-  // ── Inject Retrievals & Def. Zone Exits into Defense group BEFORE rendering ──
+  // ── Inject Retrievals, Def. Zone Exits, and Consistency into groups ──────────
   {
     const rA=profA.retrievalsPct, rB=profB.retrievalsPct;
     const eA=profA.exitsPct,      eB=profB.exitsPct;
@@ -3036,6 +3053,23 @@ async function renderTeamCompare() {
     if (eA!=null || eB!=null) {
       profA.result['Defense'].push({name:'Def. Zone Exits', avg: eA??null});
       profB.result['Defense'].push({name:'Def. Zone Exits', avg: eB??null});
+    }
+    // Inject Consistency into Athletic & Compete group for team comparison
+    const getTeamConsistency = code => {
+      const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+      const roster = ALL_PLAYERS.filter(p =>
+        p.current_team === code || p.current_team === DOTTED[code] ||
+        p.team === code || p.team === DOTTED[code]);
+      const vals = roster.map(p => p.consistency).filter(v => v != null);
+      return vals.length ? Math.round(vals.reduce((s,v)=>s+v,0)/vals.length) : null;
+    };
+    const consA = getTeamConsistency(teamA);
+    const consB = getTeamConsistency(teamB);
+    if (!profA.result['Athletic & Compete']) profA.result['Athletic & Compete'] = [];
+    if (!profB.result['Athletic & Compete']) profB.result['Athletic & Compete'] = [];
+    if (consA!=null || consB!=null) {
+      profA.result['Athletic & Compete'].push({name:'Consistency', avg: consA??null});
+      profB.result['Athletic & Compete'].push({name:'Consistency', avg: consB??null});
     }
   }
   for (const [grp,rowsA] of Object.entries(profA.result)) {
@@ -3083,13 +3117,14 @@ async function renderTeamCompare() {
 function getPlayer4yrAttr(p, attrName) {
   if (!p) return null;
   if (attrName === 'Overall Rating') return p.overall_pct ?? null;
+  if (attrName === 'Consistency') return p.consistency != null ? Math.round(p.consistency) : null;
   const norms = p.cat_norms_4yr || {};
   for (const cats of Object.values(norms)) {
     const c = cats.find(x => x.name === attrName);
     if (c) return c.pct ?? null;
   }
   // Fallback: current season categories
-  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics'];
+  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics','Consistency'];
   for (const grp of CAT_GROUPS) {
     const c = ((p.categories || {})[grp] || []).find(x => x.name === attrName);
     if (c) return c.pct ?? null;
@@ -3422,6 +3457,13 @@ function renderTeamRankings() {
     const snapRoster = snapData ? new Set(snapData[storeKey] || []) : null;
     const prof = getTeamProfile(team, posFilter, snapRoster);
     if (!prof) continue;
+    // Add team-average Consistency for sorting
+    const DOTTED_TR = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+    const trRoster = ALL_PLAYERS.filter(pl =>
+      pl.current_team === prof.code || pl.current_team === DOTTED_TR[prof.code] ||
+      pl.team === prof.code || pl.team === DOTTED_TR[prof.code]);
+    const consVals = trRoster.map(pl => pl.consistency).filter(v => v != null);
+    prof.consistencyAvg = consVals.length ? Math.round(consVals.reduce((s,v)=>s+v,0)/consVals.length) : null;
     profiles.push(prof);
   }
   const getSortVal = p => {
@@ -3430,10 +3472,11 @@ function renderTeamRankings() {
     if (sortKey==='goalie_score')     return p.goalieScore||0;
     if (sortKey==='Retrievals')       return p.retrievalsPct??0;
     if (sortKey==='Def. Zone Exits')  return p.exitsPct??0;
+    if (sortKey==='Consistency')      return p.consistencyAvg??0;
     return p.catAvgs[sortKey]??0;
   };
   profiles.sort((a,b) => getSortVal(b)-getSortVal(a));
-  const hdrLabels = {'proj_pts':'Proj. Points','skater_overall':'Skater Overall','goalie_score':'Goalie Score','Retrievals':'Retrievals','Def. Zone Exits':'Def. Zone Exits'};
+  const hdrLabels = {'proj_pts':'Proj. Points','skater_overall':'Skater Overall','goalie_score':'Goalie Score','Retrievals':'Retrievals','Def. Zone Exits':'Def. Zone Exits','Consistency':'Consistency'};
   if (colHdr) colHdr.textContent = hdrLabels[sortKey] || sortKey;
   if (!profiles.length) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text3);">No team data yet — visit the Teams tab first to load rosters, then come back here.</td></tr>';
@@ -3635,7 +3678,7 @@ function getAttrScore(players, attrName) {
     const avg = valids.length ? Math.round(valids.reduce((s,x)=>s+x.val,0)/valids.length) : null;
     return {avg, scores};
   }
-  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics'];
+  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics','Consistency'];
   const scores = players.map(name => {
     const p=findPlayer(name); let val=null;
     for (const grp of CAT_GROUPS) { const f=getCatPctForPlayer(p,grp,attrName); if(f!=null){val=f;break;} }
@@ -4059,6 +4102,7 @@ const GM_COMP_FWD = {
   'Physicality':       ['Passing','Playdriving'],
   'Speed':             ['Playdriving'],
   'Endurance':         ['Forecheck Offense'],
+  'Consistency':       ['Consistency'],   // high-consistency players complement each other (line reliability)
 };
 const GM_COMP_DMAN = {
   'Entry Defense':         ['Playdriving'],
@@ -4068,6 +4112,7 @@ const GM_COMP_DMAN = {
   'Def. Zone Exits':          ['Playdriving'],
   'Transition Offense':    ['Entry Defense'],
   'Off. Zone Involvement': ['Penalty Kill','Entry Defense'],
+  'Consistency':           ['Consistency'],   // consistent D-pair partners
 };
 const GM_ATTR_THRESHOLD = 70;
 
@@ -4130,15 +4175,21 @@ function gmChemBadge(player, linemates) {
     return {label:'–', color:'var(--text3)', title:'No linemate data'};
   const model = player._type==='D' ? GM_COMP_DMAN : GM_COMP_FWD;
   const cats = player.categories || {};
+  // Helper: get attribute value for a player (handles Consistency specially)
+  const getAttrPct = (p, attrName) => {
+    if (attrName === 'Consistency') return p.consistency != null ? Math.round(p.consistency) : null;
+    return Object.values((p.categories||{})).flat().find(c=>c.name===attrName)?.pct ?? null;
+  };
   let seekFound=0, seekTotal=0;
   for (const [attr, needed] of Object.entries(model)) {
-    const pAttr = Object.values(cats).flat().find(c=>c.name===attr);
-    if (!pAttr || pAttr.pct < GM_ATTR_THRESHOLD) continue;
+    const attrPct = getAttrPct(player, attr);
+    if (attrPct == null || attrPct < GM_ATTR_THRESHOLD) continue;
     seekTotal += needed.length;
     for (const neededAttr of needed) {
       const hasIt = linemates.some(lm => {
-        const lmCats = (lm.p||lm)?.categories || {};
-        return Object.values(lmCats).flat().find(c=>c.name===neededAttr && c.pct>=GM_ATTR_THRESHOLD);
+        const lmP = (lm.p||lm);
+        const v = getAttrPct(lmP, neededAttr);
+        return v != null && v >= GM_ATTR_THRESHOLD;
       });
       if (hasIt) seekFound++;
     }
@@ -4148,11 +4199,12 @@ function gmChemBadge(player, linemates) {
   // Build detailed title
   const detailLines = [];
   for (const [attr, needed] of Object.entries(model)) {
-    const pAttr = Object.values(cats).flat().find(c=>c.name===attr);
-    if (!pAttr || pAttr.pct < GM_ATTR_THRESHOLD) continue;
+    const attrPct = getAttrPct(player, attr);
+    if (attrPct == null || attrPct < GM_ATTR_THRESHOLD) continue;
     const haveAttrs = needed.filter(n => linemates.some(lm => {
-      const lmCats = (lm.p||lm)?.categories || {};
-      return Object.values(lmCats).flat().find(c=>c.name===n && c.pct>=GM_ATTR_THRESHOLD);
+      const lmP = (lm.p||lm);
+      const v = getAttrPct(lmP, n);
+      return v != null && v >= GM_ATTR_THRESHOLD;
     }));
     const missingAttrs = needed.filter(n => !haveAttrs.includes(n));
     if (haveAttrs.length) detailLines.push('✓ ' + attr + ' → ' + haveAttrs.join(', '));
@@ -5228,11 +5280,21 @@ function gmGetCategoryRanks(overrideRoster) {
   const EXCLUDE_CATS = new Set(['On-Ice Offense','On-Ice Defense','Relative Offense',
     'Relative Defense','Shot Suppression','Quality of Comp.','Time on Ice']);
 
-  // Get all team profiles
+  // Get all team profiles (including Consistency as a pseudo-category)
   const allProfiles = {};
+  const DOTTED_GM = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
   for (const code of (NHL_TEAM_CODES||[])) {
     const prof = getTeamProfile(code,'all',null);
-    if (prof?.catAvgs) allProfiles[code] = prof.catAvgs;
+    if (prof?.catAvgs) {
+      const avgs = {...prof.catAvgs};
+      // Inject Consistency as a category (team average of p.consistency)
+      const roster = ALL_PLAYERS.filter(p =>
+        p.current_team === code || p.current_team === DOTTED_GM[code] ||
+        p.team === code || p.team === DOTTED_GM[code]);
+      const consVals = roster.map(p => p.consistency).filter(v => v != null);
+      if (consVals.length) avgs['Consistency'] = Math.round(consVals.reduce((s,v)=>s+v,0)/consVals.length);
+      allProfiles[code] = avgs;
+    }
   }
 
   // Override with projected roster if provided (use Set of names as snapRoster)
@@ -6382,6 +6444,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="attr_Power Play">Power Play</option>
           <option value="attr_Penalty Kill">Penalty Kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
+          <option value="attr_Consistency">Consistency</option>
         </optgroup>
       </select>
       <input type="text" id="fa-search" placeholder="Search players…" style="flex:1;min-width:140px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.35rem .75rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.82rem;outline:none;">
@@ -6523,6 +6586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="Penalty Differential">Penalty Differential</option>
         <option value="On-Ice Offense">On-Ice Offense</option>
         <option value="On-Ice Defense">On-Ice Defense</option>
+        <option value="Consistency">Consistency</option>
       </select>
       <select class="lb-select" id="tr-pos">
         <option value="all">All skaters</option>
@@ -6642,6 +6706,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="attr_Power Play">Power Play</option>
           <option value="attr_Penalty Kill">Penalty Kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
+          <option value="attr_Consistency">Consistency</option>
         </optgroup>
       </select>
     </div>
@@ -6773,6 +6838,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="attr_Power Play">Power Play</option>
           <option value="attr_Penalty Kill">Penalty Kill</option>
           <option value="attr_Faceoffs">Faceoffs</option>
+          <option value="attr_Consistency">Consistency</option>
         </optgroup>
       </select>
       <!-- Player search -->
