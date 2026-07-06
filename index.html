@@ -2479,6 +2479,7 @@ const FWD_CAT_GROUPS = {
   'Defense':           ['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways'],
   'Special Teams':     ['Power Play','Penalty Kill','Penalty Differential'],
   'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative Offense','Relative Defense'],
+  'Consistency':       ['Consistency'],
 };
 const DMAN_CAT_GROUPS = {
   'Usage':             ['Time on Ice','Quality of Comp.'],
@@ -2488,9 +2489,13 @@ const DMAN_CAT_GROUPS = {
   'Defense':           ['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways','Giveaways'],
   'Special Teams':     ['Power Play','Penalty Kill','Penalty Differential'],
   'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative Offense','Relative Defense'],
+  'Consistency':       ['Consistency'],
 };
 
 function getCatPct(p, grp, cat) {
+  if (grp === 'Consistency' || cat === 'Consistency') {
+    return p.consistency != null ? Math.round(p.consistency) : null;
+  }
   return ((p.categories || {})[grp] || []).find(c => c.name === cat)?.pct ?? null;
 }
 
@@ -3411,6 +3416,9 @@ function getTeamProfile(teamCode, posFilter, snapRoster) {
     'Analytics':['On-Ice Offense','On-Ice Defense'],
   };
   const catAvgs = {};
+  // Inject Consistency as a pseudo-category (stored on p.consistency, not in p.categories)
+  const consVals = players.map(p => p.consistency).filter(v => v != null);
+  if (consVals.length) catAvgs['Consistency'] = Math.round(consVals.reduce((s,v)=>s+v,0)/consVals.length);
   for (const [grp, cats] of Object.entries(CAT_GROUPS)) {
     for (const name of cats) {
       let wSum=0, wTotal=0;
