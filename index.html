@@ -5776,7 +5776,6 @@ function ostRenderDelta() {
     ? [teamCode]
     : [...new Set(ALL_PLAYERS.map(p => p.current_team || p.team).filter(Boolean))].sort();
 
-  const posFilter = document.getElementById('ost-delta-pos')?.value || 'all';
   const CATS = posFilter === 'D' ? [
     ['Athletic & Compete','Speed'],['Athletic & Compete','Endurance'],['Athletic & Compete','Physicality'],['Athletic & Compete','Consistency'],
     ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot Volume'],['Scoring','Shot Quality'],['Scoring','Shot Speed'],
