@@ -3515,7 +3515,7 @@ function getTeamProfile(teamCode, posFilter, snapRoster) {
   }
   const goalies = ALL_GOALIES.filter(g=>g.current_team===teamCode||g.team===teamCode);
   const gGP = goalies.reduce((s,g)=>s+(g.gp||0),0);
-  const goalieScore = gGP>0 ? Math.round(goalies.reduce((s,g)=>s+((g.t1_composite??g.overall_2526??g.comp_value_norm??50)*(g.gp||0),0)/gGP) : null;
+  const goalieScore = gGP>0 ? Math.round(goalies.reduce((s,g)=>s+(g.t1_composite??g.overall_2526??g.comp_value_norm??50)*(g.gp||0),0)/gGP) : null;
   const projPts = Math.round(PTS_COEF_SKATER * avgOverall + PTS_COEF_GOALIE * ((goalieScore||50)/100) + PTS_INTERCEPT);
   // TOI-weighted Retrievals and Exits composites (Issue 3b)
   let rwS=0,rwT=0, exS=0,exT=0;
