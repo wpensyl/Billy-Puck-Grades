@@ -391,7 +391,6 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -501,7 +500,6 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -567,7 +565,6 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -3542,25 +3539,34 @@ function renderTeamRankings() {
 
 // Navigate from Team Rankings to Category Leaders, pre-filtered for team + category
 function trGoCategory(teamCode, catName) {
-  // Set category leaders team filter
-  const teamSel = document.getElementById('catboard-team');
-  if (teamSel) {
-    // Find the option that matches this team code
-    const opts = [...teamSel.options];
-    const DOTTED_GO = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
-    const match = opts.find(o => o.value === teamCode || o.value === (DOTTED_GO[teamCode]||teamCode));
-    if (match) teamSel.value = match.value;
-  }
-  // Navigate to Category Leaders view and activate the right category button
-  showView('leaderboard');
-  // Use a short delay to let the view render before clicking the button
+  // Team Rankings uses 3-letter codes (TBL); catboard-team dropdown stores
+  // dotted forms (T.B) for some teams. Try both.
+  const DOTTED_GO = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+  const dotted = DOTTED_GO[teamCode];
+
+  // Navigate to Category Leaders (catstatsview)
+  showView('catstatsview');
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+
+  // Set team filter after view is shown — dropdown may repopulate on render
   setTimeout(() => {
-    buildCatBoardNav();  // ensure nav is built
-    // Find and click the category button
+    if (typeof buildCatBoardNav === 'function') buildCatBoardNav();
+    const teamSel = document.getElementById('catboard-team');
+    if (teamSel) {
+      const opts = [...teamSel.options];
+      const match = opts.find(o => o.value === teamCode)
+                 || (dotted ? opts.find(o => o.value === dotted) : null);
+      if (match) {
+        teamSel.value = match.value;
+        teamSel.dispatchEvent(new Event('change'));
+      }
+    }
+    // Click the matching category button
     const btns = document.querySelectorAll('.catboard-cat-btn');
-    const btn = [...btns].find(b => b.textContent.trim() === catName);
+    const btn = [...btns].find(b => b.textContent.trim() === catName)
+             || [...btns].find(b => b.textContent.includes(catName));
     if (btn) btn.click();
-  }, 150);
+  }, 200);
 }
 
 
@@ -5621,13 +5627,16 @@ function ostSetMode(mode) {
   document.getElementById('ost-mode-txn')?.classList.toggle('active', mode === 'transactions');
   document.getElementById('ost-mode-delta')?.classList.toggle('active', mode === 'delta');
   document.getElementById('ost-mode-top')?.classList.toggle('active', mode === 'top');
+  document.getElementById('ost-mode-steady')?.classList.toggle('active', mode === 'steady');
   document.getElementById('ost-txn-controls').style.display = mode === 'transactions' ? 'flex' : 'none';
   document.getElementById('ost-table').style.display        = mode === 'transactions' ? '' : 'none';
   document.getElementById('ost-team-panel').style.display   = mode === 'transactions' ? '' : 'none';
   document.getElementById('ost-delta-view').style.display   = mode === 'delta'        ? '' : 'none';
   document.getElementById('ost-top-view').style.display     = mode === 'top'          ? '' : 'none';
-  if (mode === 'delta') ostInitDelta();
-  if (mode === 'top')   ostRenderTop();
+  document.getElementById('ost-steady-view').style.display  = mode === 'steady'       ? '' : 'none';
+  if (mode === 'delta')  ostInitDelta();
+  if (mode === 'top')    ostRenderTop();
+  if (mode === 'steady') ostRenderSteady();
 }
 
 function ostRenderTop() {
@@ -5645,13 +5654,13 @@ function ostRenderTop() {
     if (isGoalie) {
       typeSel.innerHTML = `
         <option value="acq_proj_value">Acquisitions · Composite Value</option>
-        <option value="acq_aav_surplus">Acquisitions · Surplus</option>
-        <option value="resign_fv_surplus">Re-Signings · Surplus</option>`;
+        <option value="acq_fv_surplus">Acquisitions · FV Surplus</option>
+        <option value="resign_fv_surplus">Re-Signings · FV Surplus</option>`;
     } else {
       typeSel.innerHTML = `
         <option value="acq_proj_value">Acquisitions · Proj. 26-27 Value</option>
         <option value="acq_fv_aav">Acquisitions · FV AAV</option>
-        <option value="acq_aav_surplus">Acquisitions · AAV Surplus</option>
+        <option value="acq_fv_surplus">Acquisitions · FV AAV Surplus</option>
         <option value="resign_fv_surplus">Re-Signings · FV AAV Surplus</option>`;
     }
     // Restore selected value if still valid
@@ -5668,15 +5677,15 @@ function ostRenderTop() {
   const getVal = t => {
     if (activeType === 'acq_proj_value')   return t.comp_value;
     if (activeType === 'acq_fv_aav')       return t.fv_aav;
-    if (activeType === 'acq_aav_surplus')  return t.avg_annual_surplus;
-    if (activeType === 'resign_fv_surplus')return t.avg_annual_surplus;
+    if (activeType === 'acq_fv_surplus')   return t.avg_surplus_fv;
+    if (activeType === 'resign_fv_surplus')return t.avg_surplus_fv;
     return null;
   };
   const getLabel = () => {
     if (activeType === 'acq_proj_value')   return isGoalie ? 'Composite Value' : 'Proj. Value';
     if (activeType === 'acq_fv_aav')       return 'FV AAV';
-    if (activeType === 'acq_aav_surplus')  return 'AAV Surplus';
-    if (activeType === 'resign_fv_surplus')return 'FV Surplus/yr';
+    if (activeType === 'acq_fv_surplus')   return 'FV AAV Surplus';
+    if (activeType === 'resign_fv_surplus')return 'FV AAV Surplus';
     return '';
   };
 
@@ -5767,16 +5776,28 @@ function ostRenderDelta() {
     ? [teamCode]
     : [...new Set(ALL_PLAYERS.map(p => p.current_team || p.team).filter(Boolean))].sort();
 
-  const CATS = [
-    ['Athletic & Compete','Speed'],['Athletic & Compete','Endurance'],['Athletic & Compete','Physicality'],
-    ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot Volume'],['Scoring','Shot Quality'],
-    ['Offense','Passing'],['Offense','Playdriving'],
-    ['Defense','Entry Defense'],['Defense','Shot Suppression'],['Defense','Takeaways'],
-    ['Special Teams','Power Play'],['Special Teams','Penalty Kill'],
+  const posFilter = document.getElementById('ost-delta-pos')?.value || 'all';
+  const CATS = posFilter === 'D' ? [
+    ['Athletic & Compete','Speed'],['Athletic & Compete','Endurance'],['Athletic & Compete','Physicality'],['Athletic & Compete','Consistency'],
+    ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot Volume'],['Scoring','Shot Quality'],['Scoring','Shot Speed'],
+    ['Offense','Passing'],['Offense','Playdriving'],['Offense','Transition Offense'],['Offense','Off. Zone Involvement'],
+    ['Defense','Entry Defense'],['Defense','Def. Zone Exits'],['Defense','Shot Suppression'],['Defense','Takeaways'],['Defense','Giveaways'],
+    ['Special Teams','Power Play'],['Special Teams','Penalty Kill'],['Special Teams','Penalty Differential'],
+    ['Analytics','On-Ice Offense'],['Analytics','On-Ice Defense'],
+  ] : [
+    ['Athletic & Compete','Speed'],['Athletic & Compete','Endurance'],['Athletic & Compete','Physicality'],['Athletic & Compete','Consistency'],
+    ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot Volume'],['Scoring','Shot Quality'],['Scoring','Shot Speed'],
+    ['Offense','Passing'],['Offense','Playdriving'],['Offense','Rush Offense'],['Offense','Forecheck Offense'],['Offense','Cycle Offense'],['Offense','Net-Front Presence'],['Offense','Faceoffs'],
+    ['Defense','Entry Defense'],['Defense','Def. Zone Exits'],['Defense','Shot Suppression'],['Defense','Takeaways'],
+    ['Special Teams','Power Play'],['Special Teams','Penalty Kill'],['Special Teams','Penalty Differential'],
     ['Analytics','On-Ice Offense'],['Analytics','On-Ice Defense'],
   ];
 
   const teamAvg = (players, grp, cat) => {
+    if (cat === 'Consistency') {
+      const vals = players.map(p => p.consistency).filter(v => v != null);
+      return vals.length ? Math.round(vals.reduce((s,v)=>s+v,0)/vals.length) : null;
+    }
     const vals = players.map(p => ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct).filter(v=>v!=null);
     return vals.length ? Math.round(vals.reduce((s,v)=>s+v,0)/vals.length) : null;
   };
@@ -6018,6 +6039,56 @@ async function goOffseasonTracker() {
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   await ostLoad();
   ostRenderTable();
+}
+
+function ostRenderSteady() {
+  const el = document.getElementById('ost-steady-content');
+  if (!el) return;
+  const posFilter = document.getElementById('ost-steady-pos')?.value || 'all';
+  const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+  const teamDeltas = {};
+  for (const p of ALL_PLAYERS) {
+    if (posFilter !== 'all' && p._type !== posFilter) continue;
+    const tc = p.current_team || p.team; if (!tc) continue;
+    const cur = p.overall_pct;
+    const proj = p.proj_years?.[0];
+    if (cur == null || proj == null) continue;
+    const toi = p.toi_per_gp || 15;
+    const delta = proj - cur;
+    if (!teamDeltas[tc]) teamDeltas[tc] = {wSum:0,wTotal:0,players:[]};
+    teamDeltas[tc].wSum   += delta * toi;
+    teamDeltas[tc].wTotal += toi;
+    teamDeltas[tc].players.push({name:p.name, cur, proj, delta:Math.round(delta*10)/10, toi});
+  }
+  const teams = Object.entries(teamDeltas)
+    .map(([tc,d]) => ({tc, avgDelta: d.wTotal>0 ? Math.round((d.wSum/d.wTotal)*10)/10 : null,
+      players: d.players.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)).slice(0,5)}))
+    .filter(t => t.avgDelta != null)
+    .sort((a,b) => b.avgDelta - a.avgDelta);
+  const fmtD = d => {
+    const clr = d>2?'var(--teal)':d<-2?'var(--coral)':'var(--text2)';
+    return `<span style="color:${clr};font-weight:600;">${d>0?'+':''}${d}</span>`;
+  };
+  el.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead><tr style="border-bottom:2px solid var(--border);color:var(--text3);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;">
+        <th style="padding:.4rem .5rem;text-align:left;">#</th>
+        <th style="padding:.4rem .5rem;text-align:left;">Team</th>
+        <th style="padding:.4rem .5rem;text-align:right;">Avg Δ Rating</th>
+        <th style="padding:.4rem .5rem;text-align:left;">Key movers</th>
+      </tr></thead>
+      <tbody>${teams.map((t,i) => {
+        const movers = t.players.slice(0,3).map(p =>
+          `<span style="font-size:.72rem;color:${p.delta>2?'var(--teal)':p.delta<-2?'var(--coral)':'var(--text3)'};">${p.name.split(' ').pop()} ${p.delta>0?'+':''}${p.delta}</span>`
+        ).join(' · ');
+        return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <td style="padding:.35rem .5rem;color:var(--text3);">${i+1}</td>
+          <td style="padding:.35rem .5rem;font-weight:700;">${t.tc}</td>
+          <td style="padding:.35rem .5rem;text-align:right;font-family:DM Mono,monospace;">${fmtD(t.avgDelta)}</td>
+          <td style="padding:.35rem .5rem;">${movers}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
 }
 
 function renderSteadyState() {
@@ -6468,7 +6539,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6520,7 +6590,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6568,7 +6637,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6609,7 +6677,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6682,7 +6749,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item active" data-view="compare">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6737,7 +6803,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6849,7 +6914,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -6900,7 +6964,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item active" data-view="rankings">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -7000,7 +7063,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -7120,7 +7182,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -7255,7 +7316,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -7357,7 +7417,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -7430,7 +7489,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="rankings" onclick="navGoView(event,'rankings')">Team Rankings</div>
           <div class="nav-dd-item" data-view="compare" onclick="navGoView(event,'compare')">Matchup Tool</div>
           <div class="nav-dd-item" data-view="offseasontracker" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
-          <div class="nav-dd-item" data-view="steadystate" onclick="navGoView(event,'steadystate')">Steady-State Improvement</div>
         </div>
       </div>
       <div class="nav-dropdown">
@@ -7507,6 +7565,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="ost-tab active" id="ost-mode-txn" onclick="ostSetMode('transactions')">Transactions</button>
         <button class="ost-tab" id="ost-mode-delta" onclick="ostSetMode('delta')">Category Delta</button>
         <button class="ost-tab" id="ost-mode-top" onclick="ostSetMode('top')">Top Signings</button>
+        <button class="ost-tab" id="ost-mode-steady" onclick="ostSetMode('steady')">Steady-State</button>
       </div>
       <!-- Transactions sub-tabs (hidden in delta mode) -->
       <div id="ost-txn-controls" style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;">
@@ -7563,6 +7622,18 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div id="ost-delta-content" style="font-size:.82rem;color:var(--text3);padding:1rem;">Select a snapshot and team above.</div>
       </div>
+      <!-- Steady-State Improvement view (inside OST) -->
+      <div id="ost-steady-view" style="display:none;margin-top:.5rem;">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;">
+          <select id="ost-steady-pos" onchange="ostRenderSteady()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
+            <option value="all">All Skaters</option>
+            <option value="F">Forwards</option>
+            <option value="D">Defensemen</option>
+          </select>
+          <span style="font-size:.75rem;color:var(--text3);">TOI-weighted avg of (Proj. Year 1 Rating − Current Rating) · Top movers per team</span>
+        </div>
+        <div id="ost-steady-content"><span style="color:var(--text3);">Select a position above.</span></div>
+      </div>
       <!-- Top Signings view -->
       <div id="ost-top-view" style="display:none;margin-top:.5rem;">
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem;">
@@ -7574,7 +7645,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <select id="ost-top-type" onchange="ostRenderTop()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
             <option value="acq_proj_value">Acquisitions · Proj. 26-27 Value</option>
             <option value="acq_fv_aav">Acquisitions · FV AAV</option>
-            <option value="acq_aav_surplus">Acquisitions · AAV Surplus</option>
+            <option value="acq_fv_surplus">Acquisitions · FV AAV Surplus</option>
             <option value="resign_fv_surplus">Re-Signings · FV AAV Surplus</option>
           </select>
           <select id="ost-top-dir" onchange="ostRenderTop()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
