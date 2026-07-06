@@ -5639,6 +5639,13 @@ function ostSetMode(mode) {
   if (mode === 'steady') ostRenderSteady();
 }
 
+function ostTopNavPlayer(name) {
+  const p = (ALL_PLAYERS||[]).find(x => x.name === name)
+         || (ALL_GOALIES||[]).find(x => x.name === name);
+  if (!p) return;
+  try { if (p._type==='G') showGoalieCard(p); else showPlayer(p); } catch(e) { showPlayer(p); }
+}
+
 function ostRenderTop() {
   if (!OST_DATA) return;
   const el  = document.getElementById('ost-top-content');
@@ -5715,19 +5722,20 @@ function ostRenderTop() {
           <th style="padding:.4rem .5rem;text-align:right;">${isResign ? 'Old Cap' : 'From'}</th>
           <th style="padding:.4rem .5rem;text-align:right;">New Cap</th>
           <th style="padding:.4rem .5rem;text-align:right;">${valLabel}</th>
-          ${!isGoalie && !isResign ? '<th style="padding:.4rem .5rem;text-align:right;">FV AAV</th>' : ''}
         </tr>
       </thead>
       <tbody>
         ${sorted.map((t,i) => `
-          <tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <tr style="border-bottom:1px solid var(--border);cursor:pointer;" 
+              onclick="ostTopNavPlayer('${t.name}')"
+              onmouseover="this.style.background='var(--surface2)'" 
+              onmouseout="this.style.background=''">
             <td style="padding:.35rem .5rem;color:var(--text3);">${i+1}</td>
-            <td style="padding:.35rem .5rem;font-weight:600;">${t.name}</td>
+            <td style="padding:.35rem .5rem;font-weight:600;">${t.name} <span style="font-size:.6rem;color:var(--teal);">&#9658;</span></td>
             <td style="padding:.35rem .5rem;color:var(--text2);">${t.new_team||'–'}</td>
             <td style="padding:.35rem .5rem;text-align:right;font-family:DM Mono,monospace;color:var(--text3);font-size:.78rem;">${isResign ? fmtMp(t.old_cap) : (t.old_team||'–')}</td>
             <td style="padding:.35rem .5rem;text-align:right;font-family:DM Mono,monospace;font-size:.78rem;">${fmtMp(t.new_cap)}</td>
             <td style="padding:.35rem .5rem;text-align:right;font-family:DM Mono,monospace;font-weight:600;color:${clr(t._sortVal)};">${fmtM(t._sortVal)}</td>
-            ${!isGoalie && !isResign ? `<td style="padding:.35rem .5rem;text-align:right;font-family:DM Mono,monospace;font-size:.78rem;color:var(--text2);">${fmtMp(t.fv_aav)}</td>` : ''}
           </tr>`).join('')}
       </tbody>
     </table>`;
@@ -6049,8 +6057,8 @@ function ostRenderSteady() {
   for (const p of ALL_PLAYERS) {
     if (posFilter !== 'all' && p._type !== posFilter) continue;
     const tc = p.current_team || p.team; if (!tc) continue;
-    const cur = p.overall_pct;
-    const proj = p.proj_years?.[0];
+    const cur  = p.overall_pct;
+    const proj = p.t1_composite;   // projected overall percentile (0-100)
     if (cur == null || proj == null) continue;
     const toi = p.toi_per_gp || 15;
     const delta = proj - cur;
