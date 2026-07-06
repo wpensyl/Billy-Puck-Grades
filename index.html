@@ -3046,7 +3046,7 @@ function getTeamCategoryProfile(teamCode, posFilter='all') {
   // Goalie rating for this team (GP-weighted overall_2526)
   const teamGoalies = ALL_GOALIES.filter(g => g.current_team===teamCode||g.team===teamCode);
   const totalGPg = teamGoalies.reduce((s,g)=>s+(g.gp||0),0);
-  const goalieScore = totalGPg>0 ? teamGoalies.reduce((s,g)=>s+((g.t1_composite??g.overall_2526??g.comp_value_norm??50)*(g.gp||0),0)/totalGPg : 50;
+  const goalieScore = totalGPg>0 ? teamGoalies.reduce((s,g)=>s+(g.t1_composite??g.overall_2526??g.comp_value_norm??50)*(g.gp||0),0)/totalGPg : 50;
   const projPts = Math.round(PTS_COEF_SKATER*avgOverall + PTS_COEF_GOALIE*(goalieScore/100) + PTS_INTERCEPT);
   const projClr = projPts>=100?'var(--teal)':projPts>=88?'var(--text2)':'var(--coral)';
   // TOI-weighted Retrievals and Exits composites
