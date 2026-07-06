@@ -3457,8 +3457,7 @@ function renderTeamRankings() {
     const snapRoster = snapData ? new Set(snapData[storeKey] || []) : null;
     const prof = getTeamProfile(team, posFilter, snapRoster);
     if (!prof) continue;
-    // Add team-average Consistency for sorting
-    const DOTTED_TR = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+    // Add team-average Consistency for sorting (DOTTED_TR already declared above)
     const trRoster = ALL_PLAYERS.filter(pl =>
       pl.current_team === prof.code || pl.current_team === DOTTED_TR[prof.code] ||
       pl.team === prof.code || pl.team === DOTTED_TR[prof.code]);
