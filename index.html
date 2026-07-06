@@ -1738,14 +1738,14 @@ async function renderTeamView(teamCode) {
 
   // Category breakdown
   const ALL_CATS = posFilter === 'D' ? [
-    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
+    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],["Athletic & Compete","Consistency"],
     ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot Volume"],["Scoring","Shot Quality"],["Scoring","Shot Speed"],
     ["Offense","Passing"],["Offense","Playdriving"],["Offense","Transition Offense"],["Offense","Off. Zone Involvement"],
     ["Defense","Entry Defense"],["Defense","Shot Suppression"],["Defense","Takeaways"],["Defense","Giveaways"],
     ["Special Teams","Power Play"],["Special Teams","Penalty Kill"],["Special Teams","Penalty Differential"],
     ["Analytics","On-Ice Offense"],["Analytics","On-Ice Defense"],
   ] : [
-    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
+    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],["Athletic & Compete","Consistency"],
     ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot Volume"],["Scoring","Shot Quality"],["Scoring","Shot Speed"],
     ["Offense","Passing"],["Offense","Playdriving"],["Offense","Rush Offense"],["Offense","Forecheck Offense"],["Offense","Cycle Offense"],["Offense","Net-Front Presence"],["Offense","Faceoffs"],
     ["Defense","Entry Defense"],["Defense","Shot Suppression"],["Defense","Takeaways"],
@@ -1860,20 +1860,23 @@ async function renderTeamView(teamCode) {
     if (!catMap[grp]) catMap[grp] = [];
     catMap[grp].push({name, avg: weightedTotal > 0 ? Math.round(weightedSum / weightedTotal) : null});
   }
-  // ── Inject Retrievals & Def. Zone Exits (microstat composites) into Defense ──
-  // Must happen BEFORE catHtml loop so tiles appear in the rendered Defense group.
+  // ── Inject Retrievals, Def. Zone Exits, and Consistency into groups ──────────
   {
-    let rwS2=0,rwT2=0, exS2=0,exT2=0;
+    let rwS2=0,rwT2=0, exS2=0,exT2=0, csS=0,csN=0;
     for (const p of players) {
       const w = toiMap[p.name] || 0;
       if (p.retrievals_pct != null) { rwS2 += p.retrievals_pct * w; rwT2 += w; }
       if (p.exits_pct != null)      { exS2 += p.exits_pct * w;      exT2 += w; }
+      if (p.consistency != null)    { csS  += p.consistency;         csN++; }
     }
     const tmRetr = rwT2 > 0 ? Math.round(rwS2 / rwT2) : null;
     const tmExts = exT2 > 0 ? Math.round(exS2 / exT2) : null;
+    const tmCons = csN  > 0 ? Math.round(csS  / csN)  : null;
     if (!catMap['Defense']) catMap['Defense'] = [];
     if (tmRetr != null) catMap['Defense'].push({name:'Retrievals',      avg: tmRetr});
     if (tmExts != null) catMap['Defense'].push({name:'Def. Zone Exits', avg: tmExts});
+    if (!catMap['Athletic & Compete']) catMap['Athletic & Compete'] = [];
+    if (tmCons != null) catMap['Athletic & Compete'].push({name:'Consistency', avg: tmCons});
   }
 
   let catHtml = '';
@@ -2473,23 +2476,21 @@ function buildSmoothedContent(p, acHex) {
 // in update.py, which is what populates p.categories on every player object.
 const FWD_CAT_GROUPS = {
   'Usage':             ['Time on Ice','Quality of Comp.'],
-  'Athletic & Compete':['Speed','Endurance','Physicality'],
+  'Athletic & Compete':['Speed','Endurance','Physicality','Consistency'],
   'Scoring':           ['Goalscoring','Finishing','Shot Volume','Shot Quality','Shot Speed'],
   'Offense':           ['Passing','Playdriving','Rush Offense','Forecheck Offense','Cycle Offense','Net-Front Presence','Faceoffs'],
   'Defense':           ['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways'],
   'Special Teams':     ['Power Play','Penalty Kill','Penalty Differential'],
   'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative Offense','Relative Defense'],
-  'Consistency':       ['Consistency'],
 };
 const DMAN_CAT_GROUPS = {
   'Usage':             ['Time on Ice','Quality of Comp.'],
-  'Athletic & Compete':['Speed','Endurance','Physicality'],
+  'Athletic & Compete':['Speed','Endurance','Physicality','Consistency'],
   'Scoring':           ['Goalscoring','Finishing','Shot Volume','Shot Quality','Shot Speed'],
   'Offense':           ['Passing','Playdriving','Transition Offense','Off. Zone Involvement'],
   'Defense':           ['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways','Giveaways'],
   'Special Teams':     ['Power Play','Penalty Kill','Penalty Differential'],
   'Analytics':         ['On-Ice Offense','On-Ice Defense','Relative Offense','Relative Defense'],
-  'Consistency':       ['Consistency'],
 };
 
 function getCatPct(p, grp, cat) {
@@ -3077,6 +3078,31 @@ async function renderTeamCompare() {
       profB.result['Athletic & Compete'].push({name:'Consistency', avg: consB??null});
     }
   }
+  // Helper: top 3 players for a team in a given category (for tooltip)
+  const topContributors = (teamCode, grp, catName) => {
+    const DOTTED_CMP = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+    const roster = nhlRosterCache[teamCode] || null;
+    const players = ALL_PLAYERS.filter(p =>
+      roster ? roster.has(p.name) :
+      p.current_team === teamCode || p.current_team === (DOTTED_CMP[teamCode]||teamCode) ||
+      p.team === teamCode || p.team === (DOTTED_CMP[teamCode]||teamCode)
+    );
+    if (catName === 'Consistency') {
+      return players.filter(p => p.consistency != null)
+        .sort((a,b) => (b.consistency||0)-(a.consistency||0))
+        .slice(0,3).map(p => `${p.name.split(' ').pop()} ${Math.round(p.consistency)}`).join(' · ');
+    }
+    return players.map(p => {
+      const cats = (p.categories?.[grp] || []);
+      const cat = cats.find(c => c.name === catName);
+      return cat?.pct != null ? {name: p.name, pct: cat.pct} : null;
+    }).filter(Boolean)
+      .sort((a,b) => b.pct - a.pct)
+      .slice(0,3)
+      .map(x => `${x.name.split(' ').pop()} ${x.pct}`)
+      .join(' · ');
+  };
+
   for (const [grp,rowsA] of Object.entries(profA.result)) {
     const rowsB=profB.result[grp]||[];
     html+=`<div class="cmp-section-hd">${grp}</div>`;
@@ -3084,9 +3110,11 @@ async function renderTeamCompare() {
       const avgB=rowsB.find(r=>r.name===name)?.avg??null;
       const vA=avgA??0,vB=avgB??0;
       const winner=vA>vB?'A':vB>vA?'B':null;
-      html+=`<div class="cmp-bar-row">
+      const tipA = topContributors(teamA, grp, name);
+      const tipB = topContributors(teamB, grp, name);
+      html+=`<div class="cmp-bar-row" title="${teamA}: ${tipA||'–'} | ${teamB}: ${tipB||'–'}">
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
-          <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${winner==='A'?'var(--teal)':'var(--text3)'};">${avgA??'\u2013'}</span>
+          <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${winner==='A'?'var(--teal)':'var(--text3)'};" title="${tipA}">${avgA??'\u2013'}</span>
           <div style="width:${Math.round(vA*1.4)}px;max-width:130px;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${winner==='A'?1:.45};"></div>
         </div>
         <div class="cmp-cat-name">${name}</div>
@@ -3129,7 +3157,7 @@ function getPlayer4yrAttr(p, attrName) {
     if (c) return c.pct ?? null;
   }
   // Fallback: current season categories
-  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics','Consistency'];
+  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics'];
   for (const grp of CAT_GROUPS) {
     const c = ((p.categories || {})[grp] || []).find(x => x.name === attrName);
     if (c) return c.pct ?? null;
@@ -3408,7 +3436,7 @@ function getTeamProfile(teamCode, posFilter, snapRoster) {
   players.forEach(p=>{ const w=toiMap[p.name]||0; ws+=(p.overall_pct||0)*w; wt+=w; });
   const avgOverall = wt>0 ? Math.round(ws/wt) : 0;
   const CAT_GROUPS = {
-    'Athletic & Compete':['Speed','Endurance','Physicality'],
+    'Athletic & Compete':['Speed','Endurance','Physicality','Consistency'],
     'Scoring':['Goalscoring','Finishing','Shot Volume','Shot Quality','Shot Speed'],
     'Offense':['Passing','Playdriving','Rush Offense','Forecheck Offense','Cycle Offense','Net-Front Presence','Faceoffs'],
     'Defense':['Entry Defense','Def. Zone Exits','Shot Suppression','Takeaways'],
@@ -3465,10 +3493,11 @@ function renderTeamRankings() {
     const snapRoster = snapData ? new Set(snapData[storeKey] || []) : null;
     const prof = getTeamProfile(team, posFilter, snapRoster);
     if (!prof) continue;
-    // Add team-average Consistency for sorting (DOTTED_TR already declared above)
+    // Add team-average Consistency for sorting
+    // 'team' is the loop variable (team code like 'SJS'); prof has no .code property
     const trRoster = ALL_PLAYERS.filter(pl =>
-      pl.current_team === prof.code || pl.current_team === DOTTED_TR[prof.code] ||
-      pl.team === prof.code || pl.team === DOTTED_TR[prof.code]);
+      pl.current_team === team || pl.current_team === (DOTTED_TR[team]||team) ||
+      pl.team === team || pl.team === (DOTTED_TR[team]||team));
     const consVals = trRoster.map(pl => pl.consistency).filter(v => v != null);
     prof.consistencyAvg = consVals.length ? Math.round(consVals.reduce((s,v)=>s+v,0)/consVals.length) : null;
     profiles.push(prof);
@@ -3479,7 +3508,7 @@ function renderTeamRankings() {
     if (sortKey==='goalie_score')     return p.goalieScore||0;
     if (sortKey==='Retrievals')       return p.retrievalsPct??0;
     if (sortKey==='Def. Zone Exits')  return p.exitsPct??0;
-    if (sortKey==='Consistency')      return p.consistencyAvg??0;
+    if (sortKey==='Consistency')      return p.consistencyAvg ?? (p.catAvgs?.['Consistency'] ?? 0);
     return p.catAvgs[sortKey]??0;
   };
   profiles.sort((a,b) => getSortVal(b)-getSortVal(a));
@@ -3492,13 +3521,42 @@ function renderTeamRankings() {
   tbody.innerHTML = profiles.map((p, i) => {
     const sortVal = getSortVal(p);
     const ovClr = barColor(p.avgOverall);
-    return `<tr>
+    // Build data attrs for click-through to Category Leaders
+    const isCat = sortKey !== 'proj_pts' && sortKey !== 'skater_overall' &&
+                  sortKey !== 'goalie_score' && sortKey !== 'Retrievals' &&
+                  sortKey !== 'Def. Zone Exits' && sortKey !== 'Consistency';
+    const trClick = isCat
+      ? `onclick="trGoCategory('${p.teamCode}','${sortKey}')" style="cursor:pointer;" title="Click to view ${sortKey} leaders for ${p.teamCode}"`
+      : '';
+    return `<tr ${trClick}>
       <td class="lb-rank">${i+1}</td>
-      <td style="font-weight:600;font-size:.95rem;">${p.teamCode}</td>
+      <td style="font-weight:600;font-size:.95rem;">${p.teamCode}${isCat?'<span style="font-size:.6rem;color:var(--teal);margin-left:4px;">→</span>':''}</td>
       <td style="font-family:DM Mono,monospace;font-weight:600;color:var(--text);">${sortVal??'–'}</td>
       <td style="font-family:DM Mono,monospace;color:${ovClr};">${p.avgOverall}</td>
     </tr>`;
   }).join('');
+}
+
+// Navigate from Team Rankings to Category Leaders, pre-filtered for team + category
+function trGoCategory(teamCode, catName) {
+  // Set category leaders team filter
+  const teamSel = document.getElementById('catboard-team');
+  if (teamSel) {
+    // Find the option that matches this team code
+    const opts = [...teamSel.options];
+    const match = opts.find(o => o.value === teamCode || o.value === (DOTTED_TR[teamCode]||teamCode));
+    if (match) teamSel.value = match.value;
+  }
+  // Navigate to Category Leaders view and activate the right category button
+  showView('leaderboard');
+  // Use a short delay to let the view render before clicking the button
+  setTimeout(() => {
+    buildCatBoardNav();  // ensure nav is built
+    // Find and click the category button
+    const btns = document.querySelectorAll('.catboard-cat-btn');
+    const btn = [...btns].find(b => b.textContent.trim() === catName);
+    if (btn) btn.click();
+  }, 150);
 }
 
 
@@ -3685,7 +3743,7 @@ function getAttrScore(players, attrName) {
     const avg = valids.length ? Math.round(valids.reduce((s,x)=>s+x.val,0)/valids.length) : null;
     return {avg, scores};
   }
-  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics','Consistency'];
+  const CAT_GROUPS = ['Usage','Athletic & Compete','Scoring','Offense','Defense','Special Teams','Analytics'];
   const scores = players.map(name => {
     const p=findPlayer(name); let val=null;
     for (const grp of CAT_GROUPS) { const f=getCatPctForPlayer(p,grp,attrName); if(f!=null){val=f;break;} }
@@ -5551,6 +5609,139 @@ let OST_DATA = null;
 let ostCurrentTab = 'all';
 let ostCurrentSort = 'name';
 
+// ── Offseason Category Delta ─────────────────────────────────────────────────
+let ostCurrentMode = 'transactions';
+
+function ostSetMode(mode) {
+  ostCurrentMode = mode;
+  document.getElementById('ost-mode-txn')?.classList.toggle('active', mode === 'transactions');
+  document.getElementById('ost-mode-delta')?.classList.toggle('active', mode === 'delta');
+  document.getElementById('ost-txn-controls').style.display = mode === 'transactions' ? 'flex' : 'none';
+  document.getElementById('ost-table').style.display        = mode === 'transactions' ? '' : 'none';
+  document.getElementById('ost-team-panel').style.display   = mode === 'transactions' ? '' : 'none';
+  document.getElementById('ost-delta-view').style.display   = mode === 'delta'        ? '' : 'none';
+  if (mode === 'delta') ostInitDelta();
+}
+
+function ostInitDelta() {
+  // Populate snapshot selector
+  const snapSel = document.getElementById('ost-delta-snap');
+  const snaps = Object.keys(window.ROSTER_SNAPSHOTS || {}).sort().reverse();
+  if (snapSel && snapSel.options.length <= 1) {
+    snaps.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s; o.textContent = s;
+      snapSel.appendChild(o);
+    });
+  }
+  // Populate team selector
+  const teamSel = document.getElementById('ost-delta-team');
+  if (teamSel && teamSel.options.length <= 1) {
+    const teams = [...new Set(ALL_PLAYERS.map(p => p.current_team || p.team).filter(Boolean))].sort();
+    teams.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      teamSel.appendChild(o);
+    });
+  }
+}
+
+function ostRenderDelta() {
+  const snapLabel = document.getElementById('ost-delta-snap')?.value;
+  const teamCode  = document.getElementById('ost-delta-team')?.value  || '';
+  const posFilter = document.getElementById('ost-delta-pos')?.value   || 'all';
+  const el = document.getElementById('ost-delta-content');
+  if (!el) return;
+
+  if (!snapLabel) {
+    el.innerHTML = '<span style="color:var(--text3);">Select a snapshot above to compare against current roster.</span>';
+    return;
+  }
+
+  const snapData = window.ROSTER_SNAPSHOTS?.[snapLabel]?.rosters || {};
+  const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
+
+  // Get teams to show
+  const teamsToShow = teamCode
+    ? [teamCode]
+    : [...new Set(ALL_PLAYERS.map(p => p.current_team || p.team).filter(Boolean))].sort();
+
+  const CATS = [
+    ['Athletic & Compete','Speed'],['Athletic & Compete','Endurance'],['Athletic & Compete','Physicality'],
+    ['Scoring','Goalscoring'],['Scoring','Finishing'],['Scoring','Shot Volume'],['Scoring','Shot Quality'],
+    ['Offense','Passing'],['Offense','Playdriving'],
+    ['Defense','Entry Defense'],['Defense','Shot Suppression'],['Defense','Takeaways'],
+    ['Special Teams','Power Play'],['Special Teams','Penalty Kill'],
+    ['Analytics','On-Ice Offense'],['Analytics','On-Ice Defense'],
+  ];
+
+  const teamAvg = (players, grp, cat) => {
+    const vals = players.map(p => ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct).filter(v=>v!=null);
+    return vals.length ? Math.round(vals.reduce((s,v)=>s+v,0)/vals.length) : null;
+  };
+
+  const fmtDelta = d => {
+    if (d == null) return '<span style="color:var(--text3);">–</span>';
+    const clr = d > 3 ? 'var(--teal)' : d < -3 ? 'var(--coral)' : 'var(--text2)';
+    return `<span style="color:${clr};font-weight:600;">${d > 0 ? '+' : ''}${d}</span>`;
+  };
+
+  let html = '';
+  for (const tc of teamsToShow) {
+    const dotted = DOTTED[tc];
+    const snapRoster = new Set(snapData[tc] || snapData[dotted] || []);
+    if (!snapRoster.size) continue;
+
+    // Snap players: those in the snapshot
+    const snapPlayers = ALL_PLAYERS.filter(p => snapRoster.has(p.name) &&
+      (posFilter === 'all' || p._type === posFilter));
+    // Current players: those on the team now
+    const curPlayers = ALL_PLAYERS.filter(p =>
+      (p.current_team === tc || p.current_team === dotted || p.team === tc || p.team === dotted) &&
+      (posFilter === 'all' || p._type === posFilter));
+
+    if (!snapPlayers.length && !curPlayers.length) continue;
+
+    // Compute deltas
+    const rows = CATS.map(([grp, cat]) => {
+      const snapVal = teamAvg(snapPlayers, grp, cat);
+      const curVal  = teamAvg(curPlayers,  grp, cat);
+      const delta   = snapVal != null && curVal != null ? curVal - snapVal : null;
+      return {grp, cat, snapVal, curVal, delta};
+    }).filter(r => r.snapVal != null || r.curVal != null);
+
+    // Group by category group
+    const byGrp = {};
+    rows.forEach(r => { (byGrp[r.grp] = byGrp[r.grp]||[]).push(r); });
+
+    html += `<div style="margin-bottom:1.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;">
+      <div style="font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:.5rem;">${tc}
+        <span style="font-size:.72rem;font-weight:400;color:var(--text3);margin-left:.5rem;">${snapPlayers.length} snap players → ${curPlayers.length} current</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.5rem;">`;
+
+    for (const [grp, grpRows] of Object.entries(byGrp)) {
+      html += `<div><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:600;margin-bottom:.3rem;">${grp}</div>
+        <div style="display:flex;flex-direction:column;gap:2px;">`;
+      for (const r of grpRows) {
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:.75rem;color:var(--text2);">${r.cat}</span>
+          <span style="font-size:.75rem;font-family:DM Mono,monospace;">
+            <span style="color:var(--text3);">${r.snapVal??'–'}</span>
+            <span style="color:var(--text3);margin:0 3px;">→</span>
+            <span style="color:var(--text);">${r.curVal??'–'}</span>
+            <span style="margin-left:4px;">${fmtDelta(r.delta)}</span>
+          </span>
+        </div>`;
+      }
+      html += '</div></div>';
+    }
+    html += '</div></div>';
+  }
+
+  el.innerHTML = html || '<span style="color:var(--text3);">No matching players found for the selected snapshot/team.</span>';
+}
+
 async function ostLoad() {
   if (OST_DATA) return;
   const tbody = document.getElementById('ost-tbody');
@@ -7144,8 +7335,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <h2 class="view-title">Offseason Tracker</h2>
         <div class="view-sub">2025–26 → 2026–27 · Player movement &amp; value changes by team</div>
       </div>
-      <!-- Sub-tabs -->
-      <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+      <!-- View mode selector -->
+      <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;align-items:center;">
+        <button class="ost-tab active" id="ost-mode-txn" onclick="ostSetMode('transactions')">Transactions</button>
+        <button class="ost-tab" id="ost-mode-delta" onclick="ostSetMode('delta')">Category Delta</button>
+      </div>
+      <!-- Transactions sub-tabs (hidden in delta mode) -->
+      <div id="ost-txn-controls" style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;">
         <button class="ost-tab active" data-pos="all"  onclick="ostSetTab('all')">All Positions</button>
         <button class="ost-tab"        data-pos="F"    onclick="ostSetTab('F')">Forwards</button>
         <button class="ost-tab"        data-pos="D"    onclick="ostSetTab('D')">Defensemen</button>
@@ -7179,6 +7375,26 @@ document.addEventListener('DOMContentLoaded', () => {
         </table>
       </div>
       <!-- Team detail panel -->
+      <!-- Category Delta view (hidden by default) -->
+      <div id="ost-delta-view" style="display:none;margin-top:.5rem;">
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+          <label style="font-size:.8rem;color:var(--text2);">Compare snapshot:</label>
+          <select id="ost-delta-snap" onchange="ostRenderDelta()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
+            <option value="">Select snapshot…</option>
+          </select>
+          <label style="font-size:.8rem;color:var(--text2);margin-left:.5rem;">Team:</label>
+          <select id="ost-delta-team" onchange="ostRenderDelta()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
+            <option value="">All teams</option>
+          </select>
+          <label style="font-size:.8rem;color:var(--text2);margin-left:.5rem;">Position:</label>
+          <select id="ost-delta-pos" onchange="ostRenderDelta()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
+            <option value="all">All</option>
+            <option value="F">Forwards</option>
+            <option value="D">Defensemen</option>
+          </select>
+        </div>
+        <div id="ost-delta-content" style="font-size:.82rem;color:var(--text3);padding:1rem;">Select a snapshot and team above.</div>
+      </div>
       <div id="ost-team-panel" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-top:1rem;">
         <div id="ost-team-panel-content"></div>
       </div>
