@@ -6060,7 +6060,11 @@ function ostRenderSteady() {
     const cur  = p.overall_pct;
     const proj = p.t1_composite;   // projected overall percentile (0-100)
     if (cur == null || proj == null) continue;
-    const toi = p.toi_per_gp || 15;
+    // toi_per_gp is stored as "MM:SS" string — parse to decimal minutes
+    const toiRaw = p.toi_per_gp;
+    const toi = toiRaw && typeof toiRaw === 'string' && toiRaw.includes(':')
+      ? (parseInt(toiRaw)||0) + (parseInt(toiRaw.split(':')[1])||0)/60
+      : (parseFloat(toiRaw) || 15);
     const delta = proj - cur;
     if (!teamDeltas[tc]) teamDeltas[tc] = {wSum:0,wTotal:0,players:[]};
     teamDeltas[tc].wSum   += delta * toi;
@@ -6111,7 +6115,7 @@ function renderSteadyState() {
     const cur = p.overall_pct;
     const proj = p.proj_years?.[0];
     if (cur == null || proj == null) continue;
-    const toi = p.toi_per_gp || 15;
+    const _tr3=p.toi_per_gp; const toi=_tr3&&typeof _tr3==='string'&&_tr3.includes(':')?(parseInt(_tr3)||0)+(parseInt(_tr3.split(':')[1])||0)/60:(parseFloat(_tr3)||15);
     const delta = proj - cur;
     if (!teamDeltas[tc]) teamDeltas[tc] = {wSum:0,wTotal:0,players:[]};
     teamDeltas[tc].wSum   += delta * toi;
