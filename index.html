@@ -2905,7 +2905,7 @@ function renderGoalieCard(g) {
 
     // Summary row (same as skater format)
     const summaryHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:.75rem;">
-      ${[['Cap Hit',fmtM(g.cap),null],['Proj. 26-27',fmtM(g.proj_value_2627),'var(--teal)'],
+      ${[['Cap Hit',fmtM(g.cap),null],['Proj. 26-27',fmtM(g.proj_value_2627),'var(--text)'],
          ['Proj. Surplus',fmtMc(g.surplus_2627),gcClr(g.surplus_2627)],
          ['Expiry',g.exp_year+' '+(g.expiry_type||''),null],
          ['FV AAV ('+term+'-yr)',fmtM(fvAav),'var(--blue)'],
@@ -2913,51 +2913,70 @@ function renderGoalieCard(g) {
       ].map(([lbl,val,clr])=>'<div style="flex:1;min-width:110px;padding:.65rem .85rem;border-right:1px solid var(--border);"><div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;">'+lbl+'</div><div style="font-size:.85rem;font-weight:600;color:'+(clr||'var(--text)')+';">'+val+'</div></div>').join('')}
     </div>`;
 
-    // Bar chart: 25-26 actual + 2026-27 through 2034-35 implied values vs cap hits
-    const chartYears = ['25-26','26-27','27-28','28-29','29-30','30-31','31-32','32-33','33-34','34-35'];
-    const capHit = g.cap || 0;
-    const barValues = [
-      g.value_2526,                                                      // 25-26 GP Adj equiv
-      ...[g.proj_years?.[0],g.proj_years?.[1],g.proj_years?.[2],
-          g.proj_years?.[3],g.proj_years?.[4],g.proj_years?.[5],
-          g.proj_years?.[6],g.proj_years?.[7],g.proj_years?.[8]],
-    ].slice(0,10);
-    const maxVal = Math.max(capHit, ...barValues.filter(v=>v!=null)) * 1.15 || 1;
-    const barW = 100 / chartYears.length;
-    const barsHtml = chartYears.map((yr,i) => {
-      const v = barValues[i];
-      if (v==null) return '';
-      const valH = Math.round((v/maxVal)*100);
-      const capH = Math.round((capHit/maxVal)*100);
-      const clr  = v >= capHit ? 'var(--teal)' : 'var(--coral)';
-      return '<div style="display:flex;flex-direction:column;align-items:center;width:'+barW+'%;">'
-        +'<div style="width:60%;position:relative;height:80px;display:flex;align-items:flex-end;gap:2px;">'
-        +'<div style="flex:1;height:'+valH+'%;background:'+clr+';border-radius:2px 2px 0 0;opacity:.85;" title="'+yr+' Value: '+fmtM(v)+'"></div>'
-        +'<div style="flex:1;height:'+capH+'%;background:var(--text3);border-radius:2px 2px 0 0;opacity:.4;" title="Cap: '+fmtM(capHit)+'"></div>'
-        +'</div><div style="font-size:.58rem;color:var(--text3);margin-top:2px;">'+yr+'</div></div>';
-    }).join('');
-    const chartHtml = '<div style="display:flex;align-items:flex-end;padding:.5rem 0;border-bottom:1px solid var(--border);margin-bottom:.75rem;">'+barsHtml+'</div>';
+    // Bar chart: exact same format as skater player card contract calculator
+    const GC_SEASON_LABELS    = ['25\u201326','26\u201327','27\u201328','28\u201329','29\u201330','30\u201331','31\u201332','32\u201333','33\u201334','34\u201335'];
+    const GC_SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
+    const gcExpYear  = parseInt(g.exp_year) || 2031;
+    const gcProjVals = [(g.value_2526 ?? g.value) || null, ...(g.proj_years || [])];
+    const gcCap2526  = g.cap || null;   // actual 25-26 cap from 25-26 G col W
+    const gcCapHits  = GC_SEASON_END_YEARS.map((yr, i) => i === 0 ? gcCap2526 : (yr <= gcExpYear ? (g.cap || null) : null));
+    const gcChartEl  = document.getElementById('gc-bar-chart');
+    const chartHtml  = '<div class="contract-chart-wrap">'
+      + '<div class="contract-chart-title">Projected Value vs Cap \u2014 2025\u201326 through 2034\u201335</div>'
+      + '<div style="position:relative;height:160px;"><canvas id="gc-bar-chart"></canvas></div>'
+      + '<div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">'
+      + '<div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Value / Proj. Value</span></div>'
+      + '<div class="leg-item"><div class="leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="font-size:.72rem;color:var(--text3);">Cap Hit</span></div>'
+      + '</div></div>';
 
-    // Bottom boxes: Proj at Expiry, Peak, FV terms
-    const bottomHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-      ${[['Proj. Value at Expiry',fmtM(g.value_at_expiry),'var(--blue)'],
-         ['Proj. Rating at Expiry',g.norm_at_expiry!=null?Math.round(g.norm_at_expiry*100)+'%ile':'–',null],
-         ['Peak Proj. Value',fmtM(g.peak_value),'var(--teal)'],
-         ['FV 1-yr AAV',fmtM(g.aav_1yr),null],
-         ['FV 4-yr AAV',fmtM(g.aav_4yr),null],
-         ['FV 8-yr AAV',fmtM(g.aav_8yr),null],
-      ].map(([lbl,val,clr])=>'<div style="flex:1;min-width:110px;padding:.65rem .85rem;border-right:1px solid var(--border);"><div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;">'+lbl+'</div><div style="font-size:.85rem;font-weight:600;color:'+(clr||'var(--text)')+';">'+val+'</div></div>').join('')}
-    </div>`;
+    gcCalcEl.innerHTML = summaryHtml + chartHtml;
 
-    gcCalcEl.innerHTML = summaryHtml + chartHtml + bottomHtml;
+    // Render Chart.js bar chart (same as skater format)
+    const gcCtx = document.getElementById('gc-bar-chart')?.getContext('2d');
+    if (gcCtx) {
+      if (window._gcBarChart) { window._gcBarChart.destroy(); window._gcBarChart = null; }
+      window._gcBarChart = new Chart(gcCtx, {
+        type:'bar',
+        data:{labels:GC_SEASON_LABELS,datasets:[
+          {label:'Proj. value',data:gcProjVals.map(v=>v!=null?Math.max(0,v):null),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
+          {label:'Cap hit',   data:gcCapHits, backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
+            callbacks:{label:ctx=>{
+              const lbl = (ctx.datasetIndex===0 && ctx.dataIndex===0) ? 'Value' : ctx.dataset.label;
+              return lbl+': $'+Math.round(ctx.raw||0).toLocaleString();
+            }}}},
+          scales:{
+            x:{grid:{display:false},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
+            y:{min:0,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#555a6a',font:{family:'DM Mono',size:10},callback:v=>'$'+(v/1e6).toFixed(1)+'M'}}
+          }
+        }
+      });
+    }
+
+    // Bottom boxes: exact same format as skater (c-item/c-lbl/c-val with blue color)
+    const fpctG = v => v!=null ? Math.round(v*100)+'th' : '\u2013';
+    const fvMG  = v => v!=null ? '$'+(Math.abs(v)/1e6).toFixed(2)+'M' : '\u2013';
+    const btm = document.createElement('div');
+    btm.className = 'contract-strip';
+    btm.style.marginTop = '.75rem';
+    btm.innerHTML = [
+      {lbl:'Proj. value at expiry',       val:fvMG(g.value_at_expiry)},
+      {lbl:'Proj. rating at expiry',      val:fpctG(g.norm_at_expiry)},
+      {lbl:'Peak proj. value',            val:fvMG(g.peak_value)},
+      {lbl:'Fair value \u2014 1-yr deal', val:fvMG(g.aav_1yr)},
+      {lbl:'Fair value \u2014 4-yr deal', val:fvMG(g.aav_4yr)},
+      {lbl:'Fair value \u2014 8-yr deal', val:fvMG(g.aav_8yr)},
+    ].map(it=>`<div class="c-item"><div class="c-lbl">${it.lbl}</div><div class="c-val" style="color:var(--blue);">${it.val}</div></div>`).join('');
+    gcCalcEl.appendChild(btm);
   }
 
   if (goalieValueChart) { goalieValueChart.destroy(); goalieValueChart = null; }
   const ctx = document.getElementById('goalie-prog-chart')?.getContext('2d');
   if (ctx) {
-    const seasons = ['20\u201321','21\u201322','22\u201323','23\u201324','24\u201325','25\u201326'];
+    const seasons = ['21\u201322','22\u201323','23\u201324','24\u201325','25\u201326'];
     const dataPoints = [
-      null,
       g.pct_2122 ?? null,
       g.pct_2223 ?? null,
       g.pct_2324 ?? null,
@@ -5644,7 +5663,8 @@ window._pcSearch = (function() {
       if (!p || !inp || !dd) return;
       inp.value = p.name;
       dd.className='dropdown'; dd.innerHTML='';
-      if (typeof renderPlayerChem === 'function') renderPlayerChem(p);
+      if (p._type === 'G') { showGoalieCard(p); return; }
+      if (typeof renderCalcResult === 'function') { calcPlayer=p; renderCalcResult(); }
     },
     blur() { setTimeout(()=>{ const dd=document.getElementById('pc-dd');
       if(dd){dd.className='dropdown';dd.innerHTML='';} }, 200); }
@@ -6000,7 +6020,8 @@ function ostRenderTable() {
   };
 
   // Update AAV Surplus over Term header visibility
-  document.querySelectorAll('.ost-th-aav,.ost-td-aav').forEach(el => el.style.display = isG ? 'none' : '');
+  // All positions show same columns including FV AAV
+  document.querySelectorAll('.ost-th-aav,.ost-td-aav').forEach(el => el.style.display = '');
 
   let rows = Object.entries(summary).map(([tc,ts])=>({tc,ts,v:getVals(ts)}));
   if (sKey==='name')         rows.sort((a,b)=>a.tc.localeCompare(b.tc));
@@ -6080,10 +6101,10 @@ function ostShowTeam(tc) {
           '<div style="font-size:.72rem;font-weight:600;color:'+clr(chgVal)+';">'+fmtD(chgVal)+'</div>'+
           '<div style="font-size:.55rem;color:var(--text3);">Δ surplus vs 25-26</div>'+
         '</div>'+
-        (!isGoalieCard ? '<div style="text-align:center;min-width:40px;">'+
+        '<div style="text-align:center;min-width:40px;">'+
           '<div style="font-size:.7rem;color:var(--text2);">'+fmtM(t.fv_aav)+'</div>'+
           '<div style="font-size:.55rem;color:var(--text3);">FV AAV</div>'+
-        '</div>' : '')+
+        '</div>'+
       '</div>'+
       (known?'<div style="color:var(--text3);font-size:.7rem;flex-shrink:0;margin-left:2px;">&#9658;</div>':'')+
     '</div>'+ // close ost-player-card
@@ -6139,8 +6160,8 @@ function ostRenderSteady() {
   for (const p of ssPlayers) {
     if (posFilter !== 'all' && p._type !== posFilter) continue;
     const tc = p.current_team || p.team; if (!tc) continue;
-    const cur  = p.overall_pct;
-    const proj = p.t1_composite;   // projected overall percentile (0-100)
+    const cur  = p.overall_pct ?? (p.norm_2526 || p.overall_2526);
+    const proj = p.t1_composite ?? p.overall_pct;   // projected percentile; fall back to current
     if (cur == null || proj == null) continue;
     // toi_per_gp is stored as "MM:SS" string — parse to decimal minutes
     const toiRaw = p.toi_per_gp;
@@ -6199,8 +6220,8 @@ function renderSteadyState() {
   for (const p of ssPlayers) {
     if (posFilter !== 'all' && p._type !== posFilter) continue;
     const tc = p.current_team || p.team; if (!tc) continue;
-    const cur = p.overall_pct;
-    const proj = p.proj_years?.[0];
+    const cur  = p.overall_pct ?? (p.norm_2526 || p.overall_2526);
+    const proj = p.t1_composite ?? p.overall_pct;   // projected rating, fall back to current
     if (cur == null || proj == null) continue;
     const _tr3=p.toi_per_gp; const toi=_tr3&&typeof _tr3==='string'&&_tr3.includes(':')?(parseInt(_tr3)||0)+(parseInt(_tr3.split(':')[1])||0)/60:(parseFloat(_tr3)||15);
     const delta = proj - cur;
