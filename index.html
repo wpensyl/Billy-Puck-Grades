@@ -1805,7 +1805,7 @@ async function renderTeamView(teamCode) {
   );
   const totalGP = teamGoaliesEarly.reduce((s,g) => s + (g.gp||0), 0);
   const goalieScorePct = totalGP > 0
-    ? teamGoaliesEarly.reduce((s,g) => s + (g.overall_2526 ?? g.comp_value_norm ?? 50) * (g.gp||0), 0) / totalGP
+    ? teamGoaliesEarly.reduce((s,g) => s + (g.t1_composite ?? g.overall_2526 ?? g.comp_value_norm ?? 50) * (g.gp||0), 0) / totalGP
     : 50;
 
   // Projected pts: skater composite (0-100) + GP-weighted goalie Score% (0-100 → 0-1)
@@ -1897,7 +1897,7 @@ async function renderTeamView(teamCode) {
       <table class="lb-table">
         <thead><tr><th>#</th><th>Player</th><th>Pos</th><th>Tier</th><th>Line/pair</th><th>Overall</th><th> </th><th>TOI/GP</th><th>Cap hit</th><th>Surplus</th></tr></thead>
         <tbody>${players.map((p,i)=>{
-          const isD=p._type==='D'; const pac=isD?'#5b9cf6':'#2dd4a0'; const ov=p.overall_pct??0; const sv=p.surplus??0;
+          const isD=p._type==='D'; const pac=isD?'#5b9cf6':'#2dd4a0'; const ov=Math.round(p.t1_composite??p.overall_pct??0); const sv=p.surplus_2627??p.surplus??0;
           return `<tr data-name="${p.name}">
             <td class="lb-rank">${i+1}</td>
             <td><span class="lb-player-name">${p.name}</span>${nhlJerseyCache[p.name]?' <span style="font-size:.72rem;color:var(--text3);font-family:\'DM Mono\',monospace;">(#'+nhlJerseyCache[p.name]+')</span>':''}</td>
@@ -1923,8 +1923,8 @@ async function renderTeamView(teamCode) {
   let goalieHtml = '';
   if (teamGoalies.length) {
     const goalieRows = teamGoalies.map(g => {
-      const ov = g.comp_value_norm ?? 0;
-      const sv = g.surplus ?? 0;
+      const ov = Math.round(g.t1_composite ?? g.comp_value_norm ?? 0);
+      const sv = g.surplus_2627 ?? g.surplus ?? 0;
       const clr = ov >= 70 ? 'var(--teal)' : ov <= 30 ? 'var(--coral)' : 'var(--mid)';
       const svClr = sv >= 0 ? 'var(--teal)' : 'var(--coral)';
       return '<tr>' +
@@ -2174,8 +2174,8 @@ function renderGoalieGrid() {
         </div>
       </div>
       <div class="goalie-stats" id="gstats-${g.name.replace(/\s/g,'_')}">
-        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.overall_2526!=null?g.overall_2526:'–'}</div><div class="goalie-stat-lbl">25-26 overall</div></div>
-        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);opacity:.7;">${(g.t1_composite??g.comp_value_norm)!=null?(g.t1_composite??g.comp_value_norm):'–'}</div><div class="goalie-stat-lbl">Proj. Rating</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.norm_2526!=null?g.norm_2526!=null?Math.round(g.norm_2526):(g.overall_2526??'–'):'–'}</div><div class="goalie-stat-lbl">25-26 overall</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);opacity:.7;">${g.t1_composite!=null?Math.round(g.t1_composite):(g.t1_composite!=null?Math.round(g.t1_composite):(g.comp_value_norm??'–'))}</div><div class="goalie-stat-lbl">Proj. Rating</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${fmtVal(g.value_2526)}</div><div class="goalie-stat-lbl">25-26 value</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val" style="color:${svClr};">${fmtSurplus(g.surplus)}</div><div class="goalie-stat-lbl">Surplus</div></div>
       </div>
@@ -2205,8 +2205,8 @@ function renderGoalieGrid() {
       if (!el) return;
       // Keep Overall (comp_value_norm), replace value tiles with live box stats
       el.innerHTML = `
-        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.overall_2526!=null?g.overall_2526:'–'}</div><div class="goalie-stat-lbl">25-26 overall</div></div>
-        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);opacity:.7;">${(g.t1_composite??g.comp_value_norm)!=null?(g.t1_composite??g.comp_value_norm):'–'}</div><div class="goalie-stat-lbl">Proj. Rating</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);">${g.norm_2526!=null?g.norm_2526!=null?Math.round(g.norm_2526):(g.overall_2526??'–'):'–'}</div><div class="goalie-stat-lbl">25-26 overall</div></div>
+        <div class="goalie-stat"><div class="goalie-stat-val" style="color:var(--blue);opacity:.7;">${g.t1_composite!=null?Math.round(g.t1_composite):(g.t1_composite!=null?Math.round(g.t1_composite):(g.comp_value_norm??'–'))}</div><div class="goalie-stat-lbl">Proj. Rating</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.svPct||'–'}</div><div class="goalie-stat-lbl">SV%</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.gaa||'–'}</div><div class="goalie-stat-lbl">GAA</div></div>
         <div class="goalie-stat"><div class="goalie-stat-val">${stats.wins!=null?stats.wins:'–'}</div><div class="goalie-stat-lbl">Wins</div></div>`;
@@ -2821,7 +2821,7 @@ function renderGoalieCard(g) {
   if (!el) return;
   const sv = g.surplus ?? 0;
   const svClr = sv >= 0 ? 'var(--teal)' : 'var(--coral)';
-  const ov = g.t1_composite ?? g.overall_2526 ?? g.comp_value_norm ?? 0;
+  const ov = Math.round(g.norm_2526 ?? g.overall_2526 ?? g.comp_value_norm ?? 0);  // 25-26 in-season rating
   const fmtRaw = v => v ? '$' + Math.round(v).toLocaleString() : '\u2013';
 
   el.innerHTML = `
@@ -2836,17 +2836,19 @@ function renderGoalieCard(g) {
           <span class="sep">\u00b7</span><span>Age ${g.age?Math.floor(g.age):'\u2013'}</span>
           <span class="sep">\u00b7</span><span>${g.height||'\u2013'} \u00b7 ${g.weight?g.weight+' lbs':'\u2013'}</span>
         </div>
+        ${g.tier?`<div class="deal-expiry" style="color:var(--teal);font-weight:600;">Tier: ${g.tier}</div>`:''}
         ${g.exp_year?`<div class="deal-expiry">Deal Expiry: ${g.exp_year} ${g.expiry_type||''}</div>`:''}
-        <div class="gc-badge-wrap">
+      </div>
+      <div class="gc-badge-wrap" style="flex-shrink:0;align-self:flex-start;margin-left:auto;">
           <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
             <div class="badge-hdr" style="color:var(--blue);">Rating (0–100)</div>
             <div class="badge-tiles">
               <div class="overall-tile" style="background:rgba(91,156,246,0.12);">
                 <div class="overall-num" style="color:var(--blue);">${ov}</div>
-                <div class="overall-lbl" style="color:var(--blue);">2025\u201326</div>
+                <div class="overall-lbl" style="color:var(--blue);">2025–26</div>
               </div>
               <div class="overall-tile" style="background:rgba(91,156,246,0.07);">
-                <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.t1_composite??g.comp_value_norm??'\u2013'}</div>
+                <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.t1_composite!=null?Math.round(g.t1_composite):'\u2013'}</div>
                 <div class="overall-lbl" style="color:var(--blue);opacity:.75;">Projected</div>
               </div>
             </div>
@@ -2872,10 +2874,6 @@ function renderGoalieCard(g) {
       </div>
     </div>
     <div class="panel" style="margin-bottom:1rem;">
-      <div class="panel-hd"><span class="panel-title">Contract Calculator</span><span class="panel-note">Fair Value by term</span></div>
-      <div id="gc-contract-calc" style="padding:.75rem 1rem;"></div>
-    </div>
-    <div class="panel" style="margin-bottom:1rem;">
       <div class="panel-hd"><span class="panel-title">Progression</span><span class="panel-note">Overall \u00b7 model value percentile by season</span></div>
       <div class="prog-wrap">
         <div style="position:relative;height:160px;"><canvas id="goalie-prog-chart"></canvas></div>
@@ -2890,43 +2888,64 @@ function renderGoalieCard(g) {
   // Build progression chart using available season data
   // overall_2526 = current season percentile; comp_value_norm = historical average
   // ── Goalie Contract Calculator (injected after card renders) ────────────
+  // ── Goalie Contract Calculator ─────────────────────────────────────────────
   const gcCalcEl = document.getElementById('gc-contract-calc');
-  if (gcCalcEl && g.aav_1yr) {
-    const fmtM = v => v==null ? '–' : '$'+(v/1e6).toFixed(2)+'M';
-    const fmtMc = v => v==null ? '–' : (v>=0?'+':'')+fmtM(v);
+  if (gcCalcEl) {
+    const fmtM  = v => v==null ? '–' : '$'+(Math.abs(v)/1e6).toFixed(2)+'M';
+    const fmtMc = v => v==null ? '–' : (v>=0?'+':'−')+'$'+(Math.abs(v)/1e6).toFixed(2)+'M';
     const gcClr = v => v==null?'var(--text3)':v>0?'var(--teal)':'var(--coral)';
-    const expYr = parseInt(g.exp_year)||2027;
-    const term  = Math.max(1,Math.min(8,expYr-2026));
-    const aavKey = 'aav_'+term+'yr';
-    const fvAav  = g[aavKey] || g.avg_proj_value;
-    const fvSurp = fvAav ? Math.round(fvAav-(g.cap||0)) : null;
-    gcCalcEl.innerHTML = `
-      <div style="display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-        ${[['Cap Hit',fmtM(g.cap),null],
-           ['Proj. 26-27',fmtM(g.proj_value_2627),'var(--teal)'],
-           ['Proj. Surplus',fmtMc(g.surplus_2627),gcClr(g.surplus_2627)],
-           ['Expiry',g.exp_year+' '+(g.expiry_type||''),null],
-           ['FV AAV ('+term+'-yr)',fmtM(fvAav),'var(--blue)'],
-           ['FV Surplus/yr',fmtMc(fvSurp),gcClr(fvSurp)],
-        ].map(([lbl,val,clr])=>`<div style="flex:1;min-width:110px;padding:.65rem .85rem;border-right:1px solid var(--border);">
-          <div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;">${lbl}</div>
-          <div style="font-size:.85rem;font-weight:600;color:${clr||'var(--text)'};">${val}</div>
-        </div>`).join('')}
-      </div>
-      <div style="margin-top:.75rem;overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
-          <thead><tr style="border-bottom:1px solid var(--border);color:var(--text3);">
-            <th style="padding:.3rem .5rem;text-align:left;">Term</th>
-            <th style="padding:.3rem .5rem;text-align:right;">FV AAV</th>
-            <th style="padding:.3rem .5rem;text-align:right;">Surplus/yr</th>
-          </tr></thead>
-          <tbody>${[1,2,3,4,5,6,7,8].map(t=>{
-            const aav = g['aav_'+t+'yr'];
-            const surp = aav!=null ? Math.round(aav-(g.cap||0)) : null;
-            return aav==null ? '' : '<tr style="border-bottom:1px solid var(--border8);"><td style="padding:.3rem .5rem;">'+t+'-yr</td><td style="padding:.3rem .5rem;text-align:right;font-family:DM Mono,monospace;">'+fmtM(aav)+'</td><td style="padding:.3rem .5rem;text-align:right;font-family:DM Mono,monospace;color:'+gcClr(surp)+';">'+fmtMc(surp)+'</td></tr>';
-          }).join('')}</tbody>
-        </table>
-      </div>`;
+    const expYr  = parseInt(g.exp_year)||2027;
+    const term   = Math.max(1,Math.min(8,expYr-2026));
+    const fvAav  = g['aav_'+term+'yr'] || g.avg_proj_value;
+    const fvSurp = fvAav!=null ? Math.round(fvAav-(g.cap||0)) : null;
+
+    // Summary row (same as skater format)
+    const summaryHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:.75rem;">
+      ${[['Cap Hit',fmtM(g.cap),null],['Proj. 26-27',fmtM(g.proj_value_2627),'var(--teal)'],
+         ['Proj. Surplus',fmtMc(g.surplus_2627),gcClr(g.surplus_2627)],
+         ['Expiry',g.exp_year+' '+(g.expiry_type||''),null],
+         ['FV AAV ('+term+'-yr)',fmtM(fvAav),'var(--blue)'],
+         ['FV Surplus/yr',fmtMc(fvSurp),gcClr(fvSurp)],
+      ].map(([lbl,val,clr])=>'<div style="flex:1;min-width:110px;padding:.65rem .85rem;border-right:1px solid var(--border);"><div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;">'+lbl+'</div><div style="font-size:.85rem;font-weight:600;color:'+(clr||'var(--text)')+';">'+val+'</div></div>').join('')}
+    </div>`;
+
+    // Bar chart: 25-26 actual + 2026-27 through 2034-35 implied values vs cap hits
+    const chartYears = ['25-26','26-27','27-28','28-29','29-30','30-31','31-32','32-33','33-34','34-35'];
+    const capHit = g.cap || 0;
+    const barValues = [
+      g.value_2526,                                                      // 25-26 GP Adj equiv
+      ...[g.proj_years?.[0],g.proj_years?.[1],g.proj_years?.[2],
+          g.proj_years?.[3],g.proj_years?.[4],g.proj_years?.[5],
+          g.proj_years?.[6],g.proj_years?.[7],g.proj_years?.[8]],
+    ].slice(0,10);
+    const maxVal = Math.max(capHit, ...barValues.filter(v=>v!=null)) * 1.15 || 1;
+    const barW = 100 / chartYears.length;
+    const barsHtml = chartYears.map((yr,i) => {
+      const v = barValues[i];
+      if (v==null) return '';
+      const valH = Math.round((v/maxVal)*100);
+      const capH = Math.round((capHit/maxVal)*100);
+      const clr  = v >= capHit ? 'var(--teal)' : 'var(--coral)';
+      return '<div style="display:flex;flex-direction:column;align-items:center;width:'+barW+'%;">'
+        +'<div style="width:60%;position:relative;height:80px;display:flex;align-items:flex-end;gap:2px;">'
+        +'<div style="flex:1;height:'+valH+'%;background:'+clr+';border-radius:2px 2px 0 0;opacity:.85;" title="'+yr+' Value: '+fmtM(v)+'"></div>'
+        +'<div style="flex:1;height:'+capH+'%;background:var(--text3);border-radius:2px 2px 0 0;opacity:.4;" title="Cap: '+fmtM(capHit)+'"></div>'
+        +'</div><div style="font-size:.58rem;color:var(--text3);margin-top:2px;">'+yr+'</div></div>';
+    }).join('');
+    const chartHtml = '<div style="display:flex;align-items:flex-end;padding:.5rem 0;border-bottom:1px solid var(--border);margin-bottom:.75rem;">'+barsHtml+'</div>';
+
+    // Bottom boxes: Proj at Expiry, Peak, FV terms
+    const bottomHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      ${[['Proj. Value at Expiry',fmtM(g.value_at_expiry),'var(--blue)'],
+         ['Proj. Rating at Expiry',g.norm_at_expiry!=null?Math.round(g.norm_at_expiry*100)+'%ile':'–',null],
+         ['Peak Proj. Value',fmtM(g.peak_value),'var(--teal)'],
+         ['FV 1-yr AAV',fmtM(g.aav_1yr),null],
+         ['FV 4-yr AAV',fmtM(g.aav_4yr),null],
+         ['FV 8-yr AAV',fmtM(g.aav_8yr),null],
+      ].map(([lbl,val,clr])=>'<div style="flex:1;min-width:110px;padding:.65rem .85rem;border-right:1px solid var(--border);"><div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;">'+lbl+'</div><div style="font-size:.85rem;font-weight:600;color:'+(clr||'var(--text)')+';">'+val+'</div></div>').join('')}
+    </div>`;
+
+    gcCalcEl.innerHTML = summaryHtml + chartHtml + bottomHtml;
   }
 
   if (goalieValueChart) { goalieValueChart.destroy(); goalieValueChart = null; }
@@ -3090,7 +3109,11 @@ async function renderTeamCompare() {
       ].map(r=>`
         <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamA} ${r.lbl}</div><div style="font-family:DM Mono,monospace;font-size:.88rem;font-weight:500;color:${r.clrA};">${r.vA}</div></div>
         <div style="background:var(--surface);padding:.6rem .5rem;text-align:center;"><div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:2px;">${teamB} ${r.lbl}</div><div style="font-family:DM Mono,monospace;font-size:.88rem;font-weight:500;color:${r.clrB};">${r.vB}</div></div>`).join('')}
+    </div>    <div class="panel" style="margin-bottom:1rem;">
+      <div class="panel-hd"><span class="panel-title">Contract Calculator</span><span class="panel-note">Fair Value by term</span></div>
+      <div id="gc-contract-calc" style="padding:.75rem 1rem;"></div>
     </div>
+
     <div class="panel">
       <div class="panel-hd"><span class="panel-title">Category comparison</span><span class="panel-note">TOI-weighted team averages</span></div>
       <div style="padding:.75rem 1.25rem 1rem;">
@@ -3730,6 +3753,7 @@ function renderExtCandidates() {
   } else {
     const sortFn = {
       overall: (a,b)=>(b.t1_composite??b.overall_pct??0)-(a.t1_composite??a.overall_pct??0),
+      proj_rating: (a,b)=>(b.t1_composite??0)-(a.t1_composite??0),
       surplus: (a,b)=>(b.surplus||0)-(a.surplus||0),
       aav1:    (a,b)=>(b.aav_1yr||0)-(a.aav_1yr||0),
       cap:     (a,b)=>(b.cap||0)-(a.cap||0),
@@ -3971,6 +3995,7 @@ let calcTerm   = 1;
 function renderCalcResult() {
   const p = calcPlayer;
   if (!p) return;
+  if (p._type === 'G') { showGoalieCard(p); return; }
   const panel = document.getElementById('calc-panel');
   if (!panel) return;
   panel.style.display = 'block';
@@ -5605,10 +5630,9 @@ window._pcSearch = (function() {
       const {inp, dd} = getEls(); if (!dd) return;
       const q = (val||'').trim();
       if (q.length < 2) { dd.className='dropdown'; dd.innerHTML=''; return; }
-      _results = (typeof searchPlayers==='function')
-        ? searchPlayers(q,'all').filter(p=>p._type!=='G')
-        : [];
-      if (!_results.length) { dd.className='dropdown'; dd.innerHTML=''; return; }
+      const skaterResults = (typeof searchPlayers==='function') ? searchPlayers(q,'all') : [];
+      const goalieResults = (ALL_GOALIES||[]).filter(g=>g.name.toLowerCase().includes(q.toLowerCase()));
+      _results = [...skaterResults, ...goalieResults];
       dd.className = 'dropdown open';
       dd.innerHTML = _results.map((p,i) => `<div class="dd-item" data-idx="${i}"
           onmousedown="event.preventDefault();window._pcSearch.pick(${i})">
@@ -5716,7 +5740,7 @@ function ostRenderTop() {
   if (typeSel) {
     if (isGoalie) {
       typeSel.innerHTML = `
-        <option value="acq_proj_value">Acquisitions · Composite Value</option>
+        <option value="acq_proj_value">Acquisitions · Proj. Value</option>
         <option value="acq_fv_surplus">Acquisitions · FV Surplus</option>
         <option value="resign_fv_surplus">Re-Signings · FV Surplus</option>`;
     } else {
@@ -5745,7 +5769,7 @@ function ostRenderTop() {
     return null;
   };
   const getLabel = () => {
-    if (activeType === 'acq_proj_value')   return isGoalie ? 'Composite Value' : 'Proj. Value';
+    if (activeType === 'acq_proj_value')   return 'Proj. Value';
     if (activeType === 'acq_fv_aav')       return 'FV AAV';
     if (activeType === 'acq_fv_surplus')   return 'FV AAV Surplus';
     if (activeType === 'resign_fv_surplus')return 'FV AAV Surplus';
@@ -6626,7 +6650,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <input type="text" id="goalie-search" placeholder="Search goalies..." style="flex:1;min-width:180px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.45rem .75rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.85rem;outline:none;">
       <select class="lb-select" id="goalie-sort">
         <option value="value_2526">2025-26 value</option>
-        <option value="value">Avg value</option>
+        <option value="t1_composite">Proj. Rating</option>
         <option value="surplus">Surplus</option>
         <option value="gp">Games played</option>
         <option value="cap">Cap hit</option>
@@ -7674,15 +7698,15 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- Category Delta view (hidden by default) -->
       <div id="ost-delta-view" style="display:none;margin-top:.5rem;">
         <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
-          <label style="font-size:.8rem;color:var(--text2);">Compare snapshot:</label>
+          <label for="ost-delta-snap" style="font-size:.8rem;color:var(--text2);">Compare snapshot:</label>
           <select id="ost-delta-snap" onchange="ostRenderDelta()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
             <option value="">Select snapshot…</option>
           </select>
-          <label style="font-size:.8rem;color:var(--text2);margin-left:.5rem;">Team:</label>
+          <label for="ost-delta-team" style="font-size:.8rem;color:var(--text2);margin-left:.5rem;">Team:</label>
           <select id="ost-delta-team" onchange="ostRenderDelta()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
             <option value="">All teams</option>
           </select>
-          <label style="font-size:.8rem;color:var(--text2);margin-left:.5rem;">Position:</label>
+          <label for="ost-delta-pos" style="font-size:.8rem;color:var(--text2);margin-left:.5rem;">Position:</label>
           <select id="ost-delta-pos" onchange="ostRenderDelta()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
             <option value="all">All</option>
             <option value="F">Forwards</option>

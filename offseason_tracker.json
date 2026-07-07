@@ -4620,8 +4620,9 @@
       "change_in_surplus_loss": -2851319,
       "new_team": "VAN",
       "old_team": "VAN",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 4657838,
+      "avg_surplus_fv": -3842162,
+      "avg_annual_surplus": -3842162,
       "is_acquisition": false
     },
     {
@@ -4637,8 +4638,9 @@
       "change_in_surplus_loss": 1792139,
       "new_team": "TOR",
       "old_team": "TOR",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 5389722,
+      "avg_surplus_fv": 1639722,
+      "avg_annual_surplus": 1639722,
       "is_acquisition": false
     },
     {
@@ -4654,8 +4656,9 @@
       "change_in_surplus_loss": 273088,
       "new_team": "CHI",
       "old_team": "CHI",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 8702712,
+      "avg_surplus_fv": 2869379,
+      "avg_annual_surplus": 2869379,
       "is_acquisition": false
     },
     {
@@ -4671,8 +4674,9 @@
       "change_in_surplus_loss": -5548345,
       "new_team": "CGY",
       "old_team": "CGY",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 5350770,
+      "avg_surplus_fv": -2149230,
+      "avg_annual_surplus": -2149230,
       "is_acquisition": false
     },
     {
@@ -4688,8 +4692,9 @@
       "change_in_surplus_loss": -2594833,
       "new_team": "MIN",
       "old_team": "MIN",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 5322868,
+      "avg_surplus_fv": -1477132,
+      "avg_annual_surplus": -1477132,
       "is_acquisition": false
     },
     {
@@ -4705,8 +4710,9 @@
       "change_in_surplus_loss": 5704714,
       "new_team": "FLA",
       "old_team": "NJD",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": -502358,
+      "avg_surplus_fv": -6502358,
+      "avg_annual_surplus": -6502358,
       "is_acquisition": true
     },
     {
@@ -4722,8 +4728,9 @@
       "change_in_surplus_loss": -3385294,
       "new_team": "COL",
       "old_team": "COL",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 7169500,
+      "avg_surplus_fv": 4669500,
+      "avg_annual_surplus": 4669500,
       "is_acquisition": false
     },
     {
@@ -4739,8 +4746,9 @@
       "change_in_surplus_loss": -576737,
       "new_team": "CGY",
       "old_team": "CGY",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 7818609,
+      "avg_surplus_fv": 6468609,
+      "avg_annual_surplus": 6468609,
       "is_acquisition": false
     },
     {
@@ -4756,8 +4764,9 @@
       "change_in_surplus_loss": -1482389,
       "new_team": "NSH",
       "old_team": "NSH",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 5836166,
+      "avg_surplus_fv": 4586166,
+      "avg_annual_surplus": 4586166,
       "is_acquisition": false
     },
     {
@@ -4773,8 +4782,9 @@
       "change_in_surplus_loss": -5521612,
       "new_team": "SJS",
       "old_team": "SJS",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": -1124897,
+      "avg_surplus_fv": -4124897,
+      "avg_annual_surplus": -4124897,
       "is_acquisition": false
     },
     {
@@ -4790,8 +4800,9 @@
       "change_in_surplus_loss": -4135060,
       "new_team": "CAR",
       "old_team": "CAR",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 719198,
+      "avg_surplus_fv": -1180802,
+      "avg_annual_surplus": -1180802,
       "is_acquisition": false
     },
     {
@@ -4809,6 +4820,7 @@
       "old_team": null,
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": false
     },
     {
@@ -4824,8 +4836,9 @@
       "change_in_surplus_loss": -3249804,
       "new_team": "PHI",
       "old_team": "TOR",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 4822476,
+      "avg_surplus_fv": 1155809,
+      "avg_annual_surplus": 1155809,
       "is_acquisition": true
     },
     {
@@ -4841,8 +4854,9 @@
       "change_in_surplus_loss": 2660438,
       "new_team": "OTT",
       "old_team": "PHI",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": -5087221,
+      "avg_surplus_fv": -7287221,
+      "avg_annual_surplus": -7287221,
       "is_acquisition": true
     },
     {
@@ -4860,6 +4874,7 @@
       "old_team": "EDM",
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": false
     },
     {
@@ -4877,6 +4892,7 @@
       "old_team": "SJS",
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": false
     },
     {
@@ -4892,8 +4908,9 @@
       "change_in_surplus_loss": -3547252,
       "new_team": "FLA",
       "old_team": "VGK",
-      "fv_aav": null,
+      "fv_aav": 5119306,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": true
     },
     {
@@ -4909,8 +4926,9 @@
       "change_in_surplus_loss": 496619,
       "new_team": "EDM",
       "old_team": "CAR",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 3217477,
+      "avg_surplus_fv": 2217477,
+      "avg_annual_surplus": 2217477,
       "is_acquisition": true
     },
     {
@@ -4926,8 +4944,9 @@
       "change_in_surplus_loss": -6199790,
       "new_team": "TBL",
       "old_team": "TOR",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 6163400,
+      "avg_surplus_fv": 5321733,
+      "avg_annual_surplus": 5321733,
       "is_acquisition": true
     },
     {
@@ -4945,6 +4964,7 @@
       "old_team": "BUF",
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": true
     },
     {
@@ -4960,8 +4980,9 @@
       "change_in_surplus_loss": -362241,
       "new_team": "NYR",
       "old_team": "BOS",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": -698729,
+      "avg_surplus_fv": -4698729,
+      "avg_annual_surplus": -4698729,
       "is_acquisition": true
     },
     {
@@ -4977,8 +4998,9 @@
       "change_in_surplus_loss": -3623812,
       "new_team": "NJD",
       "old_team": "NYI",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 3761865,
+      "avg_surplus_fv": 2761865,
+      "avg_annual_surplus": 2761865,
       "is_acquisition": true
     },
     {
@@ -4994,8 +5016,9 @@
       "change_in_surplus_loss": 1228261,
       "new_team": "OTT",
       "old_team": "OTT",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": -4214363,
+      "avg_surplus_fv": -5314363,
+      "avg_annual_surplus": -5314363,
       "is_acquisition": false
     },
     {
@@ -5013,6 +5036,7 @@
       "old_team": "SJS",
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": true
     },
     {
@@ -5028,8 +5052,9 @@
       "change_in_surplus_loss": -3182352,
       "new_team": "DET",
       "old_team": "FLA",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 405167,
+      "avg_surplus_fv": -1594833,
+      "avg_annual_surplus": -1594833,
       "is_acquisition": true
     },
     {
@@ -5045,8 +5070,9 @@
       "change_in_surplus_loss": -2126512,
       "new_team": "SJS",
       "old_team": "WPG",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 577675,
+      "avg_surplus_fv": -247325,
+      "avg_annual_surplus": -247325,
       "is_acquisition": true
     },
     {
@@ -5062,8 +5088,9 @@
       "change_in_surplus_loss": 409707,
       "new_team": "MIN",
       "old_team": "EDM",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": -3809515,
+      "avg_surplus_fv": -4809515,
+      "avg_annual_surplus": -4809515,
       "is_acquisition": true
     },
     {
@@ -5081,6 +5108,7 @@
       "old_team": "MTL",
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": false
     },
     {
@@ -5098,6 +5126,7 @@
       "old_team": "NJD",
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": false
     },
     {
@@ -5115,6 +5144,7 @@
       "old_team": "LAK",
       "fv_aav": null,
       "avg_surplus_fv": null,
+      "avg_annual_surplus": null,
       "is_acquisition": true
     },
     {
@@ -5130,8 +5160,9 @@
       "change_in_surplus_loss": 10157700,
       "new_team": "TOR",
       "old_team": "FLA",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 153928,
+      "avg_surplus_fv": -6846072,
+      "avg_annual_surplus": -6846072,
       "is_acquisition": true
     },
     {
@@ -5147,8 +5178,9 @@
       "change_in_surplus_loss": -904604,
       "new_team": "NYI",
       "old_team": "UTA",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": -6320803,
+      "avg_surplus_fv": -7320803,
+      "avg_annual_surplus": -7320803,
       "is_acquisition": true
     },
     {
@@ -5164,8 +5196,9 @@
       "change_in_surplus_loss": -2340312,
       "new_team": "WPG",
       "old_team": "PIT",
-      "fv_aav": null,
-      "avg_surplus_fv": null,
+      "fv_aav": 5063113,
+      "avg_surplus_fv": 1313113,
+      "avg_annual_surplus": 1313113,
       "is_acquisition": true
     }
   ],
