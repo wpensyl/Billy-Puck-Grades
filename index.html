@@ -2170,7 +2170,7 @@ function renderGoalieGrid() {
           : `<div class="goalie-hs-init">${initials(g.name)}</div>`}
         <div>
           <div class="goalie-info-name">${g.name}</div>
-          <div class="goalie-info-meta">${g.current_team||g.team||'–'} · G · ${g.age ? Math.floor(g.age) + ' yrs' : '–'} · ${g.gp || '–'} GP</div>
+          <div class="goalie-info-meta">${g.current_team||g.team||'–'} · G · ${g.age ? Math.floor(g.age) + ' yrs' : '–'} · ${g.gp || '–'} GP${g.tier ? ' · ' + g.tier : ''}</div>
         </div>
       </div>
       <div class="goalie-stats" id="gstats-${g.name.replace(/\s/g,'_')}">
@@ -2883,6 +2883,10 @@ function renderGoalieCard(g) {
         </div>
       </div>
     </div>
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="panel-hd"><span class="panel-title">Contract Calculator</span><span class="panel-note">Projected Value vs Cap · Fair Value by term</span></div>
+      <div id="gc-contract-calc" style="padding:.75rem 1rem;"></div>
+    </div>
     <div class="card-footer" style="line-height:1.8;">Billy Puck Grades \u00b7 Goalie Card \u00b7 2025\u201326<br><span style="font-size:.65rem;opacity:.7;">Data: Evolving-Hockey \u00b7 NHL EDGE \u00b7 CapFriendly</span></div>`;
 
   // Build progression chart using available season data
@@ -2951,7 +2955,7 @@ function renderGoalieCard(g) {
   if (goalieValueChart) { goalieValueChart.destroy(); goalieValueChart = null; }
   const ctx = document.getElementById('goalie-prog-chart')?.getContext('2d');
   if (ctx) {
-    const seasons = ['20\u201321','21\u201322','22\u201323','23\u201324','24\u201325','25\u201326','26\u201327','27\u201328','28\u201329'];
+    const seasons = ['20\u201321','21\u201322','22\u201323','23\u201324','24\u201325','25\u201326'];
     const dataPoints = [
       null,
       g.pct_2122 ?? null,
@@ -2959,14 +2963,6 @@ function renderGoalieCard(g) {
       g.pct_2324 ?? null,
       g.pct_2425 ?? null,
       g.norm_2526 ?? g.overall_2526 ?? null,
-      null, null, null,   // projected — shown as separate dataset
-    ];
-    const projPoints = [
-      null, null, null, null, null,
-      g.norm_2526 ?? g.overall_2526 ?? null,    // anchor at 25-26
-      g.proj_norms?.[0] ?? null,                 // t+1
-      g.proj_norms?.[1] ?? null,                 // t+2
-      g.proj_norms?.[2] ?? null,                 // t+3
     ];
     goalieValueChart = new Chart(ctx, {
       type: 'line',
@@ -3257,6 +3253,7 @@ function renderFATracker() {
     if (typeVal === 'RFA' && !p.expiry_type?.startsWith('RFA')) return false;
     if (posVal === 'F' && p._type !== 'F') return false;
     if (posVal === 'D' && p._type !== 'D') return false;
+    if (posVal === 'G' && p._type !== 'G') return false;
     if (teamVal !== 'all' && (p.current_team || p.team) !== teamVal) return false;
     if (filterQ && !p.name.toLowerCase().includes(filterQ)) return false;
     return true;
@@ -3776,7 +3773,7 @@ function renderExtCandidates() {
     const sClr = surplus > 0 ? 'var(--teal)' : surplus < 0 ? 'var(--coral)' : 'var(--text3)';
     const typeLabel = p.expiry_type || '–';
     const typeClr = typeLabel === 'UFA' ? 'var(--blue)' : 'var(--teal)';
-    const veClr = p.norm_at_expiry ? barColor(p.norm_at_expiry) : 'var(--text3)';
+    const veClr = p._type === 'G' ? 'var(--text2)' : (p.norm_at_expiry ? barColor(p.norm_at_expiry) : 'var(--text3)');
     return `<tr style="cursor:pointer;" data-name="${p.name}">
       <td class="lb-rank">${i+1}</td>
       <td style="font-weight:500;">${p.name}${isExtAttr&&getPlayer4yrAttr(p,extAttrName)!=null?` <span style="font-size:.68rem;color:${barColor(getPlayer4yrAttr(p,extAttrName))};font-family:DM Mono,monospace;">${getPlayer4yrAttr(p,extAttrName)}</span>`:''}</td>
@@ -6134,7 +6131,11 @@ function ostRenderSteady() {
   const posFilter = document.getElementById('ost-steady-pos')?.value || 'all';
   const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
   const teamDeltas = {};
-  const ssPlayers = posFilter === 'G' ? (ALL_GOALIES||[]) : (ALL_PLAYERS||[]);
+  const ssPlayers = posFilter === 'G'
+    ? (ALL_GOALIES||[])
+    : posFilter === 'all'
+      ? [...(ALL_PLAYERS||[]), ...(ALL_GOALIES||[])]
+      : (ALL_PLAYERS||[]);
   for (const p of ssPlayers) {
     if (posFilter !== 'all' && p._type !== posFilter) continue;
     const tc = p.current_team || p.team; if (!tc) continue;
@@ -6190,7 +6191,11 @@ function renderSteadyState() {
   const posFilter = document.getElementById('steady-pos')?.value || 'all';
   const DOTTED = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
   const teamDeltas = {};
-  const ssPlayers = posFilter === 'G' ? (ALL_GOALIES||[]) : (ALL_PLAYERS||[]);
+  const ssPlayers = posFilter === 'G'
+    ? (ALL_GOALIES||[])
+    : posFilter === 'all'
+      ? [...(ALL_PLAYERS||[]), ...(ALL_GOALIES||[])]
+      : (ALL_PLAYERS||[]);
   for (const p of ssPlayers) {
     if (posFilter !== 'all' && p._type !== posFilter) continue;
     const tc = p.current_team || p.team; if (!tc) continue;
@@ -6919,6 +6924,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="all">All positions</option>
         <option value="F">Forwards</option>
         <option value="D">Defensemen</option>
+        <option value="G">Goalies</option>
       </select>
       <select class="lb-select" id="fa-type">
         <option value="both">UFA &amp; RFA</option>
@@ -7179,6 +7185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="all">All positions</option>
         <option value="F">Forwards</option>
         <option value="D">Defensemen</option>
+        <option value="G">Goalies</option>
       </select>
       <select class="lb-select" id="ext-type">
         <option value="all">UFA &amp; RFA</option>
@@ -7711,6 +7718,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <option value="all">All</option>
             <option value="F">Forwards</option>
             <option value="D">Defensemen</option>
+            <option value="G">Goalies</option>
           </select>
         </div>
         <div id="ost-delta-content" style="font-size:.82rem;color:var(--text3);padding:1rem;">Select a snapshot and team above.</div>
