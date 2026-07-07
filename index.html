@@ -2918,7 +2918,7 @@ function renderGoalieCard(g) {
     const GC_SEASON_END_YEARS = [2026,2027,2028,2029,2030,2031,2032,2033,2034,2035];
     const gcExpYear  = parseInt(g.exp_year) || 2031;
     const gcProjVals = [(g.value_2526 ?? g.value) || null, ...(g.proj_years || [])];
-    const gcCap2526  = g.cap || null;   // actual 25-26 cap from 25-26 G col W
+    const gcCap2526  = g.cap_2526 || g.cap || null;  // actual 2025-26 cap hit
     const gcCapHits  = GC_SEASON_END_YEARS.map((yr, i) => i === 0 ? gcCap2526 : (yr <= gcExpYear ? (g.cap || null) : null));
     const gcChartEl  = document.getElementById('gc-bar-chart');
     const chartHtml  = '<div class="contract-chart-wrap">'
@@ -5685,9 +5685,9 @@ window._calcSearch = (function() {
       const {inp, dd} = getEls(); if (!dd) return;
       const q = (val||'').trim();
       if (q.length < 2) { dd.className='dropdown'; dd.innerHTML=''; return; }
-      _results = (typeof searchPlayers==='function')
-        ? searchPlayers(q,'all').filter(p=>p._type!=='G')
-        : [];
+      const _sk = (typeof searchPlayers==='function') ? searchPlayers(q,'all') : [];
+      const _gl = (ALL_GOALIES||[]).filter(g=>g.name.toLowerCase().includes(q.toLowerCase()));
+      _results = [..._sk, ..._gl];
       if (!_results.length) { dd.className='dropdown'; dd.innerHTML=''; return; }
       dd.className = 'dropdown open';
       dd.innerHTML = _results.map((p,i) => `<div class="dd-item" data-idx="${i}"
@@ -5703,6 +5703,7 @@ window._calcSearch = (function() {
       if (!p || !inp || !dd) return;
       inp.value = p.name;
       dd.className='dropdown'; dd.innerHTML='';
+      if (p._type === 'G') { showGoalieCard(p); return; }
       if (typeof renderCalcResult === 'function') { calcPlayer=p; renderCalcResult(); }
     },
     blur() { setTimeout(()=>{ const dd=document.getElementById('calc-dd');
@@ -6039,7 +6040,7 @@ function ostRenderTable() {
       <td style="padding:.4rem .5rem;text-align:right;font-family:DM Mono,monospace;font-size:.82rem;color:var(--text2);">${fmtMP(v.rv)}</td>
       <td style="padding:.4rem .5rem;text-align:right;font-family:DM Mono,monospace;font-size:.82rem;color:${clr(v.sc)};">${fmtM(v.sc)}</td>
       <td style="padding:.4rem .5rem;text-align:right;font-family:DM Mono,monospace;font-size:.82rem;color:${clr(v.ps)};">${fmtM(v.ps)}</td>
-      <td class="ost-td-aav" style="padding:.4rem .5rem;text-align:right;font-family:DM Mono,monospace;font-size:.82rem;color:${clr(v.fvs)};${isG?'display:none':''}">${fmtM(v.fvs)}</td>
+      <td class="ost-td-aav" style="padding:.4rem .5rem;text-align:right;font-family:DM Mono,monospace;font-size:.82rem;color:${clr(v.fvs)};">${fmtM(v.fvs)}</td>
       <td style="padding:.4rem .5rem;font-size:.7rem;color:var(--text2);">${v.a||0} in &middot; ${v.l||0} out &middot; ${v.r||0} re-sign</td>
       <td style="padding:.4rem .5rem;color:var(--text3);">&#9658;</td>
     </tr>`).join('');
@@ -7751,6 +7752,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <option value="all">All Skaters</option>
             <option value="F">Forwards</option>
             <option value="D">Defensemen</option>
+          <option value="G">Goalies</option>
           </select>
           <span style="font-size:.75rem;color:var(--text3);">TOI-weighted avg of (Proj. Year 1 Rating − Current Rating) · Top movers per team</span>
         </div>
