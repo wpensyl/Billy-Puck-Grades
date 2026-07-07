@@ -2541,7 +2541,7 @@ function renderCatBoard() {
       <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
       <td style="color:var(--text2);font-size:.82rem;">${p.current_team||p.team||'\u2013'}</td>
       <td style="font-size:.78rem;color:${p._type==='D'?'#5b9cf6':'#2dd4a0'};font-weight:500;">${p.role||'\u2013'}</td>
-      <td style="font-size:.78rem;color:var(--text3);">${p.actual_role||'\u2013'}</td>
+      <td style="font-size:.78rem;color:var(--text3);">${(typeof displayRole==="function"?displayRole(p.actual_role,p._type):p.actual_role)||'\u2013'}</td>
       <td style="font-family:DM Mono,monospace;font-size:.82rem;font-weight:500;color:${barColor(ov)};">${ov}</td>
       <td style="font-family:DM Mono,monospace;font-size:.9rem;font-weight:600;color:${clr};">${val}</td>
       <td class="lb-bar-cell"><div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${val}%;background:${clr};"></div></div></td>
@@ -5926,13 +5926,31 @@ function ostRenderDelta() {
     ['Analytics','On-Ice Offense'],['Analytics','On-Ice Defense'],
   ];
 
+  // Parse MM:SS toi string to decimal minutes
+  const parseToi = raw => {
+    if (!raw) return 0;
+    if (typeof raw === 'number') return raw;
+    const p = String(raw).split(':');
+    return (parseInt(p[0])||0) + (parseInt(p[1])||0)/60;
+  };
+
   const teamAvg = (players, grp, cat) => {
+    // TOI-weighted average — same weighting as getTeamProfile/Team Overview
     if (cat === 'Consistency') {
-      const vals = players.map(p => p.consistency).filter(v => v != null);
-      return vals.length ? Math.round(vals.reduce((s,v)=>s+v,0)/vals.length) : null;
+      const vals = players.map(p => ({v: p.consistency, w: parseToi(p.toi_per_gp)||15})).filter(x=>x.v!=null);
+      if (!vals.length) return null;
+      const wSum = vals.reduce((s,x)=>s+x.v*x.w,0);
+      const wTot = vals.reduce((s,x)=>s+x.w,0);
+      return wTot > 0 ? Math.round(wSum/wTot) : null;
     }
-    const vals = players.map(p => ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct).filter(v=>v!=null);
-    return vals.length ? Math.round(vals.reduce((s,v)=>s+v,0)/vals.length) : null;
+    const vals = players.map(p => {
+      const pct = ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct;
+      return pct != null ? {v: pct, w: parseToi(p.toi_per_gp)||15} : null;
+    }).filter(Boolean);
+    if (!vals.length) return null;
+    const wSum = vals.reduce((s,x)=>s+x.v*x.w,0);
+    const wTot = vals.reduce((s,x)=>s+x.w,0);
+    return wTot > 0 ? Math.round(wSum/wTot) : null;
   };
 
   const fmtDelta = d => {
@@ -6193,8 +6211,12 @@ function ostRenderSteady() {
   for (const p of ssPlayers) {
     if (posFilter !== 'all' && p._type !== posFilter) continue;
     const tc = p.current_team || p.team; if (!tc) continue;
-    const cur  = p.overall_pct ?? p.norm_2526 ?? p.overall_2526;
-    const proj = p.t1_composite ?? p.comp_value_norm ?? p.overall_pct ?? cur;
+    const cur  = p._type === 'G'
+      ? (p.norm_2526 ?? p.overall_2526 ?? p.overall_pct)
+      : (p.overall_pct ?? p.norm_2526);
+    const proj = p._type === 'G'
+      ? (p.t1_composite ?? p.comp_value_norm ?? cur)
+      : (p.t1_composite ?? p.overall_pct ?? cur);
     if (cur == null || proj == null) continue;
     // toi_per_gp is stored as "MM:SS" string — parse to decimal minutes
     const toiRaw = p.toi_per_gp;
@@ -6253,8 +6275,12 @@ function renderSteadyState() {
   for (const p of ssPlayers) {
     if (posFilter !== 'all' && p._type !== posFilter) continue;
     const tc = p.current_team || p.team; if (!tc) continue;
-    const cur  = p.overall_pct ?? p.norm_2526 ?? p.overall_2526;
-    const proj = p.t1_composite ?? p.comp_value_norm ?? p.overall_pct ?? cur;
+    const cur  = p._type === 'G'
+      ? (p.norm_2526 ?? p.overall_2526 ?? p.overall_pct)
+      : (p.overall_pct ?? p.norm_2526);
+    const proj = p._type === 'G'
+      ? (p.t1_composite ?? p.comp_value_norm ?? cur)
+      : (p.t1_composite ?? p.overall_pct ?? cur);
     if (cur == null || proj == null) continue;
     const _tr3=p.toi_per_gp; const toi=_tr3&&typeof _tr3==='string'&&_tr3.includes(':')?(parseInt(_tr3)||0)+(parseInt(_tr3.split(':')[1])||0)/60:(parseFloat(_tr3)||15);
     const delta = proj - cur;
@@ -7515,8 +7541,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- Production bars -->
-      <div class="calc-card" style="margin-bottom:.75rem;">
+      <!-- Production bars (hidden for goalies via isGoalieCalc) -->
+      <div class="calc-card" id="calc-ratings-section" style="margin-bottom:.75rem;">
         <div style="font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);text-align:center;margin-bottom:.6rem;">2025-26 Ratings Summary</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
           <div id="calc-offprod"></div>
@@ -7715,7 +7741,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="view-sub">2025–26 → 2026–27 · Player movement &amp; value changes by team</div>
       </div>
       <div id="ost-txn-note" style="font-size:.75rem;color:var(--text3);margin-bottom:.5rem;display:none;">
-        💡 Click on a team row for player-by-player transaction detail.
+        Click on a team row for player-by-player transaction detail.
       </div>
       <!-- View mode selector -->
       <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;align-items:center;">
