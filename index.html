@@ -5222,22 +5222,26 @@ function gmSelectUFA(name, el) {
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const capLeft = GM_CAP - gmCapUsed(gmState.roster);
   if (p._type === 'G') {
-    // Goalies: same 8-term format as skaters using aav_Xyr from G CAP
     const projRating = p.t1_composite != null ? Math.round(p.t1_composite) : (p.norm_2526 ?? p.overall_2526 ?? '–');
-    document.getElementById('gm-ufa-sign-area').innerHTML = '<div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">'
+    let gTermHtml = '';
+    for (let t=1; t<=8; t++) {
+      const aav = p['aav_'+t+'yr'];
+      const fits = (aav||0) <= capLeft;
+      const safe = name.replace(/'/g, "\'");
+      gTermHtml += '<button class="calc-term-btn"'
+        + (aav && fits ? '' : ' disabled style="opacity:.35;cursor:default;"')
+        + ' title="' + (!aav ? 'No FV data' : !fits ? 'Cap space' : 'Sign') + '"'
+        + ' onclick="gmConfirmSignGoalie(\'' + safe + '\',' + t + ')">'
+        + t + 'yr ' + fmtM(aav) + '</button>';
+    }
+    document.getElementById('gm-ufa-sign-area').innerHTML =
+      '<div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">'
       + '<strong style="font-size:.82rem;">' + name + '</strong>'
       + '<span style="font-size:.75rem;color:var(--text3);">G · Proj. Rating: ' + projRating + '</span>'
-      + [1,2,3,4,5,6,7,8].map(t => {
-          const aav = p['aav_'+t+'yr'];
-          const fits = (aav||0) <= capLeft;
-          return '<button class="calc-term-btn" onclick="gmConfirmSignGoalie('' + name.replace(/'/g, "\'") + '',' + t + ')" '
-            + (aav && fits ? '' : 'disabled style="opacity:.35;cursor:default;"') + ' title="' + (!aav ? 'No FV data' : !fits ? 'Cap space' : 'Sign') + '">'
-            + t + 'yr ' + fmtM(aav) + '</button>';
-        }).join('')
+      + gTermHtml
       + '</div><div style="font-size:.72rem;color:var(--text3);margin-top:.25rem;">Cap space: ' + fmtM(capLeft) + '</div>';
     return;
   }
-
   document.getElementById('gm-ufa-sign-area').innerHTML = `
     <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">
       <strong style="font-size:.82rem;">${name}</strong>
@@ -6003,6 +6007,15 @@ function ostRenderDelta() {
     // Compute deltas
     const snapToiMap = buildToiMap(snapPlayers);
     const curToiMap  = buildToiMap(curPlayers);
+    // Compute per-player weighted contributions for debug
+    const getPlayerContribs = (players, grp, cat, toiMap) => {
+      return players.map(p => {
+        const v = ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct;
+        const w = toiMap[p.name]||0;
+        return {name:p.name, val:v, w:Math.round(w), contrib: v!=null&&w>0 ? v*w : null};
+      }).filter(x=>x.val!=null);
+    };
+
     const rows = CATS.map(([grp, cat]) => {
       const snapVal = teamAvg(snapPlayers, grp, cat, snapToiMap);
       const curVal  = teamAvg(curPlayers,  grp, cat, curToiMap);
@@ -6010,13 +6023,30 @@ function ostRenderDelta() {
       return {grp, cat, snapVal, curVal, delta};
     }).filter(r => r.snapVal != null || r.curVal != null);
 
+    // Players added/removed from live roster vs snapshot
+    const snapNames = new Set(snapPlayers.map(p=>p.name));
+    const curNames  = new Set(curPlayers.map(p=>p.name));
+    const addedPlayers   = curPlayers.filter(p=>!snapNames.has(p.name));
+    const removedPlayers = snapPlayers.filter(p=>!curNames.has(p.name));
+
     // Group by category group
     const byGrp = {};
     rows.forEach(r => { (byGrp[r.grp] = byGrp[r.grp]||[]).push(r); });
 
+    const addedStr   = addedPlayers.map(p=>p.name).join(', ') || 'none';
+    const removedStr = removedPlayers.map(p=>p.name).join(', ') || 'none';
     html += `<div style="margin-bottom:1.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;">
-      <div style="font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:.5rem;">${tc}
-        <span style="font-size:.72rem;font-weight:400;color:var(--text3);margin-left:.5rem;">${snapPlayers.length} current players (${snapPlayers.length} at time of snapshot)</span>
+      <div style="font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:.3rem;">${tc}
+        <span style="font-size:.72rem;font-weight:400;color:var(--text3);margin-left:.5rem;">${snapPlayers.length} snap → ${curPlayers.length} cur</span>
+      </div>
+      ${addedPlayers.length ? '<div style="font-size:.72rem;color:var(--teal);margin-bottom:2px;">+ ' + addedStr + '</div>' : ''}
+      ${removedPlayers.length ? '<div style="font-size:.72rem;color:var(--coral);margin-bottom:4px;">− ' + removedStr + '</div>' : ''}
+      <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'" style="font-size:.65rem;color:var(--text3);background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;cursor:pointer;margin-bottom:.4rem;">Show player math ▾</button>
+      <div id="math-${tc}-${posFilter}" style="display:none;font-size:.68rem;margin-bottom:.5rem;border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+        <div style="background:var(--surface3);padding:.3rem .5rem;font-weight:600;color:var(--text3);">SNAPSHOT players (weight = toi_gp × gp)</div>
+        ${snapPlayers.map(p=>{const gs=((p.categories?.Scoring||[]).find(c=>c.name==='Goalscoring')?.pct??'–');const w=Math.round(snapToiMap[p.name]||0);return '<div style="display:flex;justify-content:space-between;padding:2px 6px;border-bottom:1px solid var(--border8);"><span>'+p.name+'</span><span style="color:var(--text3);">GS='+gs+' w='+w+'</span></div>';}).join('')}
+        <div style="background:var(--surface3);padding:.3rem .5rem;font-weight:600;color:var(--text3);margin-top:2px;">CURRENT players (live roster)</div>
+        ${curPlayers.map(p=>{const gs=((p.categories?.Scoring||[]).find(c=>c.name==='Goalscoring')?.pct??'–');const w=Math.round(curToiMap[p.name]||0);return '<div style="display:flex;justify-content:space-between;padding:2px 6px;border-bottom:1px solid var(--border8);"><span style="color:'+(snapNames.has(p.name)?'var(--text)':'var(--teal)')+';">'+p.name+'</span><span style="color:var(--text3);">GS='+gs+' w='+w+'</span></div>';}).join('')}
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.5rem;">`;
 
@@ -6024,15 +6054,30 @@ function ostRenderDelta() {
       html += `<div><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:600;margin-bottom:.3rem;">${grp}</div>
         <div style="display:flex;flex-direction:column;gap:2px;">`;
       for (const r of grpRows) {
-        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:.75rem;color:var(--text2);">${r.cat}</span>
-          <span style="font-size:.75rem;font-family:DM Mono,monospace;">
-            <span style="color:var(--text3);">${r.snapVal??'–'}</span>
-            <span style="color:var(--text3);margin:0 3px;">→</span>
-            <span style="color:${r.curVal==null?'var(--text3)':r.curVal>55?'var(--teal)':r.curVal<45?'var(--coral)':'var(--text2)'};">${r.curVal??'–'}</span>
-            <span style="margin-left:4px;">${fmtDelta(r.delta)}</span>
-          </span>
-        </div>`;
+        {
+          const snapContribs = getPlayerContribs(snapPlayers, r.grp, r.cat, snapToiMap);
+          const curContribs  = getPlayerContribs(curPlayers,  r.grp, r.cat, curToiMap);
+          const snapWtot = snapContribs.reduce((s,x)=>s+x.w,0);
+          const curWtot  = curContribs.reduce((s,x)=>s+x.w,0);
+          const mathId = 'catmath-'+tc+'-'+r.cat.replace(/[^a-z]/gi,'');
+          html += `<div style="padding:2px 0;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:.75rem;color:var(--text2);cursor:pointer;" onclick="const m=document.getElementById('${mathId}');if(m)m.style.display=m.style.display==='none'?'block':'none';">${r.cat} <span style="font-size:.6rem;color:var(--text3);">▾</span></span>
+              <span style="font-size:.75rem;font-family:DM Mono,monospace;">
+                <span style="color:var(--text3);">${r.snapVal??'–'}</span>
+                <span style="color:var(--text3);margin:0 3px;">→</span>
+                <span style="color:${r.curVal==null?'var(--text3)':r.curVal>55?'var(--teal)':r.curVal<45?'var(--coral)':'var(--text2)'};">${r.curVal??'–'}</span>
+                <span style="margin-left:4px;">${fmtDelta(r.delta)}</span>
+              </span>
+            </div>
+            <div id="${mathId}" style="display:none;font-size:.62rem;margin-top:2px;background:var(--surface3);border-radius:4px;padding:3px 5px;">
+              <div style="color:var(--text3);margin-bottom:2px;font-weight:600;">SNAP (tot.w=${snapWtot}) → wtd.avg=${r.snapVal??'–'}</div>
+              ${snapContribs.sort((a,b)=>b.w-a.w).map(x=>`<div style="display:flex;justify-content:space-between;color:${curContribs.find(c=>c.name===x.name)?'var(--text2)':'var(--coral)'}"><span>${x.name}</span><span>${x.val} × w${x.w} = ${Math.round(x.contrib)}</span></div>`).join('')}
+              <div style="color:var(--text3);margin:3px 0 2px;font-weight:600;">CUR (tot.w=${curWtot}) → wtd.avg=${r.curVal??'–'}</div>
+              ${curContribs.sort((a,b)=>b.w-a.w).map(x=>`<div style="display:flex;justify-content:space-between;color:${snapContribs.find(s=>s.name===x.name)?'var(--text2)':'var(--teal)'}"><span>${x.name}</span><span>${x.val} × w${x.w} = ${Math.round(x.contrib)}</span></div>`).join('')}
+            </div>
+          </div>`;
+        }
       }
       html += '</div></div>';
     }
