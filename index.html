@@ -74,6 +74,10 @@
 [data-theme="light"] .view-title{color:#1a1d27;}
 [data-theme="light"] .nav-link{color:#4b5263;}
 [data-theme="light"] .nav-link:hover,[data-theme="light"] .nav-link.active{color:#0d9e72;}
+/* Player card box rows: white background in light mode */
+[data-theme="light"] .c-item{background:#ffffff;}
+[data-theme="light"] [style*="var(--surface2)"],[data-theme="light"] [style*="var(--surface3)"]{background:#ffffff !important;}
+[data-theme="light"] .contract-strip{background:#ffffff;}
 #theme-toggle{position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;width:36px;height:36px;
   border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
   font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -1603,7 +1607,7 @@ function renderContract(p) {
     type:'bar',
     data:{labels:SEASON_LABELS,datasets:[
       {label:'Proj. value',data:projVals.map(v=>v!=null?Math.max(0,v):null),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-      {label:'Cap hit',   data:capHits, backgroundColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.12)':'rgba(255,255,255,.18)',borderColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.25)':'rgba(255,255,255,.35)',borderWidth:1,borderRadius:4}
+      {label:'Cap hit',   data:capHits, backgroundColor:'rgba(120,130,150,0.3)',borderColor:'rgba(120,130,150,0.6)',borderWidth:1,borderRadius:4}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
@@ -3010,7 +3014,7 @@ function renderGoalieCard(g) {
         type:'bar',
         data:{labels:GC_SEASON_LABELS,datasets:[
           {label:'Proj. value',data:gcProjVals.map(v=>v!=null?Math.max(0,v):null),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-          {label:'Cap hit',   data:gcCapHits, backgroundColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.12)':'rgba(255,255,255,.18)',borderColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.25)':'rgba(255,255,255,.35)',borderWidth:1,borderRadius:4}
+          {label:'Cap hit',   data:gcCapHits, backgroundColor:'rgba(120,130,150,0.3)',borderColor:'rgba(120,130,150,0.6)',borderWidth:1,borderRadius:4}
         ]},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
@@ -5268,7 +5272,7 @@ function gmOpenSignUFA() {
     document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
       <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.actual_role||p.role||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
-        <span style="font-family:DM Mono,monospace;font-size:.75rem;color:${barColor(p.overall_pct??p.overall_2526??0)};" >${p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526!=null?Math.round(p.overall_2526):'–')}</span>
+        <span style="font-family:DM Mono,monospace;font-size:.75rem;color:${barColor(p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526??0))};" >${p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526!=null?Math.round(p.overall_2526):'–')}</span>
       </div>`).join('') || '<div style="color:var(--text3);padding:.5rem;">No matches</div>';
   }
   renderUFAList();
@@ -5359,7 +5363,7 @@ function gmOpenTrade() {
           <div id="gm-trade-out" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
           <div style="margin-top:.4rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-out-list">
             ${myRoster.map(r=>`<div onclick="gmToggleTradeOut('${r.p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
-              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:DM Mono,monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct!=null?Math.round(r.p.overall_pct):(r.p.overall_2526??'')}</span>
+              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:DM Mono,monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct!=null?Math.round(r.p.overall_pct):(r.p.overall_2526!=null?Math.round(r.p.overall_2526):'')}</span>
               <span style="font-family:DM Mono,monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
             </div>`).join('')}
           </div>
@@ -5416,7 +5420,7 @@ function gmOpenTrade() {
       <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${(p.current_team||p.team||'').split('/').pop()}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:DM Mono,monospace;font-size:.72rem;">
-          <span style="color:var(--teal);">${p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526??'')}</span>
+          <span style="color:var(--teal);">${p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526!=null?Math.round(p.overall_2526):'')}</span>
           <span style="color:var(--text3);"> · ${fmtM(gmTradeValue(p))}</span>
         </span>
       </div>`).join('');
@@ -7681,7 +7685,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <!-- Production bars (hidden for goalies via isGoalieCalc) -->
-      <div class="calc-card" id="calc-ratings-section" style="margin-bottom:.75rem;">
+      <div class="calc-card" id="calc-ratings-section" style="margin-bottom:.75rem;border-top:1px solid var(--border);">
         <div style="font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);text-align:center;margin-bottom:.6rem;">2025-26 Ratings Summary</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
           <div id="calc-offprod"></div>
