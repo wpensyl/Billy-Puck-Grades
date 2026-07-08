@@ -5629,27 +5629,33 @@ function gmAnalyze() {
 // Display-label remapping for tier/role values
 const displayTier = (tier, type) => {
   if (!tier) return tier;
-  // Defensemen
+  if (tier === 'Fringe') return 'Depth';
   if (type === 'D') {
-    if (tier === 'Fringe') return 'Depth';
+    if (tier === 'T4')   return 'Top 4';
+    if (tier === 'T7')   return 'Depth';
   }
-  // Forwards
   if (type !== 'D' && type !== 'G') {
-    if (tier === 'T6') return 'Top 6';
-    if (tier === 'Fringe') return 'Depth';  // fix 7a
+    if (tier === 'T6')   return 'Top 6';
+    if (tier === 'M6')   return 'Middle 6';
+    if (tier === 'B6')   return 'Bottom 6';
   }
   return tier;
 };
 const displayRole = (role, type) => {
   if (!role) return role;
+  // Universal mappings
+  if (role === 'Fringe') return 'Depth';
   // Defensemen
   if (type === 'D') {
     if (role === 'T7') return 'Depth';
+    if (role === 'T4') return 'Top 4';
+    if (role === 'T6D') return 'Top 6';
   }
   // Forwards
   if (type !== 'D' && type !== 'G') {
-    if (role === 'M6') return 'Middle 6';
-    if (role === 'Fringe') return 'Depth';
+    if (role === 'T6')  return 'Top 6';
+    if (role === 'M6')  return 'Middle 6';
+    if (role === 'B6')  return 'Bottom 6';
   }
   return role;
 };
@@ -5926,31 +5932,42 @@ function ostRenderDelta() {
     ['Analytics','On-Ice Offense'],['Analytics','On-Ice Defense'],
   ];
 
-  // Parse MM:SS toi string to decimal minutes
-  const parseToi = raw => {
-    if (!raw) return 0;
-    if (typeof raw === 'number') return raw;
-    const p = String(raw).split(':');
-    return (parseInt(p[0])||0) + (parseInt(p[1])||0)/60;
+  // Parse MM:SS toi string — identical to getTeamProfile's parseTOI
+  const parseToi = s => {
+    if (!s) return null;
+    const pts = s.split(':');
+    return pts.length === 2 ? parseInt(pts[0]) + parseInt(pts[1])/60 : null;
   };
 
-  const teamAvg = (players, grp, cat) => {
-    // TOI-weighted average — same weighting as getTeamProfile/Team Overview
+  // Build toiMap for a player list, same as getTeamProfile
+  const buildToiMap = (players) => {
+    const m = {};
+    players.forEach(p => { const t = parseToi(p.toi_per_gp); m[p.name] = (t && p.gp) ? t * p.gp : 0; });
+    const total = Object.values(m).reduce((s,t)=>s+(t||0),0);
+    const def   = players.length ? total / players.length : 15;
+    players.forEach(p => { if (!m[p.name]) m[p.name] = def; });
+    return m;
+  };
+
+  const teamAvg = (players, grp, cat, toiMap) => {
+    if (!toiMap) toiMap = buildToiMap(players);
     if (cat === 'Consistency') {
-      const vals = players.map(p => ({v: p.consistency, w: parseToi(p.toi_per_gp)||15})).filter(x=>x.v!=null);
-      if (!vals.length) return null;
-      const wSum = vals.reduce((s,x)=>s+x.v*x.w,0);
-      const wTot = vals.reduce((s,x)=>s+x.w,0);
-      return wTot > 0 ? Math.round(wSum/wTot) : null;
+      let wSum=0, wTotal=0;
+      players.forEach(p => {
+        if (p.consistency == null) return;
+        const w = toiMap[p.name] || 0;
+        wSum += p.consistency * w; wTotal += w;
+      });
+      return wTotal > 0 ? Math.round(wSum/wTotal) : null;
     }
-    const vals = players.map(p => {
-      const pct = ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct;
-      return pct != null ? {v: pct, w: parseToi(p.toi_per_gp)||15} : null;
-    }).filter(Boolean);
-    if (!vals.length) return null;
-    const wSum = vals.reduce((s,x)=>s+x.v*x.w,0);
-    const wTot = vals.reduce((s,x)=>s+x.w,0);
-    return wTot > 0 ? Math.round(wSum/wTot) : null;
+    let wSum=0, wTotal=0;
+    players.forEach(p => {
+      const v = ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct;
+      if (v == null) return;
+      const w = toiMap[p.name] || 0;
+      wSum += v * w; wTotal += w;
+    });
+    return wTotal > 0 ? Math.round(wSum/wTotal) : null;
   };
 
   const fmtDelta = d => {
@@ -5980,9 +5997,11 @@ function ostRenderDelta() {
     if (!snapPlayers.length && !curPlayers.length) continue;
 
     // Compute deltas
+    const snapToiMap = buildToiMap(snapPlayers);
+    const curToiMap  = buildToiMap(curPlayers);
     const rows = CATS.map(([grp, cat]) => {
-      const snapVal = teamAvg(snapPlayers, grp, cat);
-      const curVal  = teamAvg(curPlayers,  grp, cat);
+      const snapVal = teamAvg(snapPlayers, grp, cat, snapToiMap);
+      const curVal  = teamAvg(curPlayers,  grp, cat, curToiMap);
       const delta   = snapVal != null && curVal != null ? curVal - snapVal : null;
       return {grp, cat, snapVal, curVal, delta};
     }).filter(r => r.snapVal != null || r.curVal != null);
@@ -6065,7 +6084,7 @@ function ostRenderTable() {
                              a:ts.acq_count_F, l:ts.lost_count_F, r:ts.resign_count_F};
     if (pos==='D')   return {pv:ts.dman_proj_value, rv:ts.dman_resign_value, sc:ts.dman_surplus_chg, ps:ts.dman_proj_surplus, fvs:ts.dman_fv_surplus,
                              a:ts.acq_count_D, l:ts.lost_count_D, r:ts.resign_count_D};
-    if (pos==='G')   return {pv:ts.goalie_proj_value,rv:ts.goalie_resign_value,sc:ts.goalie_surplus_chg,ps:ts.goalie_proj_surplus,fvs:null,
+    if (pos==='G')   return {pv:ts.goalie_proj_value,rv:ts.goalie_resign_value,sc:ts.goalie_surplus_chg,ps:ts.goalie_proj_surplus,fvs:ts.goalie_fv_surplus??null,
                              a:ts.acq_count_G, l:ts.lost_count_G, r:ts.resign_count_G};
     return {};
   };
