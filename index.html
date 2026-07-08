@@ -75,10 +75,11 @@
 [data-theme="light"] .view-title{color:#1a1d27;}
 [data-theme="light"] .nav-link{color:#4b5263;}
 [data-theme="light"] .nav-link:hover,[data-theme="light"] .nav-link.active{color:#0d9e72;}
-/* Player card box rows: white background in light mode */
-[data-theme="light"] .c-item{background:#ffffff;}
+/* Player card box rows: white cells in light mode */
+[data-theme="light"] .c-item{background:#ffffff !important;}
+[data-theme="light"] .stat-cell{background:#ffffff !important;}
+[data-theme="light"] .contract-strip,[data-theme="light"] .nhl-stat-strip,[data-theme="light"] .stat-strip{background:rgba(0,0,0,0.07) !important;gap:1px;}
 [data-theme="light"] [style*="var(--surface2)"],[data-theme="light"] [style*="var(--surface3)"]{background:#ffffff !important;}
-[data-theme="light"] .contract-strip{}
 #theme-toggle{position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;width:36px;height:36px;
   border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
   font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -2187,7 +2188,7 @@ function renderAnalyticsStrip(p) {
     {val: lastPct('def_analytics'), lbl: 'Def analytics'},
   ];
   const clr = v => v==null?'var(--text3)':v>=70?'var(--teal)':v<=30?'var(--coral)':'var(--mid)';
-  el.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
+  el.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
   el.innerHTML =
     `<div style="grid-column:1/-1;background:var(--surface2);padding:.35rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
       <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Rating Summary (0–100)</span>
