@@ -47,8 +47,12 @@
 }
 [data-theme="light"] .nav-bar,[data-theme="light"] .nav-bottom{background:#fff;border-color:rgba(0,0,0,0.1);}
 [data-theme="light"] .lb-select,[data-theme="light"] input,[data-theme="light"] select{background:#fff;color:#1a1d27;}
-[data-theme="light"] .panel,[data-theme="light"] .calc-card,[data-theme="light"] .player-card{background:#fff;}
+[data-theme="light"] .panel,[data-theme="light"] .calc-card,[data-theme="light"] .player-card{background:#fff !important;}
 [data-theme="light"] .overall-badge{background:#fff;}
+[data-theme="light"] .calc-card{border-color:rgba(0,0,0,0.12) !important;}
+[data-theme="light"] .contract-strip,.c-item{background:transparent;}
+[data-theme="light"] .contract-strip-top,[data-theme="light"] .stat-strip,[data-theme="light"] .c-item{background:#fff !important;border-color:rgba(0,0,0,0.1) !important;}
+[data-theme="light"] .gc-stat-strip,[data-theme="light"] .gc-stat-cell{background:#fff;}
 /* Light mode specific fixes */
 [data-theme="light"] .overall-num{color:#1a1d27 !important;}
 [data-theme="light"] .overall-lbl{color:#4b5263 !important;}
@@ -5264,7 +5268,7 @@ function gmOpenSignUFA() {
     document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
       <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.actual_role||p.role||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
-        <span style="font-family:DM Mono,monospace;font-size:.75rem;color:${barColor(p.overall_pct??p.overall_2526??0)};" >${p.overall_pct??p.overall_2526??'–'}</span>
+        <span style="font-family:DM Mono,monospace;font-size:.75rem;color:${barColor(p.overall_pct??p.overall_2526??0)};" >${p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526!=null?Math.round(p.overall_2526):'–')}</span>
       </div>`).join('') || '<div style="color:var(--text3);padding:.5rem;">No matches</div>';
   }
   renderUFAList();
@@ -8008,6 +8012,10 @@ document.addEventListener('DOMContentLoaded', () => {
     h.setAttribute('data-theme', isL ? '' : 'light');
     this.textContent = isL ? '☽' : '☀';
     try{localStorage.setItem('bp-theme', isL ? 'dark' : 'light');}catch(e){}
+    setTimeout(function(){
+      if(typeof updateCalcChart==='function') updateCalcChart();
+      if(window._gcBarChart && window.currentGoalie && typeof renderGoalieCard==='function') renderGoalieCard(window.currentGoalie);
+    }, 50);
   ">☽</button>
   <script>
     try{var _t=localStorage.getItem('bp-theme');
