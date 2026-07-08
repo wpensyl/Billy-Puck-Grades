@@ -5281,7 +5281,7 @@ function gmSelectUFA(name, el) {
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const capLeft = GM_CAP - gmCapUsed(gmState.roster);
   if (p._type === 'G') {
-    const projRating = p.t1_composite != null ? Math.round(p.t1_composite) : (p.norm_2526 != null ? Math.round(p.norm_2526) : (p.overall_2526 != null ? Math.round(p.overall_2526) : '–');
+    const projRating = p.t1_composite != null ? Math.round(p.t1_composite) : (p.norm_2526 != null ? Math.round(p.norm_2526) : (p.overall_2526 != null ? Math.round(p.overall_2526) : '–'));
     let gTermHtml = '';
     for (let t=1; t<=8; t++) {
       const aav = p['aav_'+t+'yr'];
