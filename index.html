@@ -4324,7 +4324,10 @@ let gmState = {
 function gmTradeValue(p) {
   if (!p) return 0;
   if (p._type === 'G') {
-    return p.avg_proj_value || p.value || p.aav_1yr || 0;
+    // Same as skaters: FV AAV for remaining deal term
+    const ey = parseInt(p.exp_year) || 2027;
+    const rem = Math.max(1, Math.min(8, ey - 2026));
+    return p['aav_'+rem+'yr'] || p.fv_aav || p.avg_proj_value || p.aav_1yr || p.value || 0;
   }
   // Use projected value from FWD CAP col AD
   if (p.avg_proj_value) return p.avg_proj_value;
@@ -4849,7 +4852,7 @@ function renderGMDashboard() {
 
   const scratchHtml = dc.scratches.filter(r=>r.p._type!=='G').length
     ? dc.scratches.filter(r=>r.p._type!=='G').map(r=>{
-        const ov = r.p.overall_pct ?? r.p.overall_2526;
+        const ov = r.p.overall_pct != null ? Math.round(r.p.overall_pct) : (r.p.overall_2526 ?? null);
         const ovStr = ov != null ? ` <span style="color:var(--teal);font-family:DM Mono,monospace;font-size:.68rem;">${ov}</span>` : '';
         return `<span style="font-size:.72rem;color:var(--text3);margin-right:.5rem;">${r.p.name} (${posDisplayGlobal(r.p)})${ovStr}</span>`;
       }).join('')
@@ -5219,20 +5222,19 @@ function gmSelectUFA(name, el) {
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const capLeft = GM_CAP - gmCapUsed(gmState.roster);
   if (p._type === 'G') {
-    // Goalies: no aging curve → sign at average value only
-    const aav = p.value || p.aav_1yr || p.cap || 0;
-    const fits = aav <= capLeft;
-    document.getElementById('gm-ufa-sign-area').innerHTML = `
-      <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">
-        <strong style="font-size:.82rem;">${name}</strong>
-        <span style="font-size:.75rem;color:var(--text3);">G · Overall: ${p.overall_2526??'–'}</span>
-        <button class="calc-term-btn" onclick="gmConfirmSignGoalie('${name.replace(/'/g,"\\'")}',${aav})"
-          ${fits?'':'disabled'} style="${fits?'':'opacity:.35;cursor:default;'}"
-          title="${fits?'Sign':'Insufficient cap space'}">
-          Sign at ${fmtM(aav)}/yr
-        </button>
-      </div>
-      <div style="font-size:.72rem;color:var(--text3);margin-top:.25rem;">Cap space: ${fmtM(capLeft)} · Value based on projected output (no aging curve available)</div>`;
+    // Goalies: same 8-term format as skaters using aav_Xyr from G CAP
+    const projRating = p.t1_composite != null ? Math.round(p.t1_composite) : (p.norm_2526 ?? p.overall_2526 ?? '–');
+    document.getElementById('gm-ufa-sign-area').innerHTML = '<div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:.4rem;">'
+      + '<strong style="font-size:.82rem;">' + name + '</strong>'
+      + '<span style="font-size:.75rem;color:var(--text3);">G · Proj. Rating: ' + projRating + '</span>'
+      + [1,2,3,4,5,6,7,8].map(t => {
+          const aav = p['aav_'+t+'yr'];
+          const fits = (aav||0) <= capLeft;
+          return '<button class="calc-term-btn" onclick="gmConfirmSignGoalie('' + name.replace(/'/g, "\'") + '',' + t + ')" '
+            + (aav && fits ? '' : 'disabled style="opacity:.35;cursor:default;"') + ' title="' + (!aav ? 'No FV data' : !fits ? 'Cap space' : 'Sign') + '">'
+            + t + 'yr ' + fmtM(aav) + '</button>';
+        }).join('')
+      + '</div><div style="font-size:.72rem;color:var(--text3);margin-top:.25rem;">Cap space: ' + fmtM(capLeft) + '</div>';
     return;
   }
 
@@ -5248,12 +5250,14 @@ function gmSelectUFA(name, el) {
     <div style="font-size:.72rem;color:var(--text3);margin-top:.25rem;">Cap space: ${fmtM(capLeft)}</div>`;
 }
 
-function gmConfirmSignGoalie(name, aav) {
+function gmConfirmSignGoalie(name, term) {
   const p = (ALL_GOALIES||[]).find(x=>x.name===name);
   if (!p) return;
+  const aav = p['aav_'+term+'yr'] || p.fv_aav || p.aav_1yr || p.value || 0;
+  if (!aav) return;
   const fmtM=v=>'$'+(v/1e6).toFixed(2)+'M';
-  gmState.roster.push({p, gmRole:'signed', gmCap:aav, gmTerm:1});
-  gmState.logs.push(`Signed UFA goalie ${name} at ${fmtM(aav)}/yr.`);
+  gmState.roster.push({p, gmRole:'signed', gmCap:aav, gmTerm:term});
+  gmState.logs.push('Signed UFA goalie '+name+' — '+term+'yr at '+fmtM(aav)+'/yr.');
   document.getElementById('gm-action-area').innerHTML='';
   renderGMDashboard();
 }
@@ -5288,7 +5292,7 @@ function gmOpenTrade() {
           <div id="gm-trade-out" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
           <div style="margin-top:.4rem;max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;" id="gm-trade-out-list">
             ${myRoster.map(r=>`<div onclick="gmToggleTradeOut('${r.p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;">
-              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:DM Mono,monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct??r.p.overall_2526??''}</span>
+              <span><strong>${r.p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(r.p)} · ${r.p.age?r.p.age.toFixed(0)+'y':''} · ${r.p.actual_role||r.p.role||'–'}</span></span><span style="font-family:DM Mono,monospace;font-size:.72rem;color:var(--teal);">${r.p.overall_pct!=null?Math.round(r.p.overall_pct):(r.p.overall_2526??'')}</span>
               <span style="font-family:DM Mono,monospace;color:var(--text3);font-size:.72rem;">${fmtM(gmTradeValue(r.p))}</span>
             </div>`).join('')}
           </div>
@@ -5345,7 +5349,7 @@ function gmOpenTrade() {
       <div onclick="gmToggleTradeIn('${p.name.replace(/'/g,"\\'")}',this)" data-name="${p.name.replace(/"/g,'&quot;')}" data-team="${(p.current_team||p.team||'').split('/').pop()}"
            style="cursor:pointer;padding:.3rem .6rem;font-size:.78rem;display:flex;justify-content:space-between;${window._gmTradeIn&&window._gmTradeIn.has(p.name)?'background:var(--surface2);outline:1px solid var(--teal);':''}">
         <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${posDisplayGlobal(p)} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.current_team||p.team||'–'} · ${p.actual_role||p.role||'–'}</span></span><span style="font-family:DM Mono,monospace;font-size:.72rem;">
-          <span style="color:var(--teal);">${p.overall_pct??p.overall_2526??''}</span>
+          <span style="color:var(--teal);">${p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526??'')}</span>
           <span style="color:var(--text3);"> · ${fmtM(gmTradeValue(p))}</span>
         </span>
       </div>`).join('');
@@ -6073,6 +6077,8 @@ function ostRenderTable() {
   const sKey = document.getElementById('ost-sort')?.value || ostCurrentSort;
   const isG  = pos === 'G';
   const fmtM  = v => v==null ? '–' : (v>=0?'+':'−')+'$'+(Math.abs(v)/1e6).toFixed(1)+'M';
+  const fmtV  = v => v==null ? '–' : (v<0?'−':'')+'$'+(Math.abs(v)/1e6).toFixed(2)+'M';
+  const fmtVclr = v => v==null?'var(--text2)':v>=0?'var(--teal)':'var(--coral)';
   const fmtMP = v => v==null ? '–' : '$'+(Math.abs(v)/1e6).toFixed(1)+'M';
   const clr   = v => (!v&&v!==0)?'var(--text3)':v>0?'var(--teal)':v<0?'var(--coral)':'var(--text3)';
   const summary = OST_DATA.team_summary || {};
@@ -6160,11 +6166,11 @@ function ostShowTeam(tc) {
           '<div style="font-size:.55rem;color:var(--text3);">cap</div>'+
         '</div>'+
         '<div style="text-align:center;min-width:44px;">'+
-          '<div style="font-size:.78rem;font-weight:600;color:var(--text2);">'+fmtM(t.prev_value)+'</div>'+
+          '<div style="font-size:.78rem;font-weight:600;color:'+fmtVclr(t.prev_value)+';">'+fmtV(t.prev_value)+'</div>'+
           '<div style="font-size:.55rem;color:var(--text3);">25-26 val</div>'+
         '</div>'+
         '<div style="text-align:center;min-width:44px;">'+
-          '<div style="font-size:.78rem;font-weight:700;color:var(--teal);">'+fmtM(t.comp_value)+'</div>'+
+          '<div style="font-size:.78rem;font-weight:700;color:'+fmtVclr(t.comp_value)+';">'+fmtV(t.comp_value)+'</div>'+
           '<div style="font-size:.55rem;color:var(--text3);">26-27 val</div>'+
         '</div>'+
         '<div style="text-align:center;min-width:50px;">'+
