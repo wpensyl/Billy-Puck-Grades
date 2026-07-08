@@ -52,7 +52,7 @@
 [data-theme="light"] .calc-card{border-color:rgba(0,0,0,0.12) !important;}
 [data-theme="light"] .contract-strip,.c-item{background:transparent;}
 [data-theme="light"] .contract-strip{background:#f0f1f4;border-radius:8px;padding:4px;gap:4px;}
-[data-theme="light"] .c-item{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:6px;}
+
 [data-theme="light"] .gc-stat-strip,[data-theme="light"] .gc-stat-cell{background:#fff;}
 /* Light mode specific fixes */
 [data-theme="light"] .overall-num{color:#1a1d27 !important;}
@@ -203,7 +203,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .cat-name{font-size:.8rem;color:var(--text2);text-align:right;}
 .info-btn{width:13px;height:13px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:8px;color:var(--text3);font-family:DM Mono,monospace;transition:all .15s;}
 .info-btn:hover{border-color:var(--text2);color:var(--text2);}
-.tooltip-box{display:none;position:absolute;left:0;top:22px;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.5rem .75rem;font-size:.75rem;color:var(--text2);line-height:1.5;z-index:50;width:260px;pointer-events:none;}
+.tooltip-box{display:none;position:absolute;left:0;top:22px;background:rgba(120,130,150,0.35);border:1px solid rgba(120,130,150,0.7);border-radius:var(--radius-sm);padding:.5rem .75rem;font-size:.75rem;color:var(--text2);line-height:1.5;z-index:50;width:260px;pointer-events:none;}
 .tooltip-box.vis{display:block;}
 .cat-track{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
 .cat-fill{height:100%;border-radius:3px;}
@@ -233,8 +233,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .comp-yr{font-size:.72rem;color:var(--text3);}
 .comp-sim{font-family:DM Mono,monospace;font-size:.8rem;color:var(--text2);}
 .contract-strip{display:flex;border-bottom:1px solid var(--border);flex-wrap:wrap;}
-.c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);}
-.c-item:last-child{border-right:none;}
+.c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);border-radius:0;}
+.c-item:first-child{border-left:none;}.c-item:last-child{border-right:none;}
 .c-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:3px;}
 .c-val{font-family:DM Mono,monospace;font-size:.9rem;font-weight:500;}
 .c-val.pos{color:var(--teal);}
@@ -521,7 +521,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       </div>
     </div>
     <div class="panel" id="contract-panel"></div>
-    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2026–27 NHL Season · Updated June 2026<br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
+    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2026–27 NHL Season · Updated <span id='site-updated-date'>July 2026</span><br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
   </div>
 </div>
 
@@ -828,6 +828,13 @@ function themeChartOpts() {
     tooltipBorder: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.07)',
   };
 }
+// Set the "Updated" date to current month/year
+(function(){
+  var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var d=new Date(); var el=document.getElementById('site-updated-date');
+  if(el) el.textContent=months[d.getMonth()]+' '+d.getFullYear();
+})();
+
 function getPlayerTeam(p) {
   if (!p) return null;
   return playerCurrentTeamCache[p.name] || p.current_team || p.team || null;
@@ -1336,8 +1343,8 @@ function renderCategories(p) {
         return;
       }
       // Fallback: 4-season rolling avg of progression tracks
-      const tracks = [{key:'overall',label:'Overall composite'},{key:'off_prod',label:'Off production'},
-        {key:'def_prod',label:'Def production'},{key:'off_analytics',label:'Off analytics'},{key:'def_analytics',label:'Def analytics'}];
+      const tracks = [{key:'overall',label:'Overall composite'},{key:'off_prod',label:'Off. production'},
+        {key:'def_prod',label:'Def. production'},{key:'off_analytics',label:'Off. analytics'},{key:'def_analytics',label:'Def. analytics'}];
       const rollingAvg = arr => { const v=(arr||[]).map(s=>s?.pct??null).filter(v=>v!=null); const l=v.slice(-4); return l.length?Math.round(l.reduce((a,b)=>a+b,0)/l.length):null; };
       const note = document.createElement('div');
       note.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.3rem 0 .6rem;';
@@ -1430,8 +1437,8 @@ function renderCategories(p) {
         }
       } else {
         // Fallback: composite tracks
-        const tracks = [{key:'overall',label:'Overall composite'},{key:'off_prod',label:'Off production'},
-          {key:'def_prod',label:'Def production'},{key:'off_analytics',label:'Off analytics'},{key:'def_analytics',label:'Def analytics'}];
+        const tracks = [{key:'overall',label:'Overall composite'},{key:'off_prod',label:'Off. production'},
+          {key:'def_prod',label:'Def. production'},{key:'off_analytics',label:'Off. analytics'},{key:'def_analytics',label:'Def. analytics'}];
         const note2 = document.createElement('div');
         note2.style.cssText = 'font-size:.72rem;color:var(--text3);padding:.3rem 0 .6rem;';
         note2.textContent = 'Full category data not available for this season.';
@@ -1593,7 +1600,7 @@ function renderContract(p) {
       <div style="position:relative;height:160px;"><canvas id="contract-chart"></canvas></div>
       <div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">
         <div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Value / Proj. value</span></div>
-        <div class="leg-item"><div class="leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="font-size:.72rem;color:var(--text3);">Cap hit</span></div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(120,130,150,0.35);border:1px solid rgba(120,130,150,0.7);"></div><span style="font-size:.72rem;color:var(--text3);">Cap hit</span></div>
       </div>
     </div>`;
   if (contractChart) { contractChart.destroy(); contractChart = null; }
@@ -2182,10 +2189,10 @@ function renderAnalyticsStrip(p) {
     return null;
   };
   const tiles = [
-    {val: lastPct('off_prod'),      lbl: 'Off production'},
-    {val: lastPct('def_prod'),      lbl: 'Def production'},
-    {val: lastPct('off_analytics'), lbl: 'Off analytics'},
-    {val: lastPct('def_analytics'), lbl: 'Def analytics'},
+    {val: lastPct('off_prod'),      lbl: 'Off. production'},
+    {val: lastPct('def_prod'),      lbl: 'Def. production'},
+    {val: lastPct('off_analytics'), lbl: 'Off. analytics'},
+    {val: lastPct('def_analytics'), lbl: 'Def. analytics'},
   ];
   const clr = v => v==null?'var(--text3)':v>=70?'var(--teal)':v<=30?'var(--coral)':'var(--mid)';
   el.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
@@ -2450,10 +2457,10 @@ function buildSeasonContent(p, season, acHex) {
   // Fallback: 5 composite progression track percentiles
   const tracks = [
     {key:'overall',       label:'Overall composite'},
-    {key:'off_prod',      label:'Off production'},
-    {key:'def_prod',      label:'Def production'},
-    {key:'off_analytics', label:'Off analytics'},
-    {key:'def_analytics', label:'Def analytics'},
+    {key:'off_prod',      label:'Off. production'},
+    {key:'def_prod',      label:'Def. production'},
+    {key:'off_analytics', label:'Off. analytics'},
+    {key:'def_analytics', label:'Def. analytics'},
   ];
   let rowsHtml = teamBadgeHtml + `<div style="font-size:.72rem;color:var(--text3);margin-bottom:.5rem;">Historical data shows composite track percentiles only. Full category breakdown is available for 2025\u201326.</div>`;
   let hasAny = false;
@@ -2500,10 +2507,10 @@ function buildSmoothedContent(p, acHex) {
   // Fallback: rolling 4-season average of the 5 composite progression tracks
   const tracks = [
     {key:'overall',       label:'Overall'},
-    {key:'off_prod',      label:'Off production'},
-    {key:'def_prod',      label:'Def production'},
-    {key:'off_analytics', label:'Off analytics'},
-    {key:'def_analytics', label:'Def analytics'},
+    {key:'off_prod',      label:'Off. production'},
+    {key:'def_prod',      label:'Def. production'},
+    {key:'off_analytics', label:'Off. analytics'},
+    {key:'def_analytics', label:'Def. analytics'},
   ];
 
   const rollingAvg = (arr, window=4) => {
@@ -2760,10 +2767,10 @@ function renderPlayoffPanel(p) {
   // ── Rankings summary strip — identical markup/classes to the main one ─────
   const bcStrip = v => v==null?'var(--text3)':v>=70?'var(--teal)':v<=30?'var(--coral)':'var(--mid)';
   const stripTiles = [
-    { val: pl.off_prod,      reg: p.progression?.off_prod?.find ? null : null, regKey: 'off_prod',      lbl: 'Off Production' },
-    { val: pl.def_prod,      regKey: 'def_prod',      lbl: 'Def Production' },
-    { val: pl.off_analytics, regKey: 'off_analytics', lbl: 'Off Analytics'  },
-    { val: pl.def_analytics, regKey: 'def_analytics', lbl: 'Def Analytics'  },
+    { val: pl.off_prod,      reg: p.progression?.off_prod?.find ? null : null, regKey: 'off_prod',      lbl: 'Off. Production' },
+    { val: pl.def_prod,      regKey: 'def_prod',      lbl: 'Def. Production' },
+    { val: pl.off_analytics, regKey: 'off_analytics', lbl: 'Off. Analytics'  },
+    { val: pl.def_analytics, regKey: 'def_analytics', lbl: 'Def. Analytics'  },
   ];
   // Reg-season equivalent for these four comes from the progression track's
   // most recent 2025-26 entry (same source renderAnalyticsStrip() uses).
@@ -3003,7 +3010,7 @@ function renderGoalieCard(g) {
       + '<div style="position:relative;height:160px;"><canvas id="gc-bar-chart"></canvas></div>'
       + '<div style="display:flex;gap:1rem;margin-top:.6rem;flex-wrap:wrap;">'
       + '<div class="leg-item"><div class="leg-dot" style="background:rgba(45,212,160,0.4);border:1px solid var(--teal);"></div><span style="font-size:.72rem;color:var(--text3);">Value / Proj. Value</span></div>'
-      + '<div class="leg-item"><div class="leg-dot" style="background:var(--surface3);border:1px solid var(--border2);"></div><span style="font-size:.72rem;color:var(--text3);">Cap Hit</span></div>'
+      + '<div class="leg-item"><div class="leg-dot" style="background:rgba(120,130,150,0.35);border:1px solid rgba(120,130,150,0.7);"></div><span style="font-size:.72rem;color:var(--text3);">Cap Hit</span></div>'
       + '</div></div>';
 
     gcCalcEl.innerHTML = summaryHtml + chartHtml;
@@ -4143,10 +4150,10 @@ function renderCalcResult() {
   const prog = p.progression || {};
   const lastVal = arr => (arr && arr.length) ? arr[arr.length-1].pct : null;
   const prodDefs = [
-    {id:'calc-offprod',  key:'off_prod',       label:'Off Production'},
-    {id:'calc-defprod',  key:'def_prod',        label:'Def Production'},
-    {id:'calc-offanal',  key:'off_analytics',   label:'Off Analytics'},
-    {id:'calc-defanal',  key:'def_analytics',   label:'Def Analytics'},
+    {id:'calc-offprod',  key:'off_prod',       label:'Off. Production'},
+    {id:'calc-defprod',  key:'def_prod',        label:'Def. Production'},
+    {id:'calc-offanal',  key:'off_analytics',   label:'Off. Analytics'},
+    {id:'calc-defanal',  key:'def_analytics',   label:'Def. Analytics'},
   ];
   prodDefs.forEach(({id, key, label}) => {
     const val = lastVal(prog[key]);
@@ -5238,7 +5245,7 @@ function gmOpenSignUFA() {
     <div class="calc-card" style="border:1px solid var(--teal);">
       <div style="font-weight:600;font-size:.85rem;margin-bottom:.6rem;">Sign External UFA (${ufas.length} available)</div>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem;">
-        <input id="gm-ufa-search" placeholder="Name…" style="background:var(--surface3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.35rem .65rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.82rem;outline:none;width:120px;">
+        <input id="gm-ufa-search" placeholder="Name…" style="background:rgba(120,130,150,0.35);border:1px solid rgba(120,130,150,0.7);border-radius:var(--radius-sm);padding:.35rem .65rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.82rem;outline:none;width:120px;">
         <select id="gm-ufa-team" class="lb-select" style="font-size:.72rem;">
               <option value="all">All teams</option>
               ${NHL_TEAM_CODES.map(t=>`<option value="${t}">${t}</option>`).join('')}
@@ -5374,7 +5381,7 @@ function gmOpenTrade() {
           <div style="font-size:.75rem;font-weight:600;color:var(--teal);margin-bottom:.35rem;">Receive (league players)</div>
           <div id="gm-trade-in" style="min-height:60px;background:var(--surface3);border-radius:4px;padding:.4rem;font-size:.78rem;"></div>
           <div style="display:flex;gap:.3rem;margin:.4rem 0;">
-            <input id="gm-trade-in-search" placeholder="Name…" style="flex:1;background:var(--surface3);border:1px solid var(--border2);border-radius:4px;padding:.3rem .5rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.78rem;outline:none;">
+            <input id="gm-trade-in-search" placeholder="Name…" style="flex:1;background:rgba(120,130,150,0.35);border:1px solid rgba(120,130,150,0.7);border-radius:4px;padding:.3rem .5rem;color:var(--text);font-family:'Karla',sans-serif;font-size:.78rem;outline:none;">
             <select id="gm-trade-in-team" class="lb-select" style="font-size:.72rem;">
               <option value="all">All teams</option>
               ${[...new Set(allLeague.map(p=>p.current_team||p.team||'').filter(Boolean))].sort().map(t=>`<option value="${t}">${t}</option>`).join('')}
