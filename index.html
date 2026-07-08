@@ -78,7 +78,7 @@
 /* Player card box rows: white cells in light mode */
 
 [data-theme="light"] .stat-cell{background:#ffffff !important;}
-[data-theme="light"] .contract-strip,[data-theme="light"] .nhl-stat-strip,[data-theme="light"] .stat-strip{background:rgba(0,0,0,0.07) !important;gap:1px;}
+[data-theme="light"] .nhl-stat-strip,[data-theme="light"] .stat-strip{background:rgba(0,0,0,0.06);gap:1px;}
 [data-theme="light"] [style*="var(--surface2)"],[data-theme="light"] [style*="var(--surface3)"]{background:#ffffff !important;}
 #theme-toggle{position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;width:36px;height:36px;
   border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
@@ -188,9 +188,9 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .nhl-stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .gc-stat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .contract-strip{display:grid;grid-template-columns:1fr 1fr;}
-  .c-item{border-right:none;border-bottom:1px solid var(--border);}
-  .c-item:nth-child(odd){border-right:1px solid var(--border);}
-  .c-item:last-child{border-bottom:none;}
+  .c-item{border-right:none;border-bottom:1px solid var(--border2);}
+  .c-item:nth-child(odd){border-right:1px solid var(--border2);}
+  .c-item:nth-last-child(-n+2){border-bottom:none;}
   #catboard-cat-nav{flex-wrap:wrap;}
   .cmp-bar-row{grid-template-columns:1fr 80px 1fr;}
 }
@@ -232,10 +232,10 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .comp-name{font-size:.85rem;font-weight:500;color:var(--text);}
 .comp-yr{font-size:.72rem;color:var(--text3);}
 .comp-sim{font-family:DM Mono,monospace;font-size:.8rem;color:var(--text2);}
-.contract-strip{display:flex;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap;}
-.contract-strip-btm{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-top:.75rem;}
+.contract-strip{display:flex;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);flex-wrap:wrap;}
+.contract-strip-btm{border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;margin-top:.75rem;background:transparent;}
 .contract-strip-btm .c-item{border-bottom:none;}
-.c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);border-radius:0;}
+.c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border2);border-radius:0;}
 .c-item:first-child{border-left:none;}.c-item:last-child{border-right:none;}
 .c-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:3px;}
 .c-val{font-family:DM Mono,monospace;font-size:.9rem;font-weight:500;}
@@ -264,10 +264,10 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .lb-money{font-family:DM Mono,monospace;font-size:.82rem;}
 .tm-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:1rem;}
 .tm-cat-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .8rem;}
-.tm-cat-name{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.tm-cat-name{font-size:.68rem;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;text-align:center;}
 .tm-cat-bar{height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:3px;}
 .tm-cat-fill{height:100%;border-radius:3px;}
-.tm-cat-pct{font-family:DM Mono,monospace;font-size:.78rem;font-weight:500;}
+.tm-cat-pct{font-family:DM Mono,monospace;font-size:.78rem;font-weight:500;text-align:center;}
 .tm-summary-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;}
 .tm-stat{background:var(--surface);padding:.7rem 1rem;}
 .tm-stat-val{font-family:DM Mono,monospace;font-size:1.1rem;font-weight:500;}
@@ -1798,6 +1798,9 @@ async function getTeamRoster(teamCode) {
 }
 
 async function renderTeamView(teamCode) {
+  // Hide calc-panel when team view is active
+  const cpanel = document.getElementById('calc-panel');
+  if (cpanel) cpanel.style.display = 'none';
   if (!teamCode) return;
   const posFilter = document.getElementById('tm-pos').value;
   document.getElementById('tm-summary').innerHTML = `<div class="comp-loading"><span class="pulse">Loading ${teamCode} roster from NHL API...</span></div>`;
@@ -2926,7 +2929,7 @@ function renderGoalieCard(g) {
         ${g.tier?`<div class="deal-expiry" style="color:var(--teal);font-weight:600;">Tier: ${g.tier}</div>`:''}
         ${g.exp_year?`<div class="deal-expiry">Deal Expiry: ${g.exp_year} ${g.expiry_type||''}</div>`:''}
       </div>
-      <div class="gc-badge-wrap" style="flex-shrink:0;align-self:flex-start;margin-left:auto;">
+      <div class="gc-badge-wrap" style="width:100%;margin-top:.75rem;">
           <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
             <div class="badge-hdr" style="color:var(--blue);">Rating (0–100)</div>
             <div class="badge-tiles">
@@ -2952,12 +2955,11 @@ function renderGoalieCard(g) {
     </div>
     <div class="panel" style="margin-bottom:1rem;">
       <div class="panel-hd"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
-      <div style="display:flex;flex-wrap:wrap;">
-        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Cap Hit</div><div class="c-val">${fmtCap(g.cap)}</div></div>
-        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">25\u201326 Value</div><div class="c-val" style="color:var(--blue);">${fmtRaw(g.value_2526)}</div></div>
-        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Hist. Avg Value</div><div class="c-val">${fmtRaw(g.value_hist_gpadj || g.value)}</div></div>
-        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);"><div class="c-lbl">Proj. 26\u201327</div><div class="c-val" style="color:var(--teal);">${fmtRaw(g.proj_value_2627)}</div></div>
-        <div class="c-item" style="flex:1;min-width:110px;padding:.75rem 1rem;"><div class="c-lbl">Expiry</div><div class="c-val">${g.exp_year||'\u2013'} ${g.expiry_type||''}</div></div>
+      <div class="contract-strip">
+        <div class="c-item"><div class="c-lbl">Cap Hit</div><div class="c-val">${fmtCap(g.cap)}</div></div>
+        <div class="c-item"><div class="c-lbl">25–26 Value</div><div class="c-val" style="color:var(--blue);">${fmtRaw(g.value_2526)}</div></div>
+        <div class="c-item"><div class="c-lbl">Hist. Avg Value</div><div class="c-val">${fmtRaw(g.value_hist_gpadj || g.value)}</div></div>
+        <div class="c-item"><div class="c-lbl">Proj. 26–27</div><div class="c-val" style="color:var(--teal);">${fmtRaw(g.proj_value_2627)}</div></div>
       </div>
     </div>
     <div class="panel" style="margin-bottom:1rem;">
@@ -2993,7 +2995,7 @@ function renderGoalieCard(g) {
     const summaryHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:.75rem;">
       ${[['Cap Hit',fmtM(g.cap),null],['Proj. 26-27',fmtM(g.proj_value_2627),'var(--text)'],
          ['Proj. Surplus',fmtMc(g.surplus_2627),gcClr(g.surplus_2627)],
-         ['Expiry',g.exp_year+' '+(g.expiry_type||''),null],
+         
          ['FV AAV ('+term+'-yr)',fmtM(fvAav),'var(--blue)'],
          ['FV Surplus/yr',fmtMc(fvSurp),gcClr(fvSurp)],
       ].map(([lbl,val,clr])=>'<div style="flex:1;min-width:110px;padding:.65rem .85rem;border-right:1px solid var(--border);"><div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;">'+lbl+'</div><div style="font-size:.85rem;font-weight:600;color:'+(clr||'var(--text)')+';">'+val+'</div></div>').join('')}
@@ -3712,7 +3714,7 @@ function renderTeamRankings() {
         : '';
     return `<tr ${trClick}>
       <td class="lb-rank">${i+1}</td>
-      <td style="font-weight:600;font-size:.95rem;">${p.teamCode}${isCat?'<span style="font-size:.6rem;color:var(--teal);margin-left:4px;">→</span>':isPts?'<span style="font-size:.6rem;color:var(--text3);margin-left:4px;">↗</span>':''}</td>
+      <td style="font-weight:600;font-size:.95rem;">${p.teamCode}${isCat?'<span style="font-size:.6rem;color:var(--teal);margin-left:4px;">→</span>':isPts?'<span style="font-size:.6rem;color:var(--text3);margin-left:4px;opacity:.5;">›</span>':''}</td>
       <td style="font-family:DM Mono,monospace;font-weight:600;color:var(--text);">${sortVal??'–'}</td>
       <td style="font-family:DM Mono,monospace;color:${ovClr};">${p.avgOverall}</td>
     </tr>`;
@@ -4776,13 +4778,16 @@ function renderGMTeamSelect() {
   if (!wrap) return;
   const fmtM = v => v ? '$'+(v/1e6).toFixed(1)+'M' : '–';
 
+  const DOTTED_GM = {'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'};
   const teamRows = NHL_TEAM_CODES.map(tc => {
-    const prof = getTeamProfile(tc, 'all', null);
-    if (!prof) return null;
-    const cap = ALL_PLAYERS.filter(p=>p.current_team===tc||p.current_team==={'SJS':'S.J','NJD':'N.J','LAK':'L.A','TBL':'T.B'}[tc])
+    const prof = getTeamProfile(tc, 'all', null) || {projPts:0,avgOverall:0};
+    const dotted = DOTTED_GM[tc];
+    const cap = ALL_PLAYERS.filter(p=>(p.current_team===tc||p.current_team===dotted)||
+                                      (nhlRosterCache[tc]&&nhlRosterCache[tc].has(p.name))||
+                                      (dotted&&nhlRosterCache[dotted]&&nhlRosterCache[dotted].has(p.name)))
                            .reduce((s,p)=>s+(p.cap||0),0);
     return {tc, prof, cap};
-  }).filter(Boolean).sort((a,b)=>b.prof.projPts-a.prof.projPts);
+  }).sort((a,b)=>b.prof.projPts-a.prof.projPts);
 
   const gmSnapLabels = Object.keys(window.ROSTER_SNAPSHOTS||{}).sort().reverse();
   const gmModeHtml = gmSnapLabels.length ? `
@@ -5781,8 +5786,7 @@ window._pcSearch = (function() {
       if (!p || !inp || !dd) return;
       inp.value = p.name;
       dd.className='dropdown'; dd.innerHTML='';
-      if (p._type === 'G') { showGoalieCard(p); return; }
-      if (typeof renderCalcResult === 'function') { calcPlayer=p; renderCalcResult(); }
+      if (typeof renderPlayerChem === 'function') renderPlayerChem(p);
     },
     blur() { setTimeout(()=>{ const dd=document.getElementById('pc-dd');
       if(dd){dd.className='dropdown';dd.innerHTML='';} }, 200); }
@@ -8024,14 +8028,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <button id="theme-toggle" title="Toggle light / dark mode" onclick="
     var h=document.documentElement, isL=h.getAttribute('data-theme')==='light';
-    h.setAttribute('data-theme', isL ? '' : 'light');
+    h.setAttribute('data-theme', isL ? 'dark' : 'light');
     this.textContent = isL ? '☽' : '☀';
     try{localStorage.setItem('bp-theme', isL ? 'dark' : 'light');}catch(e){}
     setTimeout(function(){
       if(typeof updateCalcChart==='function') updateCalcChart();
       if(window._gcBarChart && window.currentGoalie && typeof renderGoalieCard==='function') renderGoalieCard(window.currentGoalie);
     }, 50);
-  ">☽</button>
+  ">☀</button>
   <script>
     try{var _t=localStorage.getItem('bp-theme');
       // Default is light mode; only switch to dark if explicitly saved
