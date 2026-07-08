@@ -50,7 +50,7 @@
 [data-theme="light"] .panel,[data-theme="light"] .calc-card,[data-theme="light"] .player-card{background:#fff !important;}
 [data-theme="light"] .overall-badge{background:#fff;}
 [data-theme="light"] .calc-card{border-color:rgba(0,0,0,0.12) !important;}
-[data-theme="light"] .contract-strip,.c-item{background:transparent;}
+
 [data-theme="light"] .contract-strip{background:#f0f1f4;border-radius:8px;padding:4px;gap:4px;}
 
 [data-theme="light"] .gc-stat-strip,[data-theme="light"] .gc-stat-cell{background:#fff;}
@@ -66,7 +66,7 @@
 [data-theme="light"] .lb-bar-fill{filter:brightness(0.85);}
 /* Darken borders in light mode */
 [data-theme="light"] .overall-badge{border-color:rgba(0,0,0,0.15) !important;}
-[data-theme="light"] .c-item{border-color:rgba(0,0,0,0.1) !important;}
+
 [data-theme="light"] table td,
 [data-theme="light"] table th{border-color:rgba(0,0,0,0.1);}
 [data-theme="light"] .prog-leg-item span{color:#4b5263;}
@@ -76,7 +76,7 @@
 [data-theme="light"] .nav-link{color:#4b5263;}
 [data-theme="light"] .nav-link:hover,[data-theme="light"] .nav-link.active{color:#0d9e72;}
 /* Player card box rows: white cells in light mode */
-[data-theme="light"] .c-item{background:#ffffff !important;}
+
 [data-theme="light"] .stat-cell{background:#ffffff !important;}
 [data-theme="light"] .contract-strip,[data-theme="light"] .nhl-stat-strip,[data-theme="light"] .stat-strip{background:rgba(0,0,0,0.07) !important;gap:1px;}
 [data-theme="light"] [style*="var(--surface2)"],[data-theme="light"] [style*="var(--surface3)"]{background:#ffffff !important;}
@@ -233,6 +233,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .comp-yr{font-size:.72rem;color:var(--text3);}
 .comp-sim{font-family:DM Mono,monospace;font-size:.8rem;color:var(--text2);}
 .contract-strip{display:flex;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.contract-strip-btm{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-top:.75rem;}
+.contract-strip-btm .c-item{border-bottom:none;}
 .c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border);border-radius:0;}
 .c-item:first-child{border-left:none;}.c-item:last-child{border-right:none;}
 .c-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:3px;}
@@ -1638,7 +1640,7 @@ function renderContract(p) {
     + 'Avg. Proj. Value reflects the average over the life of the current active contract.';
   el.appendChild(note);
   const btm = document.createElement('div');
-  btm.className = 'contract-strip';
+  btm.className = 'contract-strip contract-strip-btm';
   btm.style.marginTop = '.75rem';
   btm.innerHTML = [
     {lbl:'Proj. value at expiry',  val:fvM(p.value_at_expiry)},
@@ -3043,7 +3045,7 @@ function renderGoalieCard(g) {
     const fpctG = v => v!=null ? Math.round(v*100)+'th' : '\u2013';
     const fvMG  = v => v!=null ? '$'+(Math.abs(v)/1e6).toFixed(2)+'M' : '\u2013';
     const btm = document.createElement('div');
-    btm.className = 'contract-strip';
+    btm.className = 'contract-strip contract-strip-btm';
     btm.style.marginTop = '.75rem';
     btm.innerHTML = [
       {lbl:'Proj. value at expiry',       val:fvMG(g.value_at_expiry)},
