@@ -49,6 +49,27 @@
 [data-theme="light"] .lb-select,[data-theme="light"] input,[data-theme="light"] select{background:#fff;color:#1a1d27;}
 [data-theme="light"] .panel,[data-theme="light"] .calc-card,[data-theme="light"] .player-card{background:#fff;}
 [data-theme="light"] .overall-badge{background:#fff;}
+/* Light mode specific fixes */
+[data-theme="light"] .overall-num{color:#1a1d27 !important;}
+[data-theme="light"] .overall-lbl{color:#4b5263 !important;}
+[data-theme="light"] .player-name{color:#1a1d27;}
+[data-theme="light"] .panel-hd{border-color:rgba(0,0,0,0.12);}
+[data-theme="light"] .prog-wrap canvas{filter:brightness(0.7);}
+/* Make cap hit bars (semi-transparent white) visible in light mode */
+[data-theme="light"] .contract-chart-wrap canvas{background:#f8f9fb;}
+[data-theme="light"] .lb-bar-bg{background:rgba(0,0,0,0.08);}
+[data-theme="light"] .lb-bar-fill{filter:brightness(0.85);}
+/* Darken borders in light mode */
+[data-theme="light"] .overall-badge{border-color:rgba(0,0,0,0.15) !important;}
+[data-theme="light"] .c-item{border-color:rgba(0,0,0,0.1) !important;}
+[data-theme="light"] table td,
+[data-theme="light"] table th{border-color:rgba(0,0,0,0.1);}
+[data-theme="light"] .prog-leg-item span{color:#4b5263;}
+[data-theme="light"] .overall-num{color:#1a1d27 !important;}
+[data-theme="light"] .badge-hdr{color:#4b5263 !important;}
+[data-theme="light"] .view-title{color:#1a1d27;}
+[data-theme="light"] .nav-link{color:#4b5263;}
+[data-theme="light"] .nav-link:hover,[data-theme="light"] .nav-link.active{color:#0d9e72;}
 #theme-toggle{position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;width:36px;height:36px;
   border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
   font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -785,6 +806,18 @@ function showView(name) {
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
 // Returns player's live current team from NHL API roster cache, falls back to JSON field
+// Theme-aware chart colors
+function themeChartOpts() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  return {
+    gridColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)',
+    tickColor: isLight ? '#4b5263' : '#555a6a',
+    tooltipBg: isLight ? '#ffffff' : '#1c1f28',
+    tooltipTitle: isLight ? '#4b5263' : '#8b90a0',
+    tooltipBody: isLight ? '#1a1d27' : '#e8eaf0',
+    tooltipBorder: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.07)',
+  };
+}
 function getPlayerTeam(p) {
   if (!p) return null;
   return playerCurrentTeamCache[p.name] || p.current_team || p.team || null;
@@ -1566,7 +1599,7 @@ function renderContract(p) {
     type:'bar',
     data:{labels:SEASON_LABELS,datasets:[
       {label:'Proj. value',data:projVals.map(v=>v!=null?Math.max(0,v):null),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-      {label:'Cap hit',   data:capHits, backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
+      {label:'Cap hit',   data:capHits, backgroundColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.08)':'rgba(255,255,255,.06)',borderColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.15)':'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
@@ -1735,7 +1768,12 @@ async function getTeamRoster(teamCode) {
       }
     }
     nhlRosterCache[teamCode] = names;
-    names.forEach(n => { playerCurrentTeamCache[n] = teamCode; });
+    names.forEach(n => {
+      playerCurrentTeamCache[n] = teamCode;
+      // Also update current_team on the player object so static displays are correct
+      const pl = (ALL_PLAYERS||[]).find(p=>p.name===n) || (ALL_GOALIES||[]).find(p=>p.name===n);
+      if (pl) pl.current_team = teamCode;
+    });
     return names;
   } catch(e) { return null; }
 }
@@ -2908,8 +2946,7 @@ function renderGoalieCard(g) {
       <div class="prog-wrap">
         <div style="position:relative;height:160px;"><canvas id="goalie-prog-chart"></canvas></div>
         <div class="prog-legend" style="margin-top:.6rem;">
-          <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--blue);border-radius:1px;"></div><span style="color:var(--blue);">Overall (25\u201326 pct)</span></div>
-          <div class="prog-leg-item"><div style="width:18px;height:2px;background:rgba(91,156,246,0.4);border-radius:1px;"></div><span style="color:var(--text3);">Historical avg</span></div>
+          <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--blue);border-radius:1px;"></div><span style="color:var(--blue);">Overall Rating</span></div>
         </div>
       </div>
     </div>
@@ -2969,7 +3006,7 @@ function renderGoalieCard(g) {
         type:'bar',
         data:{labels:GC_SEASON_LABELS,datasets:[
           {label:'Proj. value',data:gcProjVals.map(v=>v!=null?Math.max(0,v):null),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-          {label:'Cap hit',   data:gcCapHits, backgroundColor:'rgba(255,255,255,.06)',borderColor:'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
+          {label:'Cap hit',   data:gcCapHits, backgroundColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.08)':'rgba(255,255,255,.06)',borderColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.15)':'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
         ]},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
@@ -3030,11 +3067,11 @@ function renderGoalieCard(g) {
         }]
       },
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
+        plugins:{legend:{display:false},tooltip:{backgroundColor:themeChartOpts().tooltipBg,titleColor:themeChartOpts().tooltipTitle,bodyColor:themeChartOpts().tooltipBody,borderColor:themeChartOpts().tooltipBorder,borderWidth:1,
           callbacks:{label:c=>c.raw!=null?`Score %ile: ${c.raw}th`:'No data'}}},
         scales:{
-          x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
-          y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#555a6a',font:{family:"DM Mono",size:10},callback:v=>v+'th'}}
+          x:{grid:{color:themeChartOpts().gridColor},ticks:{color:themeChartOpts().tickColor,font:{family:'Karla',size:11}}},
+          y:{min:0,max:100,grid:{color:themeChartOpts().gridColor},ticks:{color:'#555a6a',font:{family:"DM Mono",size:10},callback:v=>v+'th'}}
         }
       }
     });
@@ -5244,7 +5281,7 @@ function gmSelectUFA(name, el) {
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const capLeft = GM_CAP - gmCapUsed(gmState.roster);
   if (p._type === 'G') {
-    const projRating = p.t1_composite != null ? Math.round(p.t1_composite) : (p.norm_2526 != null ? Math.round(p.norm_2526) : (p.overall_2526 ?? '–'));
+    const projRating = p.t1_composite != null ? Math.round(p.t1_composite) : (p.norm_2526 != null ? Math.round(p.norm_2526) : (p.overall_2526 != null ? Math.round(p.overall_2526) : '–');
     let gTermHtml = '';
     for (let t=1; t<=8; t++) {
       const aav = p['aav_'+t+'yr'];
@@ -6032,7 +6069,9 @@ function ostRenderDelta() {
     // Compute per-player weighted contributions for debug
     const getPlayerContribs = (players, grp, cat, toiMap) => {
       return players.map(p => {
-        const v = ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct;
+        const v = cat === 'Consistency'
+          ? (p.consistency ?? null)
+          : ((p.categories?.[grp])||[]).find(c=>c.name===cat)?.pct ?? null;
         const w = toiMap[p.name]||0;
         return {name:p.name, val:v, w:Math.round(w), contrib: v!=null&&w>0 ? v*w : null};
       }).filter(x=>x.val!=null);
