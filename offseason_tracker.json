@@ -984,7 +984,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Jeff Skinner Buyout",
@@ -1256,7 +1256,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Aleksander Barkov",
@@ -1324,7 +1324,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Nicolas Deslauriers",
@@ -1426,7 +1426,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Corey Perry Trade Retention",
@@ -1443,7 +1443,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Artemi Panarin Trade Retention",
@@ -1460,7 +1460,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Colton Sissons Trade Retention",
@@ -1477,7 +1477,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Scott Laughton Trade Retention",
@@ -1494,7 +1494,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Cam Atkinson Buyout",
@@ -1511,7 +1511,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Ilya Mikheyev Trade Retention",
@@ -1528,7 +1528,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Justin Abdelkader Buyout",
@@ -1545,7 +1545,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Alexander Wennberg Buyout",
@@ -1562,7 +1562,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty DET 25",
@@ -1579,7 +1579,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty MTL 25",
@@ -1596,7 +1596,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty CAR 25",
@@ -1613,7 +1613,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty NJD 25",
@@ -1630,7 +1630,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty NYI 25",
@@ -1647,7 +1647,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty DAL 25",
@@ -1664,7 +1664,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty MIN 25",
@@ -1681,7 +1681,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty STL 25",
@@ -1698,7 +1698,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty LAK 25",
@@ -1715,7 +1715,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty TOR 25",
@@ -1732,7 +1732,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bonus Overage Penalty EDM 25",
@@ -1749,7 +1749,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Jordan Greenway",
@@ -2123,7 +2123,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Noah Philp",
@@ -3347,7 +3347,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "John Beecher",
@@ -3364,7 +3364,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Sammy Blais",
@@ -3381,7 +3381,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Philip Tomasino",
@@ -3398,7 +3398,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Sam Lafferty",
@@ -3415,7 +3415,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Justin Kirkland",
@@ -3432,7 +3432,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "F",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Martin Feh\u00e9rv\u00e1ry",
@@ -4078,7 +4078,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Connor Murphy Trade Retention",
@@ -4095,7 +4095,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Rasmus Andersson Trade Retention",
@@ -4112,7 +4112,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Mattias Ekholm Trade Retention",
@@ -4129,7 +4129,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Cam Fowler Trade Retention",
@@ -4146,7 +4146,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Nicolai Knyzhov Buyout",
@@ -4163,7 +4163,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Adam Boqvist Buyout",
@@ -4180,7 +4180,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Nate Schmidt Buyout",
@@ -4197,7 +4197,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Bowen Byram",
@@ -5268,7 +5268,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Andreas Englund",
@@ -5285,7 +5285,7 @@
       "fv_aav": null,
       "avg_surplus_fv": null,
       "pos_type": "D",
-      "is_acquisition": false
+      "is_acquisition": true
     },
     {
       "name": "Pavel Mintyukov",
@@ -5941,10 +5941,10 @@
       "goalie_fv_surplus": 4669500,
       "acq_count": 5,
       "resign_count": 4,
-      "lost_count": 7,
+      "lost_count": 8,
       "acq_count_F": 3,
       "resign_count_F": 1,
-      "lost_count_F": 3,
+      "lost_count_F": 4,
       "acq_count_D": 1,
       "resign_count_D": 3,
       "lost_count_D": 4,
@@ -6043,10 +6043,10 @@
       "goalie_fv_surplus": -4885083,
       "acq_count": 0,
       "resign_count": 7,
-      "lost_count": 2,
+      "lost_count": 3,
       "acq_count_F": 0,
       "resign_count_F": 4,
-      "lost_count_F": 1,
+      "lost_count_F": 2,
       "acq_count_D": 0,
       "resign_count_D": 2,
       "lost_count_D": 0,
@@ -6077,13 +6077,13 @@
       "goalie_fv_surplus": -850000,
       "acq_count": 3,
       "resign_count": 3,
-      "lost_count": 2,
+      "lost_count": 4,
       "acq_count_F": 2,
       "resign_count_F": 2,
-      "lost_count_F": 2,
+      "lost_count_F": 3,
       "acq_count_D": 0,
       "resign_count_D": 1,
-      "lost_count_D": 0,
+      "lost_count_D": 1,
       "acq_count_G": 1,
       "resign_count_G": 0,
       "lost_count_G": 0
@@ -6111,10 +6111,10 @@
       "goalie_fv_surplus": 2806863,
       "acq_count": 3,
       "resign_count": 5,
-      "lost_count": 4,
+      "lost_count": 6,
       "acq_count_F": 1,
       "resign_count_F": 3,
-      "lost_count_F": 3,
+      "lost_count_F": 5,
       "acq_count_D": 2,
       "resign_count_D": 0,
       "lost_count_D": 1,
@@ -6145,13 +6145,13 @@
       "goalie_fv_surplus": 3500987,
       "acq_count": 4,
       "resign_count": 3,
-      "lost_count": 3,
+      "lost_count": 6,
       "acq_count_F": 2,
       "resign_count_F": 1,
-      "lost_count_F": 2,
+      "lost_count_F": 4,
       "acq_count_D": 2,
       "resign_count_D": 1,
-      "lost_count_D": 1,
+      "lost_count_D": 2,
       "acq_count_G": 0,
       "resign_count_G": 1,
       "lost_count_G": 0
@@ -6213,10 +6213,10 @@
       "goalie_fv_surplus": 0,
       "acq_count": 1,
       "resign_count": 6,
-      "lost_count": 3,
+      "lost_count": 4,
       "acq_count_F": 1,
       "resign_count_F": 3,
-      "lost_count_F": 1,
+      "lost_count_F": 2,
       "acq_count_D": 0,
       "resign_count_D": 3,
       "lost_count_D": 2,
@@ -6247,10 +6247,10 @@
       "goalie_fv_surplus": -1594833,
       "acq_count": 4,
       "resign_count": 4,
-      "lost_count": 1,
+      "lost_count": 3,
       "acq_count_F": 2,
       "resign_count_F": 2,
-      "lost_count_F": 0,
+      "lost_count_F": 2,
       "acq_count_D": 1,
       "resign_count_D": 2,
       "lost_count_D": 1,
@@ -6281,10 +6281,10 @@
       "goalie_fv_surplus": 6195280,
       "acq_count": 5,
       "resign_count": 11,
-      "lost_count": 3,
+      "lost_count": 4,
       "acq_count_F": 1,
       "resign_count_F": 6,
-      "lost_count_F": 1,
+      "lost_count_F": 2,
       "acq_count_D": 2,
       "resign_count_D": 4,
       "lost_count_D": 1,
@@ -6349,10 +6349,10 @@
       "goalie_fv_surplus": 850000,
       "acq_count": 4,
       "resign_count": 7,
-      "lost_count": 4,
+      "lost_count": 7,
       "acq_count_F": 3,
       "resign_count_F": 6,
-      "lost_count_F": 3,
+      "lost_count_F": 6,
       "acq_count_D": 1,
       "resign_count_D": 1,
       "lost_count_D": 0,
@@ -6383,10 +6383,10 @@
       "goalie_fv_surplus": -8776691,
       "acq_count": 4,
       "resign_count": 9,
-      "lost_count": 2,
+      "lost_count": 4,
       "acq_count_F": 2,
       "resign_count_F": 5,
-      "lost_count_F": 1,
+      "lost_count_F": 3,
       "acq_count_D": 1,
       "resign_count_D": 3,
       "lost_count_D": 1,
@@ -6417,10 +6417,10 @@
       "goalie_fv_surplus": -1000000,
       "acq_count": 1,
       "resign_count": 6,
-      "lost_count": 2,
+      "lost_count": 4,
       "acq_count_F": 1,
       "resign_count_F": 3,
-      "lost_count_F": 2,
+      "lost_count_F": 4,
       "acq_count_D": 0,
       "resign_count_D": 2,
       "lost_count_D": 0,
@@ -6451,10 +6451,10 @@
       "goalie_fv_surplus": 1661865,
       "acq_count": 6,
       "resign_count": 4,
-      "lost_count": 5,
+      "lost_count": 6,
       "acq_count_F": 3,
       "resign_count_F": 3,
-      "lost_count_F": 3,
+      "lost_count_F": 4,
       "acq_count_D": 2,
       "resign_count_D": 0,
       "lost_count_D": 1,
@@ -6485,13 +6485,13 @@
       "goalie_fv_surplus": 4783443,
       "acq_count": 6,
       "resign_count": 3,
-      "lost_count": 3,
+      "lost_count": 6,
       "acq_count_F": 5,
       "resign_count_F": 2,
-      "lost_count_F": 3,
+      "lost_count_F": 4,
       "acq_count_D": 1,
       "resign_count_D": 0,
-      "lost_count_D": 0,
+      "lost_count_D": 2,
       "acq_count_G": 0,
       "resign_count_G": 1,
       "lost_count_G": 0
@@ -6519,10 +6519,10 @@
       "goalie_fv_surplus": -10086490,
       "acq_count": 4,
       "resign_count": 5,
-      "lost_count": 4,
+      "lost_count": 5,
       "acq_count_F": 2,
       "resign_count_F": 3,
-      "lost_count_F": 3,
+      "lost_count_F": 4,
       "acq_count_D": 1,
       "resign_count_D": 1,
       "lost_count_D": 0,
@@ -6553,10 +6553,10 @@
       "goalie_fv_surplus": -5542501,
       "acq_count": 6,
       "resign_count": 0,
-      "lost_count": 6,
+      "lost_count": 7,
       "acq_count_F": 3,
       "resign_count_F": 0,
-      "lost_count_F": 5,
+      "lost_count_F": 6,
       "acq_count_D": 2,
       "resign_count_D": 0,
       "lost_count_D": 1,
@@ -6621,10 +6621,10 @@
       "goalie_fv_surplus": 9389231,
       "acq_count": 3,
       "resign_count": 3,
-      "lost_count": 5,
+      "lost_count": 8,
       "acq_count_F": 1,
       "resign_count_F": 2,
-      "lost_count_F": 1,
+      "lost_count_F": 4,
       "acq_count_D": 1,
       "resign_count_D": 1,
       "lost_count_D": 3,
@@ -6655,10 +6655,10 @@
       "goalie_fv_surplus": -5399964,
       "acq_count": 6,
       "resign_count": 6,
-      "lost_count": 6,
+      "lost_count": 7,
       "acq_count_F": 3,
       "resign_count_F": 4,
-      "lost_count_F": 1,
+      "lost_count_F": 2,
       "acq_count_D": 3,
       "resign_count_D": 1,
       "lost_count_D": 4,
@@ -6723,13 +6723,13 @@
       "goalie_fv_surplus": -4880551,
       "acq_count": 5,
       "resign_count": 8,
-      "lost_count": 5,
+      "lost_count": 6,
       "acq_count_F": 1,
       "resign_count_F": 5,
       "lost_count_F": 1,
       "acq_count_D": 3,
       "resign_count_D": 1,
-      "lost_count_D": 3,
+      "lost_count_D": 4,
       "acq_count_G": 1,
       "resign_count_G": 2,
       "lost_count_G": 1
@@ -6757,13 +6757,13 @@
       "goalie_fv_surplus": 0,
       "acq_count": 4,
       "resign_count": 8,
-      "lost_count": 3,
+      "lost_count": 5,
       "acq_count_F": 3,
       "resign_count_F": 5,
-      "lost_count_F": 1,
+      "lost_count_F": 2,
       "acq_count_D": 1,
       "resign_count_D": 3,
-      "lost_count_D": 2,
+      "lost_count_D": 3,
       "acq_count_G": 0,
       "resign_count_G": 0,
       "lost_count_G": 0
@@ -6825,13 +6825,13 @@
       "goalie_fv_surplus": -13798275,
       "acq_count": 9,
       "resign_count": 4,
-      "lost_count": 6,
+      "lost_count": 8,
       "acq_count_F": 6,
       "resign_count_F": 1,
-      "lost_count_F": 2,
+      "lost_count_F": 3,
       "acq_count_D": 2,
       "resign_count_D": 2,
-      "lost_count_D": 2,
+      "lost_count_D": 3,
       "acq_count_G": 1,
       "resign_count_G": 1,
       "lost_count_G": 2
@@ -6893,10 +6893,10 @@
       "goalie_fv_surplus": -6195618,
       "acq_count": 4,
       "resign_count": 5,
-      "lost_count": 3,
+      "lost_count": 4,
       "acq_count_F": 2,
       "resign_count_F": 2,
-      "lost_count_F": 2,
+      "lost_count_F": 3,
       "acq_count_D": 2,
       "resign_count_D": 2,
       "lost_count_D": 1,
@@ -6961,13 +6961,13 @@
       "goalie_fv_surplus": 2942921,
       "acq_count": 3,
       "resign_count": 4,
-      "lost_count": 3,
+      "lost_count": 6,
       "acq_count_F": 0,
       "resign_count_F": 4,
-      "lost_count_F": 0,
+      "lost_count_F": 1,
       "acq_count_D": 2,
       "resign_count_D": 0,
-      "lost_count_D": 2,
+      "lost_count_D": 4,
       "acq_count_G": 1,
       "resign_count_G": 0,
       "lost_count_G": 1
