@@ -497,7 +497,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
           <div class="prog-legend">
             <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--teal);border-radius:1px;"></div><span style="color:var(--teal);">Offensive Rating</span></div>
             <div class="prog-leg-item"><div style="width:18px;height:2px;background:var(--coral);border-radius:1px;"></div><span style="color:var(--coral);">Defensive Rating</span></div>
-            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="rgba(220,220,230,0.7)" stroke-width="1.5" stroke-dasharray="4 3"/></svg><span style="color:rgba(220,220,230,0.7);">Overall</span></div>
+            <div class="prog-leg-item"><svg width="18" height="4" viewBox="0 0 18 4"><line x1="0" y1="2" x2="18" y2="2" stroke="var(--mid)" stroke-width="1.5" stroke-dasharray="4 3"/></svg><span style="color:var(--mid);">Overall</span></div>
           </div>
         </div>
       </div>
@@ -1599,7 +1599,7 @@ function renderContract(p) {
     type:'bar',
     data:{labels:SEASON_LABELS,datasets:[
       {label:'Proj. value',data:projVals.map(v=>v!=null?Math.max(0,v):null),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-      {label:'Cap hit',   data:capHits, backgroundColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.08)':'rgba(255,255,255,.06)',borderColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.15)':'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
+      {label:'Cap hit',   data:capHits, backgroundColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.12)':'rgba(255,255,255,.18)',borderColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.25)':'rgba(255,255,255,.35)',borderWidth:1,borderRadius:4}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
@@ -3006,7 +3006,7 @@ function renderGoalieCard(g) {
         type:'bar',
         data:{labels:GC_SEASON_LABELS,datasets:[
           {label:'Proj. value',data:gcProjVals.map(v=>v!=null?Math.max(0,v):null),backgroundColor:'rgba(45,212,160,.25)',borderColor:'#2dd4a0',borderWidth:1.5,borderRadius:4},
-          {label:'Cap hit',   data:gcCapHits, backgroundColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.08)':'rgba(255,255,255,.06)',borderColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.15)':'rgba(255,255,255,.15)',borderWidth:1,borderRadius:4}
+          {label:'Cap hit',   data:gcCapHits, backgroundColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.12)':'rgba(255,255,255,.18)',borderColor:document.documentElement.getAttribute('data-theme')==='light'?'rgba(0,0,0,.25)':'rgba(255,255,255,.35)',borderWidth:1,borderRadius:4}
         ]},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
@@ -6105,7 +6105,7 @@ function ostRenderDelta() {
       <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'" style="font-size:.65rem;color:var(--text3);background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;cursor:pointer;margin-bottom:.4rem;">Show player math ▾</button>
       <div id="math-${tc}-${posFilter}" style="display:none;font-size:.68rem;margin-bottom:.5rem;border:1px solid var(--border);border-radius:4px;overflow:hidden;">
         <div style="background:var(--surface3);padding:.3rem .5rem;font-weight:600;color:var(--text3);">SNAPSHOT players (weight = toi_gp × gp)</div>
-        ${snapPlayers.map(p=>{const gs=((p.categories?.Scoring||[]).find(c=>c.name==='Goalscoring')?.pct??'–');const w=Math.round(snapToiMap[p.name]||0);return '<div style="display:flex;justify-content:space-between;padding:2px 6px;border-bottom:1px solid var(--border8);"><span>'+p.name+'</span><span style="color:var(--text3);">GS='+gs+' w='+w+'</span></div>';}).join('')}
+        ${snapPlayers.map(p=>{const gs=((p.categories?.Scoring||[]).find(c=>c.name==='Goalscoring')?.pct??'–');const w=Math.round(snapToiMap[p.name]||0);const _dep=!curNames.has(p.name);return '<div style="display:flex;justify-content:space-between;padding:2px 6px;border-bottom:1px solid var(--border8);"><span style="color:'+(_dep?'var(--coral)':'var(--text)')+';">'+p.name+(_dep?' ↩':'')+'</span><span style="color:var(--text3);">GS='+gs+' w='+w+'</span></div>';}).join('')}
         <div style="background:var(--surface3);padding:.3rem .5rem;font-weight:600;color:var(--text3);margin-top:2px;">CURRENT players (live roster)</div>
         ${curPlayers.map(p=>{const gs=((p.categories?.Scoring||[]).find(c=>c.name==='Goalscoring')?.pct??'–');const w=Math.round(curToiMap[p.name]||0);return '<div style="display:flex;justify-content:space-between;padding:2px 6px;border-bottom:1px solid var(--border8);"><span style="color:'+(snapNames.has(p.name)?'var(--text)':'var(--teal)')+';">'+p.name+'</span><span style="color:var(--text3);">GS='+gs+' w='+w+'</span></div>';}).join('')}
       </div>
@@ -6125,7 +6125,7 @@ function ostRenderDelta() {
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-size:.75rem;color:var(--text2);cursor:pointer;" onclick="const m=document.getElementById('${mathId}');if(m)m.style.display=m.style.display==='none'?'block':'none';">${r.cat} <span style="font-size:.6rem;color:var(--text3);">▾</span></span>
               <span style="font-size:.75rem;font-family:DM Mono,monospace;">
-                <span style="color:var(--text3);">${r.snapVal??'–'}</span>
+                <span style="color:${r.snapVal==null?'var(--text3)':r.snapVal>55?'var(--teal)':r.snapVal<45?'var(--coral)':'var(--text2)'};">${r.snapVal??'–'}</span>
                 <span style="color:var(--text3);margin:0 3px;">→</span>
                 <span style="color:${r.curVal==null?'var(--text3)':r.curVal>55?'var(--teal)':r.curVal<45?'var(--coral)':'var(--text2)'};">${r.curVal??'–'}</span>
                 <span style="margin-left:4px;">${fmtDelta(r.delta)}</span>
@@ -8010,12 +8010,15 @@ document.addEventListener('DOMContentLoaded', () => {
     try{localStorage.setItem('bp-theme', isL ? 'dark' : 'light');}catch(e){}
   ">☽</button>
   <script>
-    try{var _t=localStorage.getItem('bp-theme');if(_t==='light'){
-      document.documentElement.setAttribute('data-theme','light');
-      document.addEventListener('DOMContentLoaded',function(){
-        var b=document.getElementById('theme-toggle');if(b)b.textContent='☀';
-      });
-    }}catch(e){}
+    try{var _t=localStorage.getItem('bp-theme');
+      // Default is light mode; only switch to dark if explicitly saved
+      if(_t!=='dark'){
+        document.documentElement.setAttribute('data-theme','light');
+        document.addEventListener('DOMContentLoaded',function(){
+          var b=document.getElementById('theme-toggle');if(b)b.textContent='☀';
+        });
+      }
+    }catch(e){document.documentElement.setAttribute('data-theme','light');}
   </script>
 </body>
 </html>
