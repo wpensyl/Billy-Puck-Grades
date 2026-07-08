@@ -37,6 +37,23 @@
   --mid:#6b7280;--blue:#5b9cf6;--blue-dim:rgba(91,156,246,0.15);
   --radius:12px;--radius-sm:8px;
 }
+[data-theme="light"]{
+  --bg:#f4f5f7;--surface:#ffffff;--surface2:#eef0f4;--surface3:#e4e6ec;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.14);--border8:rgba(0,0,0,0.05);
+  --text:#1a1d27;--text2:#4b5263;--text3:#8b90a0;
+  --teal:#0d9e72;--teal-dim:rgba(13,158,114,0.1);
+  --coral:#d64030;--coral-dim:rgba(214,64,48,0.1);
+  --mid:#6b7280;--blue:#2563eb;--blue-dim:rgba(37,99,235,0.12);
+}
+[data-theme="light"] .nav-bar,[data-theme="light"] .nav-bottom{background:#fff;border-color:rgba(0,0,0,0.1);}
+[data-theme="light"] .lb-select,[data-theme="light"] input,[data-theme="light"] select{background:#fff;color:#1a1d27;}
+[data-theme="light"] .panel,[data-theme="light"] .calc-card,[data-theme="light"] .player-card{background:#fff;}
+[data-theme="light"] .overall-badge{background:#fff;}
+#theme-toggle{position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;width:36px;height:36px;
+  border-radius:50%;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
+  font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);transition:background .2s;}
+#theme-toggle:hover{background:var(--surface3);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-size:15px;line-height:1.6;min-height:100vh;}
 .view{display:none;}
@@ -608,6 +625,7 @@ let COMP_FWD = null;
 let COMP_DMAN = null;
 let compNorms = {fwd:{}, dman:{}};
 let nhlRosterCache = {};
+let playerCurrentTeamCache = {};  // name→team from live NHL API
 let nhlIdCache = {};
 let nhlHeadshotCache = {};
 let nhlJerseyCache = {};
@@ -766,6 +784,12 @@ function showView(name) {
 }
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
+// Returns player's live current team from NHL API roster cache, falls back to JSON field
+function getPlayerTeam(p) {
+  if (!p) return null;
+  return playerCurrentTeamCache[p.name] || p.current_team || p.team || null;
+}
+
 function searchPlayers(q, pos = 'all') {
   if (!q || q.length < 2) return [];
   const ql = q.toLowerCase();
@@ -954,6 +978,7 @@ async function fetchRosterIds(teamAbbrev) {
     // Map NHL abbrev back to model abbrev for the cache
     const modelAbbrev = Object.entries(NHL_ABBREV).find(([,v])=>v===teamAbbrev)?.[0] || teamAbbrev;
     nhlRosterCache[modelAbbrev] = names;
+    names.forEach(n => { playerCurrentTeamCache[n] = modelAbbrev; });
   } catch(e) {}
 }
 
@@ -1710,6 +1735,7 @@ async function getTeamRoster(teamCode) {
       }
     }
     nhlRosterCache[teamCode] = names;
+    names.forEach(n => { playerCurrentTeamCache[n] = teamCode; });
     return names;
   } catch(e) { return null; }
 }
@@ -7937,5 +7963,20 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
+
+  <button id="theme-toggle" title="Toggle light / dark mode" onclick="
+    var h=document.documentElement, isL=h.getAttribute('data-theme')==='light';
+    h.setAttribute('data-theme', isL ? '' : 'light');
+    this.textContent = isL ? '☽' : '☀';
+    try{localStorage.setItem('bp-theme', isL ? 'dark' : 'light');}catch(e){}
+  ">☽</button>
+  <script>
+    try{var _t=localStorage.getItem('bp-theme');if(_t==='light'){
+      document.documentElement.setAttribute('data-theme','light');
+      document.addEventListener('DOMContentLoaded',function(){
+        var b=document.getElementById('theme-toggle');if(b)b.textContent='☀';
+      });
+    }}catch(e){}
+  </script>
 </body>
 </html>
