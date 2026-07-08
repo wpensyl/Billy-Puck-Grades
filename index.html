@@ -759,6 +759,10 @@ function normEuclidean(a, b, norms) {
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(name).classList.add('active');
+  const contractViews = ['calc','fa-tracker','ext-tracker','gm-view','goalie-card-view'];
+  if (!contractViews.includes(name)) {
+    document.querySelectorAll('[id^="nav-contract"]').forEach(el => el.classList.remove('active'));
+  }
 }
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
@@ -5102,22 +5106,15 @@ function gmUpdateResignCap() {
     confirmBtn2.style.fontWeight = '';
   }
   const termsEl = document.getElementById('gm-resign-terms');
-  if (termsEl) termsEl.style.display = isGoalie ? 'none' : '';
+  if (termsEl) termsEl.style.display = '';  // always show term buttons (goalies too)
   const goalieArea = document.getElementById('gm-resign-goalie-note');
-  if (goalieArea) {
-    goalieArea.style.display = isGoalie ? '' : 'none';
-    if (isGoalie && r?.p) {
-      const gVal = r.p.composite_value || r.p.value || r.p.avg_proj_value;
-      const offerEl = document.getElementById('gm-goalie-offer-val');
-      if (offerEl) offerEl.textContent = gVal ? '$'+(gVal/1e6).toFixed(2)+'M/yr' : '–';
-    }
-  }
+  if (goalieArea) goalieArea.style.display = 'none';  // no longer needed
 }
 
 function gmSetResignTerm(t) {
   const name = document.getElementById('gm-resign-player')?.value;
   const r = gmState.roster.find(rr=>rr.p.name===name);
-  if (r?.p._type === 'G') return;  // goalies use composite value, no term selection
+  // Goalies use aav_Xyr same as skaters — no special case needed
   gmState._resignTerm = t;
   const p = r?.p;
   const fmtM = v => v?'$'+(v/1e6).toFixed(2)+'M':'–';
@@ -5147,8 +5144,7 @@ function gmConfirmResign() {
   if (idx<0) return;
   const rEntry = gmState.roster[idx];
   const p   = rEntry.p;
-  // Goalies: use composite value, no term buttons
-  if (p._type === 'G') { gmConfirmResignGoalie(rEntry); return; }
+  // Goalies use same aav_Xyr logic as skaters
   const aav = p[`aav_${term}yr`];
   gmState.roster[idx] = {...gmState.roster[idx], gmRole:'resigned', gmCap:aav, gmTerm:term};
   const fmtM = v=>'$'+(v/1e6).toFixed(2)+'M';
@@ -5222,7 +5218,7 @@ function gmSelectUFA(name, el) {
   const fmtM = v=>v?'$'+(v/1e6).toFixed(2)+'M':'–';
   const capLeft = GM_CAP - gmCapUsed(gmState.roster);
   if (p._type === 'G') {
-    const projRating = p.t1_composite != null ? Math.round(p.t1_composite) : (p.norm_2526 ?? p.overall_2526 ?? '–');
+    const projRating = p.t1_composite != null ? Math.round(p.t1_composite) : (p.norm_2526 != null ? Math.round(p.norm_2526) : (p.overall_2526 ?? '–'));
     let gTermHtml = '';
     for (let t=1; t<=8; t++) {
       const aav = p['aav_'+t+'yr'];
@@ -6172,6 +6168,8 @@ function ostShowTeam(tc) {
   const pos  = ostCurrentTab;
   const fmtM = v => v==null ? '–' : '$'+(Math.abs(v)/1e6).toFixed(2)+'M';
   const fmtD = v => v==null ? '–' : (v>=0?'+':'−')+'$'+(Math.abs(v)/1e6).toFixed(2)+'M';
+  const fmtV = v => v==null ? '–' : (v<0?'−':'')+'$'+(Math.abs(v)/1e6).toFixed(2)+'M';
+  const fmtVclr = v => v==null?'var(--text2)':v>=0?'var(--teal)':'var(--coral)';
   const clr  = v => v==null?'var(--text3)':v>0?'var(--teal)':v<0?'var(--coral)':'var(--text3)';
   const txns   = (OST_DATA.transactions||[]).filter(t=>pos==='all'||t.pos_type===pos);
   const acqs   = txns.filter(t=>t.is_acquisition && t.new_team===tc);
@@ -6580,6 +6578,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const goCalc = window.goCalc = () => {
     showView('calcview');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-contract"]').forEach(el=>el.classList.remove('active'));
     document.querySelectorAll('[id^="nav-contract"]').forEach(el=>el.classList.add('active'));
     const inp = document.getElementById('calc-search');
     if (inp) setTimeout(()=>inp.focus(), 50);
@@ -6593,6 +6592,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const goExt = () => {
     showView('extcandidates');
     document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-contract"]').forEach(el=>el.classList.remove('active'));
     document.querySelectorAll('[id^="nav-contract"]').forEach(el=>el.classList.add('active'));
     renderExtCandidates();
   };
@@ -7054,7 +7054,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-contract-fa">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-fa">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-fa">
           <div class="nav-dd-item active" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
@@ -7315,7 +7315,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-contract-ext">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-ext">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-ext">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item active" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
@@ -7569,11 +7569,11 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-dropdown">
-        <button class="nav-dd-btn active" onclick="toggleNavMenu(event,this)" id="nav-contract-cc">Contract Tools <span class="dd-arrow">▾</span></button>
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)" id="nav-contract-cc">Contract Tools <span class="dd-arrow">▾</span></button>
         <div class="nav-dd-menu" id="nddm-ct-cc">
           <div class="nav-dd-item" data-view="fa" onclick="navGoView(event,'fa')">Free Agents</div>
           <div class="nav-dd-item" data-view="ext" onclick="navGoView(event,'ext')">Extension Candidates</div>
-          <div class="nav-dd-item active" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
+          <div class="nav-dd-item" data-view="calc" onclick="navGoView(event,'calc')">Contract Calculator</div>
         </div>
       </div>
       <div class="nav-link" id="nav-gm-cc" onclick="goGM()">GM Mode</div>
