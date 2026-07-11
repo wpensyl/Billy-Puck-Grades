@@ -125,17 +125,14 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .nav-link.active{color:var(--teal);background:var(--teal-dim);}
 /* Hamburger menu for mobile portrait */
 .nav-mobile-search{display:none;flex:1;margin:0 .5rem;position:relative;}
-.nav-mobile-search-icon{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
-.nav-mobile-search-real{width:100%;padding:.32rem .6rem .32rem 2rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:.72rem;color:var(--text2);font-family:'Karla',sans-serif;outline:none;transition:border-color .15s;}
+.nav-mobile-search-icon{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;z-index:1;}
+.nav-mobile-search-real{width:100%;padding:.32rem .6rem .32rem 2rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:.82rem;color:var(--text);font-family:'Karla',sans-serif;outline:none;transition:border-color .15s;position:relative;z-index:1;}
 .nav-mobile-search-real::placeholder{color:var(--text3);}
-.nav-mobile-search-real:focus{border-color:var(--teal);}
-/* Mobile search bar inside card-view — visible on mobile only */
-.mobile-card-search-bar{display:none;position:relative;margin-bottom:.9rem;}
-.mobile-card-search-bar .card-search-icon{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
-.mobile-card-search-bar input{width:100%;padding:.75rem 1rem .75rem 2.6rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Karla',sans-serif;font-size:.95rem;outline:none;transition:border-color .2s;box-sizing:border-box;}
-.mobile-card-search-bar input:focus{border-color:var(--teal);}
-.mobile-card-search-bar input::placeholder{color:var(--text3);}
-.mobile-card-search-bar .dropdown{top:calc(100% + 4px);}
+.nav-mobile-search-real:focus{border-color:var(--teal);background:var(--surface);}
+/* Dropdown anchored below the nav mobile search bar */
+.nav-mobile-search .dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:9990;max-height:60vh;overflow-y:auto;}
+/* Mobile search bar inside card-view — hidden; search is handled in nav bar */
+.mobile-card-search-bar{display:none !important;}
 .nav-hamburger svg{display:block;}
 .nav-hamburger{display:none;background:none;border:none;cursor:pointer;padding:.35rem;color:var(--text2);flex-shrink:0;}
 .nav-hamburger-menu{display:none;position:fixed;top:0;right:0;bottom:0;width:80%;max-width:300px;background:var(--surface);border-left:1px solid var(--border2);z-index:9998;overflow-y:auto;padding:1rem 0;box-shadow:-8px 0 24px rgba(0,0,0,.4);}
@@ -195,7 +192,6 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .nav-hamburger{display:flex;align-items:center;justify-content:center;margin-left:0;}
   .nav-mobile-search{display:flex;}
   .app-nav{gap:.6rem;padding:.6rem 1rem;}
-  .mobile-card-search-bar{display:block;}
   /* Photo row: photo + info side by side, full width */
   .player-photo,.player-initials{width:58px;height:58px;font-size:1.1rem;flex-shrink:0;}
   /* Info block takes remaining width */
@@ -7046,32 +7042,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add hamburger button and mobile search shortcut to every app-nav
     document.querySelectorAll('.app-nav').forEach(nav => {
-      // Mobile search input (real <input> that navigates to player cards on first focus)
+      // Mobile search input — wired directly to player search, shows dropdown below nav
       const mobileBtn = document.createElement('div');
       mobileBtn.className = 'nav-mobile-search';
+      const navMobileDD = document.createElement('div');
+      navMobileDD.className = 'dropdown';
       mobileBtn.innerHTML = `
         <svg class="nav-mobile-search-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
         <input type="text" class="nav-mobile-search-real" placeholder="Search player..." autocomplete="off" spellcheck="false">`;
-      const mobileInput = mobileBtn.querySelector('input');
-      mobileInput.addEventListener('focus', () => {
-        // If already on card-view, focus the mobile card search bar
-        const cardView = document.getElementById('card-view');
-        const isCardView = cardView && cardView.classList.contains('active');
-        mobileInput.blur();
-        mobileInput.value = '';
-        if (isCardView) {
-          const mcs = document.getElementById('mobile-card-search');
-          if (mcs) { mcs.value = ''; mcs.focus(); }
-        } else {
-          // Navigate to landing page which has the main large search bar
-          showView('landing');
-          document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
-          setTimeout(() => {
-            const ls = document.getElementById('landing-search');
-            if (ls) ls.focus();
-          }, 80);
+      mobileBtn.appendChild(navMobileDD);
+
+      const navMobileInput = mobileBtn.querySelector('input');
+      let navMobileLast = [];
+
+      // Type → show dropdown
+      navMobileInput.addEventListener('input', () => {
+        navMobileLast = searchPlayers(navMobileInput.value, 'all');
+        renderDropdown(navMobileLast, navMobileDD);
+      });
+      // Re-show dropdown on refocus if there are cached results
+      navMobileInput.addEventListener('focus', () => {
+        if (navMobileLast.length) renderDropdown(navMobileLast, navMobileDD);
+      });
+      // Dismiss dropdown on blur (delayed so tap can register first)
+      navMobileInput.addEventListener('blur', () => {
+        setTimeout(() => { navMobileDD.className = 'dropdown'; }, 180);
+      });
+      navMobileInput.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { navMobileDD.className = 'dropdown'; navMobileInput.blur(); }
+      });
+
+      // Tap a result → navigate to player card, clear input
+      navMobileDD.addEventListener('mousedown', e => {
+        const item = e.target.closest('.dd-item');
+        if (!item) return;
+        e.preventDefault();
+        const p = navMobileLast[+item.dataset.idx];
+        if (p) {
+          navMobileInput.value = '';
+          navMobileDD.className = 'dropdown';
+          navMobileLast = [];
+          navMobileInput.blur();
+          p._type === 'G' ? showGoalieCard(p) : showPlayer(p);
         }
       });
+
       nav.appendChild(mobileBtn);
 
       // Hamburger button
