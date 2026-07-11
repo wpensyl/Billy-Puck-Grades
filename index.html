@@ -116,13 +116,26 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .dd-pos-badge{font-size:.7rem;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:4px;flex-shrink:0;}
 .dd-pos-badge.F{background:var(--teal-dim);color:var(--teal);}
 .dd-pos-badge.D{background:var(--blue-dim);color:var(--blue);}
-.app-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1.5rem;overflow:visible;position:relative;z-index:100;}
-.nav-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text);cursor:pointer;}
+.app-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1rem;overflow:visible;position:relative;z-index:100;}
+.nav-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text);cursor:pointer;white-space:nowrap;}
 .nav-logo span{color:var(--teal);}
 .nav-links{display:flex;gap:0;overflow:visible;align-items:center;}
-.nav-link{padding:.4rem .85rem;font-size:.8rem;font-weight:500;letter-spacing:.04em;color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);transition:all .15s;text-transform:uppercase;}
+.nav-link{padding:.4rem .6rem;font-size:.75rem;font-weight:500;letter-spacing:.04em;color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);transition:all .15s;text-transform:uppercase;line-height:1.2;text-align:center;}
 .nav-link:hover{color:var(--text2);background:var(--surface2);}
 .nav-link.active{color:var(--teal);background:var(--teal-dim);}
+/* Hamburger menu for mobile portrait */
+.nav-hamburger{display:none;background:none;border:none;cursor:pointer;padding:.35rem;color:var(--text2);flex-shrink:0;}
+.nav-hamburger svg{display:block;}
+.nav-hamburger-menu{display:none;position:fixed;top:0;right:0;bottom:0;width:80%;max-width:300px;background:var(--surface);border-left:1px solid var(--border2);z-index:9998;overflow-y:auto;padding:1rem 0;box-shadow:-8px 0 24px rgba(0,0,0,.4);}
+.nav-hamburger-menu.open{display:block;}
+.nav-hm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9997;}
+.nav-hm-overlay.open{display:block;}
+.nav-hm-section{padding:.5rem 1.25rem .25rem;font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);}
+.nav-hm-item{display:block;padding:.65rem 1.5rem;font-size:.85rem;color:var(--text2);cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s,color .1s;}
+.nav-hm-item:hover{background:var(--surface2);color:var(--teal);}
+.nav-hm-item.active{color:var(--teal);font-weight:600;}
+.nav-hm-close{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;}
+.nav-hm-close-btn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:1.2rem;padding:.2rem;}
 .nav-search{flex:1;max-width:360px;position:relative;margin-left:auto;}
 #card-view.active{display:block;min-height:100vh;}
 .card-content{max-width:900px;margin:0 auto;padding:1.5rem;}
@@ -164,6 +177,10 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   /* Header: photo + text stacked, badge pushed BELOW everything */
   .player-header{flex-wrap:wrap;align-items:flex-start;padding:.85rem .9rem;gap:.6rem;}
   .gc-header{flex-wrap:wrap;align-items:flex-start;padding:.85rem .9rem;gap:.6rem;}
+  /* Hide full nav on mobile portrait, show hamburger instead */
+  .nav-links{display:none;}
+  .nav-hamburger{display:flex;align-items:center;justify-content:center;margin-left:auto;}
+  .app-nav{gap:.6rem;padding:.6rem 1rem;}
   /* Photo row: photo + info side by side, full width */
   .player-photo,.player-initials{width:58px;height:58px;font-size:1.1rem;flex-shrink:0;}
   /* Info block takes remaining width */
@@ -191,12 +208,16 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .c-item{border-right:none;border-bottom:1px solid var(--border2);}
   .c-item:nth-child(odd){border-right:1px solid var(--border2);}
   .c-item:nth-last-child(-n+2){border-bottom:none;}
+  /* Goalie 4-box contract strip: force 4 equal columns on mobile (matches player card) */
+  .contract-strip.gc-strip-4{grid-template-columns:repeat(4,1fr);}
+  .contract-strip.gc-strip-4 .c-item{border-right:1px solid var(--border2);border-bottom:none;}
+  .contract-strip.gc-strip-4 .c-item:last-child{border-right:none;}
   #catboard-cat-nav{flex-wrap:wrap;}
   .cmp-bar-row{grid-template-columns:1fr 80px 1fr;}
 
   /* Goalie card: stack rating badge below bio on mobile */
   .gc-header{flex-wrap:wrap;}
-  .gc-badge-wrap{width:100% !important;margin-top:.6rem !important;margin-left:0 !important;flex-shrink:0;}
+  .gc-badge-wrap{width:100% !important;order:3;margin-top:.6rem !important;margin-left:0 !important;flex-shrink:0;}
 }
 .cat-section{padding:.5rem 1.25rem 1rem;}
 .grp-hd{display:flex;align-items:center;gap:.75rem;padding:.6rem 0 .25rem;}
@@ -331,9 +352,9 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 
 /* ── DROPDOWN NAV ──────────────────────────────────────────────────────── */
 .nav-dropdown{position:relative;display:inline-block;}
-.nav-dd-btn{padding:.35rem .8rem;font-size:.8rem;font-family:'Karla',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;background:transparent;border:none;color:var(--text2);display:flex;align-items:center;gap:.3rem;transition:color .15s;white-space:nowrap;}
+.nav-dd-btn{padding:.35rem .6rem;font-size:.75rem;font-family:'Karla',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;background:transparent;border:none;color:var(--text2);display:flex;align-items:center;gap:.3rem;transition:color .15s;white-space:normal;line-height:1.2;text-align:center;max-width:90px;justify-content:center;}
 .nav-dd-btn:hover,.nav-dd-btn.active{color:var(--teal);}
-.nav-dd-btn .dd-arrow{font-size:.55rem;margin-top:1px;}
+.nav-dd-btn .dd-arrow{font-size:.55rem;margin-top:1px;flex-shrink:0;}
 .nav-dd-menu{position:fixed;min-width:160px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:9999;display:none;flex-direction:column;padding:4px 0;}
 .nav-dd-menu.open{display:flex;}
 .nav-dd-item{padding:.45rem 1rem;font-size:.82rem;color:var(--text2);cursor:pointer;white-space:nowrap;transition:background .1s,color .1s;}
@@ -369,9 +390,15 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 
 /* ── PHASE 2: Matchup Tool ────────────────────────────────────────────── */
 #teamcompare.active{display:block;min-height:100vh;}
-.cmp-bar-row{display:grid;grid-template-columns:1fr 100px 1fr;gap:4px;align-items:center;margin:3px 0;}
-.cmp-cat-name{font-size:.72rem;color:var(--text2);text-align:center;line-height:1.2;}
+.cmp-bar-row{display:grid;grid-template-columns:1fr 80px 1fr;gap:2px;align-items:center;margin:3px 0;}
+.cmp-cat-name{font-size:.68rem;color:var(--text2);text-align:center;line-height:1.2;word-break:break-word;hyphens:auto;padding:0 2px;}
 .cmp-section-hd{font-size:.62rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.75rem 0 .3rem;}
+/* Constrain bar columns so they don't push layout wider than viewport */
+.cmp-bar-row>div:first-child,.cmp-bar-row>div:last-child{min-width:0;overflow:hidden;}
+@media(max-width:600px){
+  .cmp-bar-row{grid-template-columns:1fr 64px 1fr;gap:1px;}
+  .cmp-cat-name{font-size:.62rem;}
+}
 
 /* ── PHASE 2: Free Agent Tracker ─────────────────────────────────────────── */
 #fatracker.active{display:block;min-height:100vh;}
@@ -456,6 +483,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         </div>
       </div>
       <div class="nav-link" id="nav-gm" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about" onclick="goAbout()">About</div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
@@ -527,7 +555,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       </div>
     </div>
     <div class="panel" id="contract-panel"></div>
-    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2026–27 NHL Season · Updated <span id='site-updated-date'>July 2026</span><br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</span></div>
+    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2026–27 NHL Season · Updated <span id='site-updated-date'>July 2026</span><br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · PuckPedia · MoneyPuck · NHL EDGE</span></div>
   </div>
 </div>
 
@@ -567,6 +595,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         </div>
       </div>
       <div class="nav-link" id="nav-gm-lb" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-lb" onclick="goAbout()">About</div>
     </div>
     <div class="nav-search">
       <svg class="card-search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
@@ -594,7 +623,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <tbody id="lb-body"></tbody>
       </table>
     </div>
-    <div class="lb-footer">Billy Puck Grades · Data: NST · Evolving-Hockey · ATZ · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
+    <div class="lb-footer">Billy Puck Grades · Data: NST · Evolving-Hockey · ATZ · PuckIQ · PuckPedia · MoneyPuck · NHL EDGE</div>
   </div>
 </div>
 
@@ -632,6 +661,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         </div>
       </div>
       <div class="nav-link" id="nav-gm-tm" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-tm" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -642,7 +672,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
     </div>
     <div id="tm-summary"></div>
     <div id="tm-roster"></div>
-    <div class="lb-footer">Billy Puck Grades · Data: NST · Evolving-Hockey · All Three Zones · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
+    <div class="lb-footer">Billy Puck Grades · Data: NST · Evolving-Hockey · All Three Zones · PuckIQ · PuckPedia · MoneyPuck · NHL EDGE</div>
   </div>
 </div>
 
@@ -816,7 +846,7 @@ function normEuclidean(a, b, norms) {
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(name).classList.add('active');
-  const contractViews = ['calc','fa-tracker','ext-tracker','gm-view','goalie-card-view'];
+  const contractViews = ['calc','calcview','fa-tracker','ext-tracker','gm-view','goalie-card-view','aboutview','privacyview'];
   if (!contractViews.includes(name)) {
     document.querySelectorAll('[id^="nav-contract"]').forEach(el => el.classList.remove('active'));
     const cp = document.getElementById('calc-panel');
@@ -1578,10 +1608,10 @@ function renderContract(p) {
     const proj = p.proj_years[0];
     const surp = p.surplus_2627 ?? (proj != null ? Math.round(proj - (p.cap||0)) : null);
     el.innerHTML = `
-      <div class="panel-hd"><span class="panel-title">Contract calculator</span><span class="panel-note">Implied value vs. cap hit</span></div>
+      <div class="panel-hd" style="padding:.6rem 1rem;"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
       <div class="contract-strip">
         <div class="c-item"><div class="c-lbl">Cap hit</div><div class="c-val">${fvM(p.cap)}</div></div>
-        <div class="c-item"><div class="c-lbl">Proj. 26–27 value</div><div class="c-val">${fvM(proj)}</div></div>
+        <div class="c-item"><div class="c-lbl">Proj. 26–27 Value</div><div class="c-val">${fvM(proj)}</div></div>
         <div class="c-item"><div class="c-lbl">Proj. 26–27 surplus</div><div class="c-val ${(surp||0)>=0?'pos':'neg'}">${surp!=null?(surp>=0?'+':'')+fvM(surp):'–'}</div></div>
         <div class="c-item"><div class="c-lbl">Exp. year</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
       </div>`;
@@ -1596,10 +1626,10 @@ function renderContract(p) {
   const fpct= v => v!=null ? Math.round(v)+'th' : '\u2013';
   const posneg = v => (v||0)>=0 ? 'pos' : 'neg';
   el.innerHTML = `
-    <div class="panel-hd"><span class="panel-title">Contract calculator</span><span class="panel-note">Implied value vs. cap hit</span></div>
+    <div class="panel-hd" style="padding:.6rem 1rem;"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
     <div class="contract-strip">
       <div class="c-item"><div class="c-lbl">Cap hit</div><div class="c-val">${fmt$(p.cap)}</div></div>
-      <div class="c-item"><div class="c-lbl">Proj. 26–27 value</div><div class="c-val">${fvM(proj2627)}</div></div>
+      <div class="c-item"><div class="c-lbl">Proj. 26–27 Value</div><div class="c-val">${fvM(proj2627)}</div></div>
       <div class="c-item"><div class="c-lbl">Proj. 26–27 surplus</div><div class="c-val ${posneg(surp2627)}">${fs(surp2627)}</div></div>
       <div class="c-item"><div class="c-lbl">Expiry</div><div class="c-val">${p.exp_year||'–'} ${p.expiry_type||''}</div></div>
       <div class="c-item"><div class="c-lbl">Avg. proj. value</div><div class="c-val" style="color:var(--blue);">${fvM(avgProjVal)}</div></div>
@@ -2155,30 +2185,14 @@ function renderAwards(awardId){
 }
 function initAwards(){
   const bar=document.getElementById('award-btn-bar');if(!bar)return;
-  // Trophy buttons
+  // Trophy buttons only — Breakout Stars/Projected Leaders removed (non-functional)
   bar.innerHTML=AWARDS.map(a=>`<button class="award-btn${a.id===activeAward?' active':''}" data-award="${a.id}">${a.name}</button>`).join('');
-  // Breakout Stars + Projected Leaders buttons (Phase 2)
-  const extraBtns = [
-    {id:'breakout-fwd',  label:'Breakout Stars — FWD'},
-    {id:'breakout-dman', label:'Breakout Stars — DMAN'},
-    {id:'proj-leaders',  label:'Projected Leaders'},
-  ];
-  extraBtns.forEach(({id, label}) => {
-    const btn = document.createElement('button');
-    btn.className = 'award-btn';
-    btn.dataset.award = id;
-    btn.textContent = label;
-    bar.appendChild(btn);
-  });
   bar.addEventListener('click', e => {
     const btn = e.target.closest('.award-btn');
     if (!btn) return;
     bar.querySelectorAll('.award-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     const award = btn.dataset.award;
-    if (award === 'breakout-fwd')  { renderBreakoutAward('F'); return; }
-    if (award === 'breakout-dman') { renderBreakoutAward('D'); return; }
-    if (award === 'proj-leaders')  { renderProjLeaders();      return; }
     renderAwards(award);
   });
   renderAwards(activeAward);
@@ -2938,17 +2952,16 @@ function renderGoalieCard(g) {
         ${g.exp_year?`<div class="deal-expiry">Deal Expiry: ${g.exp_year} ${g.expiry_type||''}</div>`:''}
       </div>
       <div class="gc-badge-wrap" style="flex-shrink:0;align-self:flex-start;margin-left:auto;">
-          <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
-            <div class="badge-hdr" style="color:var(--blue);">Rating (0–100)</div>
-            <div class="badge-tiles">
-              <div class="overall-tile" style="background:rgba(91,156,246,0.12);">
-                <div class="overall-num" style="color:var(--blue);">${ov}</div>
-                <div class="overall-lbl" style="color:var(--blue);">2025–26</div>
-              </div>
-              <div class="overall-tile" style="background:rgba(91,156,246,0.07);">
-                <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.t1_composite!=null?Math.round(g.t1_composite):'\u2013'}</div>
-                <div class="overall-lbl" style="color:var(--blue);opacity:.75;">Projected</div>
-              </div>
+        <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
+          <div class="badge-hdr" style="color:var(--blue);">Rating (0–100)</div>
+          <div class="badge-tiles">
+            <div class="overall-tile" style="background:rgba(91,156,246,0.12);">
+              <div class="overall-num" style="color:var(--blue);">${ov}</div>
+              <div class="overall-lbl" style="color:var(--blue);">2025–26</div>
+            </div>
+            <div class="overall-tile" style="background:rgba(91,156,246,0.07);">
+              <div class="overall-num" style="color:var(--blue);opacity:.75;">${g.t1_composite!=null?Math.round(g.t1_composite):'\u2013'}</div>
+              <div class="overall-lbl" style="color:var(--blue);opacity:.75;">Projected</div>
             </div>
           </div>
         </div>
@@ -2956,18 +2969,18 @@ function renderGoalieCard(g) {
     </div>
     <div class="gc-stat-strip" id="gc-stats-strip">
       <div class="gc-stat-cell"><div class="gc-stat-val">${g.gp||'\u2013'}</div><div class="gc-stat-lbl">GP</div></div>
-      <div class="gc-stat-cell"><div class="gc-stat-val" style="color:var(--blue);">\u2013</div><div class="gc-stat-lbl">SV%</div></div>
+      <div class="gc-stat-cell"><div class="gc-stat-val">\u2013</div><div class="gc-stat-lbl">SV%</div></div>
       <div class="gc-stat-cell"><div class="gc-stat-val">\u2013</div><div class="gc-stat-lbl">GAA</div></div>
       <div class="gc-stat-cell"><div class="gc-stat-val">\u2013</div><div class="gc-stat-lbl">Wins</div></div>
       <!-- Surplus and Cap Hit shown in Contract & Value section below -->
     </div>
     <div class="panel" style="margin-bottom:1rem;padding:0;overflow:hidden;">
       <div class="panel-hd" style="padding:.6rem 1rem;"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
-      <div class="contract-strip">
+      <div class="contract-strip gc-strip-4">
         <div class="c-item"><div class="c-lbl">Cap Hit</div><div class="c-val">${fmtCap(g.cap)}</div></div>
-        <div class="c-item"><div class="c-lbl">25–26 Value</div><div class="c-val" style="color:var(--blue);">${fmtRaw(g.value_2526)}</div></div>
+        <div class="c-item"><div class="c-lbl">25–26 Value</div><div class="c-val">${fmtRaw(g.value_2526)}</div></div>
         <div class="c-item"><div class="c-lbl">Hist. Avg Value</div><div class="c-val">${fmtRaw(g.value_hist_gpadj || g.value)}</div></div>
-        <div class="c-item"><div class="c-lbl">Proj. 26–27</div><div class="c-val" style="color:var(--teal);">${fmtRaw(g.proj_value_2627)}</div></div>
+        <div class="c-item"><div class="c-lbl">Proj. 26–27 Value</div><div class="c-val">${fmtRaw(g.proj_value_2627)}</div></div>
       </div>
     </div>
     <div class="panel" style="margin-bottom:1rem;">
@@ -2983,7 +2996,7 @@ function renderGoalieCard(g) {
       <div class="panel-hd" style="padding:.6rem 1rem;"><span class="panel-title">Contract Calculator</span><span class="panel-note">Projected Value vs Cap · Fair Value by term</span></div>
       <div id="gc-contract-calc"></div>
     </div>
-    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades \u00b7 Goalie Card \u00b7 2025\u201326<br><span style="font-size:.65rem;opacity:.7;">Data: Evolving-Hockey \u00b7 NHL EDGE \u00b7 CapFriendly</span></div>`;
+    <div class="card-footer" style="line-height:1.8;">Billy Puck Grades \u00b7 Goalie Card \u00b7 2026\u201327<br><span style="font-size:.65rem;opacity:.7;">Data: Evolving-Hockey \u00b7 NHL EDGE \u00b7 PuckPedia</span></div>`;
 
   // Build progression chart using available season data
   // overall_2526 = current season percentile; comp_value_norm = historical average
@@ -2995,18 +3008,21 @@ function renderGoalieCard(g) {
     const fmtMc = v => v==null ? '–' : (v>=0?'+':'−')+'$'+(Math.abs(v)/1e6).toFixed(2)+'M';
     const gcClr = v => v==null?'var(--text3)':v>0?'var(--teal)':'var(--coral)';
     const expYr  = parseInt(g.exp_year)||2027;
+    const hasActiveContract = expYr > 2026;
     const term   = Math.max(1,Math.min(8,expYr-2026));
-    const fvAav  = g['aav_'+term+'yr'] || g.avg_proj_value;
-    const fvSurp = fvAav!=null ? Math.round(fvAav-(g.cap||0)) : null;
+    const fvAav  = hasActiveContract ? (g['aav_'+term+'yr'] || g.avg_proj_value) : null;
+    const fvSurp = hasActiveContract && fvAav!=null ? Math.round(fvAav-(g.cap||0)) : null;
+    // Allow negative proj values: use fmtMc for proj_value_2627 (show sign) and raw fmtM for display
+    const fmtProjVal = v => v==null ? '\u2013' : (v<0 ? '\u2212$'+(Math.abs(v)/1e6).toFixed(2)+'M' : '$'+(v/1e6).toFixed(2)+'M');
 
     // Summary row — uses contract-strip CSS class (same as skater player card)
     const summaryHtml = '<div class="contract-strip">'
       + [['Cap Hit',fmtM(g.cap),null],
-         ['Proj. 26-27',fmtM(g.proj_value_2627),'var(--text)'],
-         ['Proj. Surplus',fmtMc(g.surplus_2627),gcClr(g.surplus_2627)],
+         ['Proj. 26-27 Value',fmtProjVal(g.proj_value_2627),'var(--text)'],
+         ['Proj. 26-27 Surplus',fmtMc(g.surplus_2627),gcClr(g.surplus_2627)],
          ['Expiry',(g.exp_year||'–')+' '+(g.expiry_type||''),null],
-         ['FV AAV ('+term+'-yr)',fmtM(fvAav),'var(--blue)'],
-         ['FV Surplus/yr',fmtMc(fvSurp),gcClr(fvSurp)],
+         ['Avg. Proj. Value',hasActiveContract?fmtM(fvAav):'\u2013','var(--blue)'],
+         ['Avg. Annual Surplus',hasActiveContract?fmtMc(fvSurp):'\u2013',hasActiveContract?gcClr(fvSurp):'var(--text3)'],
         ].map(([lbl,val,clr])=>'<div class="c-item"><div class="c-lbl">'+lbl+'</div><div class="c-val" style="color:'+(clr||'var(--text)')+';">'+val+'</div></div>').join('')
       + '</div>';
 
@@ -3125,7 +3141,7 @@ function renderGoalieCard(g) {
     if (strip) {
       strip.innerHTML = `
         <div class="gc-stat-cell"><div class="gc-stat-val">${g.gp||'\u2013'}</div><div class="gc-stat-lbl">GP</div></div>
-        <div class="gc-stat-cell"><div class="gc-stat-val" style="color:var(--blue);">${stats.svPct||'\u2013'}</div><div class="gc-stat-lbl">SV%</div></div>
+        <div class="gc-stat-cell"><div class="gc-stat-val">${stats.svPct||'\u2013'}</div><div class="gc-stat-lbl">SV%</div></div>
         <div class="gc-stat-cell"><div class="gc-stat-val">${stats.gaa||'\u2013'}</div><div class="gc-stat-lbl">GAA</div></div>
         <div class="gc-stat-cell"><div class="gc-stat-val">${stats.wins!=null?stats.wins:'\u2013'}</div><div class="gc-stat-lbl">Wins</div></div>
         <!-- Surplus and Cap Hit shown in Contract & Value section below -->`;
@@ -3296,14 +3312,14 @@ async function renderTeamCompare() {
       const tipA = topContributors(teamA, grp, name);
       const tipB = topContributors(teamB, grp, name);
       html+=`<div class="cmp-bar-row" title="${teamA}: ${tipA||'–'} | ${teamB}: ${tipB||'–'}">
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
-          <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${winner==='A'?'var(--teal)':'var(--text3)'};" title="${tipA}">${avgA??'\u2013'}</span>
-          <div style="width:${Math.round(vA*1.4)}px;max-width:130px;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${winner==='A'?1:.45};"></div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0;overflow:hidden;">
+          <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${winner==='A'?'var(--teal)':'var(--text3)'};" title="${tipA}">${avgA??'\u2013'}</span>
+          <div style="flex:0 0 ${vA}%;max-width:45%;min-width:0;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${winner==='A'?1:.45};"></div>
         </div>
         <div class="cmp-cat-name">${name}</div>
-        <div style="display:flex;align-items:center;gap:4px;">
-          <div style="width:${Math.round(vB*1.4)}px;max-width:130px;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${winner==='B'?1:.45};"></div>
-          <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${winner==='B'?'var(--blue)':'var(--text3)'};">${avgB??'\u2013'}</span>
+        <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+          <div style="flex:0 0 ${vB}%;max-width:45%;min-width:0;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${winner==='B'?1:.45};"></div>
+          <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${winner==='B'?'var(--blue)':'var(--text3)'};">${avgB??'\u2013'}</span>
         </div>
       </div>`;
     }
@@ -3313,14 +3329,14 @@ async function renderTeamCompare() {
   const gWinner = gA>gB?'A':gB>gA?'B':null;
   html+=`<div class="cmp-section-hd">Goaltending</div>
     <div class="cmp-bar-row">
-      <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
-        <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${gWinner==='A'?'var(--teal)':'var(--text3)'};">${gA}</span>
-        <div style="width:${Math.round(gA*1.4)}px;max-width:130px;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${gWinner==='A'?1:.45};"></div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0;overflow:hidden;">
+        <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${gWinner==='A'?'var(--teal)':'var(--text3)'};">${gA}</span>
+        <div style="flex:0 0 ${gA}%;max-width:45%;min-width:0;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${gWinner==='A'?1:.45};"></div>
       </div>
-      <div class="cmp-cat-name">Goalie score</div>
-      <div style="display:flex;align-items:center;gap:4px;">
-        <div style="width:${Math.round(gB*1.4)}px;max-width:130px;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${gWinner==='B'?1:.45};"></div>
-        <span style="font-family:DM Mono,monospace;font-size:.7rem;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${gB}</span>
+      <div class="cmp-cat-name">Goalie<br>Score</div>
+      <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+        <div style="flex:0 0 ${gB}%;max-width:45%;min-width:0;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${gWinner==='B'?1:.45};"></div>
+        <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${gB}</span>
       </div>
     </div>`;
   html+=`</div></div>`;
@@ -3658,7 +3674,8 @@ function getTeamProfile(teamCode, posFilter, snapRoster) {
   });
   const teamRetrievalsPct = rwT > 0 ? Math.round(rwS / rwT) : null;
   const teamExitsPct      = exT > 0 ? Math.round(exS / exT) : null;
-  return { teamCode, avgOverall, goalieScore, projPts, catAvgs, playerCount: players.length,
+  const projClr = projPts >= 100 ? 'var(--teal)' : projPts >= 88 ? 'var(--text2)' : 'var(--coral)';
+  return { teamCode, avgOverall, goalieScore, projPts, projClr, catAvgs, playerCount: players.length,
            retrievalsPct: teamRetrievalsPct, exitsPct: teamExitsPct };
 }
 
@@ -4824,7 +4841,23 @@ function renderGMTeamSelect() {
       const tc   = el.dataset.tc;
       const sel  = document.getElementById('gm-mode-sel');
       const mode = sel ? sel.value : 'live';
-      if (tc) gmSelectTeam(tc, mode);
+      if (!tc) return;
+      try {
+        gmSelectTeam(tc, mode);
+      } catch (err) {
+        // Never let a single team's data quirk leave the click looking like it did nothing.
+        console.error('gmSelectTeam failed for', tc, mode, err);
+        try {
+          gmSelectTeam(tc, 'live');
+        } catch (err2) {
+          console.error('gmSelectTeam fallback also failed for', tc, err2);
+          wrap.innerHTML = `<div style="padding:2.5rem 1rem;text-align:center;color:var(--text2);">
+            <div style="color:var(--coral);font-weight:600;margin-bottom:.4rem;">Couldn't load ${tc}'s roster.</div>
+            <div style="font-size:.8rem;">Please try again, or refresh the page.</div>
+            <button onclick="renderGMTeamSelect()" style="margin-top:1rem;font-size:.75rem;padding:.4rem 1rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;">← Back to team select</button>
+          </div>`;
+        }
+      }
     });
     el.addEventListener('mouseenter', () => el.style.borderColor='var(--teal)');
     el.addEventListener('mouseleave', () => el.style.borderColor='var(--border)');
@@ -4842,11 +4875,17 @@ function gmSelectTeam(tc, snapLabel) {
     players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p =>
       snapNames.has(p.name) || (snapNames.size === 0 && teamMatch(p))
     );
+    // Snapshot had names for this team, but none of them matched current player data
+    // (renamed/retired/typo) — fall back to current roster rather than showing 0 players.
+    if (players.length === 0) players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(teamMatch);
   } else {
     // Live mode: use nhlRosterCache if populated (same source as Team Overview)
     const liveCache = nhlRosterCache[tc];
     if (liveCache && liveCache.size > 0) {
       players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(p => liveCache.has(p.name));
+      // Live roster fetched fine but no names matched our player data — don't leave
+      // the GM with an empty team; fall back to the JSON's current_team field.
+      if (players.length === 0) players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(teamMatch);
     } else {
       players = [...ALL_PLAYERS, ...(ALL_GOALIES||[])].filter(teamMatch);
     }
@@ -4856,7 +4895,17 @@ function gmSelectTeam(tc, snapLabel) {
   gmState.baseRoster = players;
   gmState.roster     = players.map(p => ({p, gmRole:'current', gmCap:p.cap||0, gmTerm:null}));
   gmState.logs = [`Started session as GM of ${tc} (${snapLabel&&snapLabel!=='live'?snapLabel+' snapshot':'live roster'}).`];
-  renderGMDashboard();
+  try {
+    renderGMDashboard();
+  } catch (err) {
+    console.error('renderGMDashboard failed for', tc, err);
+    const wrap = document.getElementById('gm-content');
+    if (wrap) wrap.innerHTML = `<div style="padding:2.5rem 1rem;text-align:center;color:var(--text2);">
+      <div style="color:var(--coral);font-weight:600;margin-bottom:.4rem;">Something went wrong loading ${tc}'s dashboard.</div>
+      <div style="font-size:.8rem;">Please try again, or refresh the page.</div>
+      <button onclick="renderGMTeamSelect()" style="margin-top:1rem;font-size:.75rem;padding:.4rem 1rem;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;">← Back to team select</button>
+    </div>`;
+  }
 }
 
 function renderGMDashboard() {
@@ -6798,6 +6847,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lc-tab-dman')?.addEventListener('click',()=>{lcTab='dman';lcLastSort='';lcSortDir=1;lcPinnedAttr=null;document.getElementById('lc-tab-dman').classList.add('active');document.getElementById('lc-tab-fwd').classList.remove('active');renderCombos();});
   // fa-search wired above
 
+  // ── About / Privacy navigation functions ────────────────────────────────
+  const goAbout = () => {
+    showView('aboutview');
+    document.querySelectorAll('.nav-link,.nav-dd-btn').forEach(l=>l.classList.remove('active'));
+    document.querySelectorAll('[id^="nav-about"]').forEach(el=>el.classList.add('active'));
+  };
+  const goPrivacy = () => {
+    showView('privacyview');
+    document.querySelectorAll('.nav-link,.nav-dd-btn').forEach(l=>l.classList.remove('active'));
+  };
+  window.goAbout   = goAbout;
+  window.goPrivacy = goPrivacy;
+
   // Populate global nav registry so navGoView (global fn) can reach these closures
   window._NAV = {
     leaderboard: goLeaderboard,
@@ -6815,6 +6877,8 @@ document.addEventListener('DOMContentLoaded', () => {
     gm:          goGM,
     players:     goPlayers,
     goalies:     goGoalies,
+    about:       goAbout,
+    privacy:     goPrivacy,
   };
 
   // Line combos internal nav
@@ -6852,7 +6916,82 @@ document.addEventListener('DOMContentLoaded', () => {
   // Wire all dropdown navs (must be after go* functions defined)
   window._NAV['offseasontracker'] = goOffseasonTracker;
   window._NAV['steadystate'] = renderSteadyState;
+  window._NAV['about']   = goAbout;
+  window._NAV['privacy'] = goPrivacy;
+  // Wire all about nav-link elements
+  document.querySelectorAll('[id^="nav-about"]').forEach(el => el.addEventListener('click', goAbout));
   wireAllNavs();
+
+  // ── Hamburger menu: inject into every app-nav for mobile portrait ─────────
+  (function initHamburger() {
+    // Assign globals FIRST so onclick strings can reference them
+    window.openHamburger = function() {
+      const hmenu = document.getElementById('nav-hamburger-menu');
+      const overlay = document.getElementById('nav-hm-overlay');
+      if (hmenu) hmenu.classList.add('open');
+      if (overlay) overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    };
+    window.closeHamburger = function() {
+      const hmenu = document.getElementById('nav-hamburger-menu');
+      const overlay = document.getElementById('nav-hm-overlay');
+      if (hmenu) hmenu.classList.remove('open');
+      if (overlay) overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    };
+
+    // Build overlay + slide-out menu once
+    const overlay = document.createElement('div');
+    overlay.id = 'nav-hm-overlay';
+    overlay.className = 'nav-hm-overlay';
+    overlay.addEventListener('click', window.closeHamburger);
+    document.body.appendChild(overlay);
+
+    const hmenu = document.createElement('div');
+    hmenu.id = 'nav-hamburger-menu';
+    hmenu.className = 'nav-hamburger-menu';
+    hmenu.innerHTML = `
+      <div class="nav-hm-close">
+        <span style="font-family:'DM Serif Display',serif;font-size:1rem;">Billy Puck<span style="color:var(--teal);"> Grades</span></span>
+        <button class="nav-hm-close-btn" onclick="closeHamburger()">✕</button>
+      </div>
+      <div class="nav-hm-section">Player Data</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.players&&window._NAV.players();">Player Cards</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.leaderboard&&window._NAV.leaderboard();">Leaderboard</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.stats&&window._NAV.stats();">Category Leaders</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.breakout&&window._NAV.breakout();">Breakout Stars</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.awards&&window._NAV.awards();">Awards</div>
+      <div class="nav-hm-section">Lines</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.combos&&window._NAV.combos();">Line Combinations</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.playerchem&&window._NAV.playerchem();">Player Chemistry</div>
+      <div class="nav-hm-section">Goalies</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.goalies&&window._NAV.goalies();">Goalies</div>
+      <div class="nav-hm-section">Team Data</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.teams&&window._NAV.teams();">Team Overview</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.rankings&&window._NAV.rankings();">Team Rankings</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.compare&&window._NAV.compare();">Matchup Tool</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.offseasontracker&&window._NAV.offseasontracker();">Offseason Tracker</div>
+      <div class="nav-hm-section">Contract Tools</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.fa&&window._NAV.fa();">Free Agents</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.ext&&window._NAV.ext();">Extension Candidates</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.calc&&window._NAV.calc();">Contract Calculator</div>
+      <div class="nav-hm-section">GM Mode</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.gm&&window._NAV.gm();">GM Mode</div>
+      <div class="nav-hm-section">About</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.about&&window._NAV.about();">About Billy Puck Grades</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.privacy&&window._NAV.privacy();">Privacy &amp; Terms</div>`;
+    document.body.appendChild(hmenu);
+
+    // Add hamburger button to every app-nav (including hidden views)
+    document.querySelectorAll('.app-nav').forEach(nav => {
+      const btn = document.createElement('button');
+      btn.className = 'nav-hamburger';
+      btn.setAttribute('aria-label', 'Open navigation menu');
+      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="5" x2="18" y2="5"/><line x1="2" y1="10" x2="18" y2="10"/><line x1="2" y1="15" x2="18" y2="15"/></svg>`;
+      btn.addEventListener('click', window.openHamburger);
+      nav.appendChild(btn);
+    });
+  })();
 });
 </script>
 
@@ -6893,6 +7032,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-go" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-go" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -6907,7 +7047,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </select>
     </div>
     <div class="goalie-grid" id="goalie-grid"></div>
-    <div class="lb-footer">Billy Puck Grades · Goalies · 2025–26 · Data: NST · Evolving-Hockey · CapFriendly</div>
+    <div class="lb-footer">Billy Puck Grades · Goalies · 2026–27 · Data: NST · Evolving-Hockey · PuckPedia</div>
   </div>
 </div>
 <div id="awardsview" class="view">
@@ -6946,6 +7086,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-aw" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-aw" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -6954,7 +7095,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;" id="award-btn-bar"></div>
     </div>
     <div id="award-panel"></div>
-    <div class="lb-footer">Billy Puck Grades · Award rankings based on model category scores · Data: NST · EH · ATZ · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
+    <div class="lb-footer">Billy Puck Grades · Award rankings based on model category scores · Data: NST · EH · ATZ · PuckIQ · PuckPedia · MoneyPuck · NHL EDGE</div>
   </div>
 </div>
 
@@ -6993,6 +7134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-gcv" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-gcv" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="goalie-card-detail" id="goalie-card-detail" style="max-width:900px;margin:0 auto;padding:1.5rem;"></div>
@@ -7033,6 +7175,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-cs" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-cs" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -7066,7 +7209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </tbody>
       </table>
     </div>
-    <div class="lb-footer">Billy Puck Grades · Stat Leaders · Data: NST · EH · ATZ · PuckIQ · CapFriendly · MoneyPuck · NHL EDGE</div>
+    <div class="lb-footer">Billy Puck Grades · Stat Leaders · Data: NST · EH · ATZ · PuckIQ · PuckPedia · MoneyPuck · NHL EDGE</div>
   </div>
 </div>
 
@@ -7105,6 +7248,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-cmp" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-cmp" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -7159,6 +7303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-fa" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-fa" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -7271,6 +7416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-bk" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-bk" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -7321,6 +7467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-tr" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-tr" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -7420,6 +7567,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-ext" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-ext" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -7540,6 +7688,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-lc" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-lc" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -7674,6 +7823,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-cc" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-cc" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content" style="max-width:760px;">
@@ -7775,6 +7925,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-pc" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-pc" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content" style="max-width:900px;">
@@ -7847,6 +7998,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link active" id="nav-gm-gm" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-gm" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content" style="max-width:960px;">
@@ -7900,6 +8052,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
       <div class="nav-link" id="nav-gm-ost" onclick="goGM()">GM Mode</div>
+      <div class="nav-link" id="nav-about-ost" onclick="goAbout()">About</div>
     </div>
   </nav>
   <div class="lb-content">
@@ -7954,6 +8107,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- Team detail panel -->
       <!-- Category Delta view (hidden by default) -->
       <div id="ost-delta-view" style="display:none;margin-top:.5rem;">
+        <div style="font-size:.72rem;color:var(--text3);margin-bottom:.75rem;font-style:italic;">Category calculations are based on 2025-26 category ratings.</div>
         <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
           <label for="ost-delta-snap" style="font-size:.8rem;color:var(--text2);">Compare snapshot:</label>
           <select id="ost-delta-snap" onchange="ostRenderDelta()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.3rem .6rem;font-size:.8rem;">
@@ -8045,6 +8199,372 @@ document.addEventListener('DOMContentLoaded', () => {
       if(window._gcBarChart && window.currentGoalie && typeof renderGoalieCard==='function') renderGoalieCard(window.currentGoalie);
     }, 50);
   ">☀</button>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ABOUT VIEW
+════════════════════════════════════════════════════════════════ -->
+<div id="aboutview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" id="nav-logo-ab" onclick="showView('landing')">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" id="nav-players-ab" onclick="goPlayers()">Player Cards</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)">Player Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu">
+          <div class="nav-dd-item" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'stats')">Category Leaders</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'awards')">Awards</div>
+        </div>
+      </div>
+      <div class="nav-dropdown"><button class="nav-dd-btn" onclick="toggleNavMenu(event,this)">Lines <span class="dd-arrow">▾</span></button><div class="nav-dd-menu"><div class="nav-dd-item" onclick="navGoView(event,'combos')">Line Combinations</div><div class="nav-dd-item" onclick="navGoView(event,'playerchem')">Player Chemistry</div></div></div>
+      <div class="nav-link" id="nav-goalies-ab" onclick="goGoalies()">Goalies</div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)">Team Data <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu">
+          <div class="nav-dd-item" onclick="navGoView(event,'teams')">Team Overview</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'rankings')">Team Rankings</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'compare')">Matchup Tool</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'offseasontracker')">Offseason Tracker</div>
+        </div>
+      </div>
+      <div class="nav-dropdown">
+        <button class="nav-dd-btn" onclick="toggleNavMenu(event,this)">Contract Tools <span class="dd-arrow">▾</span></button>
+        <div class="nav-dd-menu">
+          <div class="nav-dd-item" onclick="navGoView(event,'fa')">Free Agents</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'ext')">Extension Candidates</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'calc')">Contract Calculator</div>
+        </div>
+      </div>
+      <div class="nav-link" onclick="goGM()">GM Mode</div>
+      <div class="nav-link active" onclick="goAbout()">About</div>
+    </div>
+  </nav>
+
+  <div class="lb-content" style="max-width:860px;">
+
+    <!-- ── HOW TO USE ─────────────────────────────────────────────── -->
+    <div style="margin-bottom:2rem;">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--text);margin-bottom:.2rem;">About Billy Puck Grades</div>
+      <div style="font-size:.85rem;color:var(--text3);margin-bottom:1.5rem;">NHL Player Analytics — Player ratings and skillsets, contract value analysis, team analysis tools, and GM simulation.</div>
+    </div>
+
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-hd"><span class="panel-title">How to Use This Site</span></div>
+      <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.65;color:var(--text2);">
+        <p style="margin:0 0 .75rem;">Billy Puck Grades is built around one core question: <em>How do NHL players make their teams better?</em> Everything on the site flows from a model that scores each player on roughly 30 skill categories and translates those scores into ratings (0–100) and dollar values. The model outputs are used to create a variety of analysis tools around player data, team data, and contracts.</p>
+
+        <div style="display:grid;gap:.9rem;">
+
+          <div><strong style="color:var(--text);">Player Cards</strong> — The home screen is a player search. Each card shows biographical info, Overall Rating (0–100), a live stat strip, Rating Breakdown across six category groups (Athletic &amp; Compete, Scoring, Offense, Defense, Special Teams, Analytics), a Progression Chart going as far back as 2019–20, Comparables (Individual / MicroStat / Style), Contract &amp; Value summary, and a full Contract Calculator with projected value vs. cap hit for the life of the active deal and Fair Value AAV by term.</div>
+
+          <div><strong style="color:var(--text);">Leaderboard</strong> — Under <em>Player Data → Leaderboard</em>. Sortable and filterable by position, team, role, contract status, Rating, Value, Surplus, Cap Hit, or Year-over-Year Improvement. Click any row to open that player's card.</div>
+
+          <div><strong style="color:var(--text);">Category Leaders</strong> — Under <em>Player Data → Category Leaders</em>. Ranked leaderboard for any individual skill category. Identify who leads the league in Speed, Passing, Shot Quality, Entry Defense, and ~25 other categories.</div>
+
+          <div><strong style="color:var(--text);">Breakout Stars</strong> — Under <em>Player Data → Breakout Stars</em>. Model-identified players whose underlying metrics suggest significant improvement relative to their prior history.</div>
+
+          <div><strong style="color:var(--text);">Awards</strong> — Under <em>Player Data → Awards</em>. Model-based rankings for Hart, Norris, Selke, Lady Byng, and Calder awards.</div>
+
+          <div><strong style="color:var(--text);">Line Combinations</strong> — Under <em>Lines → Line Combinations</em>. Real line-combo data from the current season overlaid with attribute profiles. Sort by TOI, G+/–, xGF%, or any category.</div>
+
+          <div><strong style="color:var(--text);">Player Chemistry</strong> — Under <em>Lines → Player Chemistry</em>. Search any forward or defenseman and see how their attribute profile correlates with line success. Hover over the bars in the Matchup Tool to see individual contributors for each team.</div>
+
+          <div><strong style="color:var(--text);">Goalies</strong> — All NHL goalies with composite Score% rating and contract data. Click any goalie for their Goalie Card: progression chart, Contract &amp; Value panel, and Contract Calculator.</div>
+
+          <div><strong style="color:var(--text);">Team Overview</strong> — Under <em>Team Data → Team Overview</em>. Full roster breakdown: depth chart, skater and goalie ratings, category averages, projected points, and cap usage.</div>
+
+          <div><strong style="color:var(--text);">Team Rankings</strong> — Under <em>Team Data → Team Rankings</em>. All 32 teams sorted by Projected Points, average skater rating, goalie score, or any individual category. Click a row to jump to that team's overview (Projected Points) or category leaders (other categories).</div>
+
+          <div><strong style="color:var(--text);">Matchup Tool</strong> — Under <em>Team Data → Matchup Tool</em>. Head-to-head team comparison with side-by-side bars across every category.</div>
+
+          <div><strong style="color:var(--text);">Offseason Tracker</strong> — Under <em>Team Data → Offseason Tracker</em>. Four views: <em>Transactions</em> (all summer deals by team, click a team's row to see individual transaction value); <em>Category Improvement</em> (live roster vs. pre-free-agency roster, impact by skill category); <em>Top Signings</em> (top 20 highest-value and most-efficient additions); <em>Steady-State</em> (expected internal development from aging curves and mean reversion, independent of external acquisitions).</div>
+
+          <div><strong style="color:var(--text);">Contract Tools</strong> — <em>Free Agents</em>: 2026 UFAs and RFAs with model value and fair AAV. <em>Extension Candidates</em>: players expiring 2027 with fair-value extension pricing. <em>Contract Calculator</em>: custom contract scenarios (1–8 year terms) for any skater or goalie, starting from the year after the player's current contract expires.</div>
+
+          <div><strong style="color:var(--text);">GM Mode</strong> — Take over as GM of any team. Add free agents, release players, re-sign players at custom cap hits and terms, and simulate the impact on projected points, cap space, line chemistry, and category strengths. A session log tracks every move.</div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GLOSSARY ───────────────────────────────────────────────── -->
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-hd"><span class="panel-title">Glossary &amp; Clarifications</span></div>
+      <div style="padding:1rem 1.25rem;font-size:.84rem;line-height:1.6;color:var(--text2);">
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Core Metrics</div>
+        <div style="display:grid;gap:.6rem;margin-bottom:1rem;">
+          <div><strong style="color:var(--text);">Value</strong> — A weighted average of offensive and defensive production and analytics categories. Initially calculated as a Z-score, then translated to a dollar value based on the distribution of salaries at the player's position relative to the salary cap.</div>
+          <div><strong style="color:var(--text);">Rating (0–100)</strong> — Normal distribution percentile of a player's Value among all NHL players at the same position. A rating of 75 means the player outperforms 75% of peers.</div>
+          <div><strong style="color:var(--text);">Projected Rating</strong> — Expected Rating for the upcoming season, based on the normal distribution of the player's Historical Average Value, empirical aging curves, and mean reversion.</div>
+          <div><strong style="color:var(--text);">Hist. Avg Value</strong> — Weighted average Value across the prior four seasons, applying more weight to recent seasons. More predictive of future performance than any single season alone.</div>
+          <div><strong style="color:var(--text);">Surplus</strong> — Model-implied Value minus Cap Hit. Positive = outperforming contract; negative = overpaid.</div>
+          <div><strong style="color:var(--text);">TOI</strong> — Time on ice. All category ratings are based on 5v5 (even-strength) play unless noted under Special Teams.</div>
+        </div>
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Athletic &amp; Compete</div>
+        <div style="display:grid;gap:.5rem;margin-bottom:1rem;">
+          <div><strong style="color:var(--text);">Speed</strong> — NHL EDGE data: max speed and frequency of high-speed bursts.</div>
+          <div><strong style="color:var(--text);">Endurance</strong> — NHL EDGE data: total distance covered per 60 minutes.</div>
+          <div><strong style="color:var(--text);">Physicality</strong> — Hits delivered, hits taken, and player weight. Composite of willingness and tolerance for physical play.</div>
+          <div><strong style="color:var(--text);">Consistency</strong> — Game-to-game variance vs. season-long average using an internally created Game Score metric (points, team performance, ice time). High consistency = low variance.</div>
+        </div>
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Scoring</div>
+        <div style="display:grid;gap:.5rem;margin-bottom:1rem;">
+          <div><strong style="color:var(--text);">Goalscoring vs. Finishing</strong> — Goalscoring: actual goal-scoring rate. Finishing: shooting percentage vs. expected (Goals vs. xGoals) and missed-shot rate above expectations (MoneyPuck data).</div>
+          <div><strong style="color:var(--text);">Shot Volume vs. Shot Quality</strong> — Volume: Individual Fenwick For (all shot attempts, excl. blocked). Quality: danger level of those shot attempts — chance generation from high-probability scoring locations.</div>
+          <div><strong style="color:var(--text);">Shot Speed</strong> — NHL EDGE data.</div>
+        </div>
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Offense</div>
+        <div style="display:grid;gap:.5rem;margin-bottom:1rem;">
+          <div><strong style="color:var(--text);">Passing</strong> — Primary and secondary assists plus micro-stats tracking higher-danger passes. Data: All Three Zones + Evolving-Hockey.</div>
+          <div><strong style="color:var(--text);">Playdriving</strong> — Individual ability to generate scoring chances for oneself.</div>
+          <div><strong style="color:var(--text);">Rush / Forecheck / Cycle Offense · Net-Front Presence</strong> — All Three Zones micro-stat data. Rush = chance creation in transition; Forecheck = chance creation pressuring in opponent's end; Cycle = chance creation in offensive-zone possession; Net-Front = deflections, rebounds, crease traffic.</div>
+          <div><strong style="color:var(--text);">Transition Offense (D only)</strong> — Rush attempts, OZ entries, and ability to convert DZ exits into offense.</div>
+          <div><strong style="color:var(--text);">Off. Zone Involvement (D only)</strong> — Accumulated chance contributions from Forecheck and Cycle categories.</div>
+          <div><strong style="color:var(--text);">Faceoffs</strong> — Faceoff win percentage, adjusted for volume.</div>
+        </div>
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Defense</div>
+        <div style="display:grid;gap:.5rem;margin-bottom:1rem;">
+          <div><strong style="color:var(--text);">Entry Defense</strong> — All Three Zones data: ability to defend opponents attacking on the rush, limiting or denying controlled zone entries.</div>
+          <div><strong style="color:var(--text);">Def. Zone Exits</strong> — Puck Retrievals (winning pucks under forechecking pressure) + actual Zone Exits (successfully moving the puck out of the DZ).</div>
+          <div><strong style="color:var(--text);">Shot Suppression</strong> — Shot-blocking willingness plus team analytics (team-level and relative) indicating difficulty of generating chances against this player.</div>
+          <div><strong style="color:var(--text);">Takeaways</strong> — Stick-checks, interceptions, and other possession-gaining actions.</div>
+        </div>
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Special Teams &amp; Analytics</div>
+        <div style="display:grid;gap:.5rem;margin-bottom:1rem;">
+          <div><strong style="color:var(--text);">Power Play / Penalty Kill</strong> — Normal distribution of Value generated on special teams via a similar methodology to 5v5.</div>
+          <div><strong style="color:var(--text);">Penalty Differential</strong> — Ratio of penalties drawn to penalty minutes served.</div>
+          <div><strong style="color:var(--text);">On-Ice Offense / Defense</strong> — Team offensive/defensive analytics while the player is on the ice at 5v5.</div>
+          <div><strong style="color:var(--text);">Relative Offense / Defense</strong> — On-ice analytics relative to teammates — how much better or worse the team performs with vs. without the player.</div>
+          <div><strong style="color:var(--text);">QoC (Quality of Competition)</strong> — Woodmoney data: proportion of ice time against "Elite" vs. "Gritensity" (lower-tier) opponent lines.</div>
+        </div>
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Contract Calculator Terms</div>
+        <div style="display:grid;gap:.5rem;margin-bottom:1rem;">
+          <div><strong style="color:var(--text);">Average Projected Value</strong> — Average implied Value over the life of the active contract, adjusted for expected cap growth, aging curves, mean reversion, and Hist. Avg Value.</div>
+          <div><strong style="color:var(--text);">Average Annual Surplus</strong> — Avg. Projected Value minus annual Cap Hit over the life of the contract.</div>
+          <div><strong style="color:var(--text);">Proj. Value at Expiry</strong> — Implied Value in the final contract year, adjusted for cap growth, aging curves, mean reversion.</div>
+          <div><strong style="color:var(--text);">Proj. Rating at Expiry</strong> — Normal distribution percentile of the implied Value in the final contract year.</div>
+          <div><strong style="color:var(--text);">Peak Proj. Value</strong> — Maximum value expected in any individual season over the upcoming 9 seasons per the aging curve and projected cap growth.</div>
+          <div><strong style="color:var(--text);">Fair Value (FV) AAV</strong> — Average of the player's projected annual value over a given contract term (1–8 years) — the "fair" salary for that deal length.</div>
+        </div>
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Comparables</div>
+        <div style="display:grid;gap:.5rem;margin-bottom:1rem;">
+          <div><strong style="color:var(--text);">Individual</strong> — Similarity based on actual production, analytics, and micro-stat categories (both offensive and defensive).</div>
+          <div><strong style="color:var(--text);">MicroStat</strong> — Excludes analytical categories; focuses on statistical production and micro-stat categories only.</div>
+          <div><strong style="color:var(--text);">Style</strong> — A focused set of micro-stat categories describing the player's offensive and defensive style, with less emphasis on overall production level.</div>
+        </div>
+
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin:.5rem 0 .6rem;">Goalies</div>
+        <div style="display:grid;gap:.5rem;">
+          <div><strong style="color:var(--text);">GAA</strong> — Goals Against Average: goals allowed per 60 minutes of ice time.</div>
+          <div><strong style="color:var(--text);">Score%</strong> — Composite percentile rating (0–100) derived from save percentage, goals-saved-above-expected, and other tracking metrics.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BIO ───────────────────────────────────────────────────── -->
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-hd"><span class="panel-title">Bio &amp; Background</span></div>
+      <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.7;color:var(--text2);">
+        <p style="margin:0 0 .75rem;">I am an investment research analyst who loves sports, so it was only natural that I would go deep down the sports analytics rabbit hole.</p>
+        <p style="margin:0 0 .75rem;">Let's get one piece of somewhat controversial information out of the way: I did not play hockey growing up. In fact, I can barely skate. But I started following hockey about a decade ago, and I really fell in love with the sport when my hometown team, the Columbus Blue Jackets, swept the Presidents' Trophy-winning Tampa Bay Lightning in the 2019 playoffs. My newfound love transformed into a somewhat unhealthy obsession during the COVID lockdowns. Like many people, I took up a new hobby during that period. Unlike many people, that hobby was watching the full broadcast of every single Stanley Cup Final-clinching game from 2003 onwards and taking notes on what I was seeing. I initially did this because it was an excuse to pass time during a global pandemic, and I wanted to understand the lore and legacy of NHL playoff legends. But in watching all of those Cup-winning teams, I naturally began to think about team-building — the elements of a roster that made a champion. And with the Bubble Playoffs upcoming, I wanted to see whether the CBJ had those elements.</p>
+        <p style="margin:0 0 .75rem;">As a result, I created an Excel file tracking the Blue Jackets' players: point totals, on-ice goal differentials, ages, cap hits. As an analyst by trade, I quickly became unsatisfied with how incomplete my data was. I also realized that a CBJ-specific tracker was meaningless without context from across the league. Thus began a years-long effort to build a database and model that would make me marginally more satisfied in how I understood an NHL player's value to his team. For several years, that model was for my own use and was mainly used to write articles on Medium and to talk hockey with friends. Now I'm excited to have turned it into a web project that anyone can benefit from.</p>
+        <p style="margin:0 0 .75rem;">I believe that my lack of a hockey background has actually helped create a somewhat unique product. I wanted this site to have tools that run as deep as my curiosity does — enough to satisfy the most hockey-obsessed individuals. But I also wanted it to appeal to fans who don't necessarily understand <em>why</em> a player is good. I wanted to create a tool for all kinds of fans: brand-new fans going to their first NHL games who want an intuitive snapshot on what their team's players do well; bandwagon fans looking to quickly get up to speed; and diehards who watch all 82 games of their favorite team but haven't had time to follow players on opposing teams quite as closely.</p>
+
+        <div style="font-size:.78rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">What This Model Is — and What It Isn't</div>
+        <p style="margin:0 0 .75rem;">This model does <em>not</em> create a fully optimized WAR-type metric, and it's not designed to generate a betting edge. It's meant to be a descriptive, comprehensive view of all the different ways that an NHL player makes his team better.</p>
+        <p style="margin:0 0 .75rem;">The model intertwines a player's tangible actions (recorded stats and micro-stats) with the team's analytical performance while the player is on the ice, while attempting to isolate player quality from the quality of the surrounding team and competition. All those actions and analytics are converted into an overall performance statistic, then assigned a dollar value based on the distribution of NHL salaries at the player's position.</p>
+        <p style="margin:0 0 .75rem;">The model tends to reward more well-rounded players. It doesn't strip away less predictive statistical categories (though it applies less weight to them), because I want to account for all the different ways hockey players can impact games. The Value statistic has been iteratively optimized many times using statistical analysis, and the current model explains over 60% of the variance in team point totals over the past four seasons. But that predictive power is a validation tool, not the primary purpose. The primary purpose is not much different than my purpose for watching all those Stanley Cup Final broadcasts: to identify all the cool things a player is doing on the ice to help their team win, and to quantify how proficient the player is at doing those things.</p>
+
+        <div style="font-size:.78rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Data Sources</div>
+        <p style="margin:0;">This site would not be possible without the excellent work of other very smart people. MicroStats are foundational to my core goal of highlighting all the cool things that players are doing, and I rely heavily on Corey Sznajder's work at <strong style="color:var(--text);">All Three Zones</strong>. I also draw on statistics from <strong style="color:var(--text);">Evolving-Hockey</strong>, <strong style="color:var(--text);">Natural Stat Trick</strong>, <strong style="color:var(--text);">NHL EDGE</strong>, <strong style="color:var(--text);">PuckPedia</strong>, <strong style="color:var(--text);">MoneyPuck</strong>, and <strong style="color:var(--text);">PuckIQ</strong>.</p>
+      </div>
+    </div>
+
+    <!-- ── CONTACT ──────────────────────────────────────────────── -->
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-hd"><span class="panel-title">Contact &amp; Additional Content</span></div>
+      <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.7;color:var(--text2);display:grid;gap:.6rem;">
+        <div>Questions and comments about the site or broader engagement can be directed toward the <a href="https://x.com/BillyPuckTakes" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">@BillyPuckTakes</a> account on X (Twitter).</div>
+        <div>Articles and additional content can be found at <a href="https://medium.com/@BillyPuck" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">medium.com/@BillyPuck</a>.</div>
+      </div>
+    </div>
+
+    <!-- ── SITE MAP ───────────────────────────────────────────────── -->
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-hd"><span class="panel-title">Site Map</span></div>
+      <div style="padding:1rem 1.25rem;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+          <thead><tr style="border-bottom:2px solid var(--border);color:var(--text3);font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;">
+            <th style="padding:.4rem .6rem;text-align:left;white-space:nowrap;">Section</th>
+            <th style="padding:.4rem .6rem;text-align:left;white-space:nowrap;">Page</th>
+            <th style="padding:.4rem .6rem;text-align:left;">Description</th>
+          </tr></thead>
+          <tbody id="about-sitemap-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── ABOUT FOOTER ──────────────────────────────────────────── -->
+    <div class="lb-footer" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;">
+      <span>Billy Puck Grades · About</span>
+      <span><a onclick="goPrivacy()" style="color:var(--teal);cursor:pointer;text-decoration:none;font-size:.72rem;">Privacy Policy &amp; Terms of Use</a></span>
+    </div>
+
+  </div><!-- /.lb-content -->
+</div><!-- /#aboutview -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PRIVACY & TERMS VIEW
+════════════════════════════════════════════════════════════════ -->
+<div id="privacyview" class="view">
+  <nav class="app-nav">
+    <div class="nav-logo" onclick="showView('landing')">Billy Puck<span> Grades</span></div>
+    <div class="nav-links">
+      <div class="nav-link" onclick="goPlayers()">Player Cards</div>
+      <div class="nav-link" onclick="goGoalies()">Goalies</div>
+      <div class="nav-link" onclick="goAbout()">About</div>
+    </div>
+  </nav>
+  <div class="lb-content" style="max-width:760px;">
+
+    <div style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--text);margin-bottom:.2rem;">Privacy Policy &amp; Terms of Use</div>
+    <div style="font-size:.78rem;color:var(--text3);margin-bottom:1.5rem;">Last updated: July 2026</div>
+
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-hd"><span class="panel-title">Privacy Policy</span></div>
+      <div style="padding:1rem 1.25rem;font-size:.84rem;line-height:1.7;color:var(--text2);">
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin-bottom:.35rem;">What We Collect</div>
+        <p style="margin:0 0 .75rem;">Billy Puck Grades is a static website hosted on GitHub Pages. We do not operate user accounts, collect registration information, or store any personally identifiable information on our own servers.</p>
+        <p style="margin:0 0 .75rem;">When you visit the site, standard usage data may be collected automatically by our hosting provider (GitHub Pages) and any analytics services we use — including your device's IP address, browser type and version, pages visited, time and date of your visit, and time spent on pages. This data is used solely for understanding site usage and improving the service.</p>
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Cookies &amp; Local Storage</div>
+        <p style="margin:0 0 .75rem;">The site uses browser <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:.8rem;">localStorage</code> to remember your theme preference (light or dark mode) across sessions. No tracking cookies are set by this site. Third-party services linked from the site (such as NHL.com, PuckPedia, or Evolving-Hockey) may set their own cookies when you follow links to their sites; we have no control over those.</p>
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Third-Party Data Sources</div>
+        <p style="margin:0 0 .75rem;">Billy Puck Grades draws on data from All Three Zones, Evolving-Hockey, Natural Stat Trick, NHL EDGE, PuckPedia, MoneyPuck, and PuckIQ. All data displayed on this site is used in accordance with each provider's applicable terms of use. We do not resell or redistribute raw data from these sources.</p>
+        <p style="margin:0 0 .75rem;">Live stats and player information are fetched from the NHL's public API. This site is not affiliated with or endorsed by the NHL, any NHL team, or any of the data providers listed above.</p>
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Children's Privacy</div>
+        <p style="margin:0 0 .75rem;">This site does not knowingly collect personal information from anyone under the age of 13.</p>
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Changes to This Policy</div>
+        <p style="margin:0 0 .75rem;">We may update this Privacy Policy from time to time. Changes will be reflected by updating the "Last updated" date above. Continued use of the site after any changes constitutes your acceptance of the updated policy.</p>
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Contact</div>
+        <p style="margin:0;">If you have any questions about this Privacy Policy, please reach out via the site's GitHub repository.</p>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-hd"><span class="panel-title">Terms of Use</span></div>
+      <div style="padding:1rem 1.25rem;font-size:.84rem;line-height:1.7;color:var(--text2);">
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin-bottom:.35rem;">Personal Use</div>
+        <p style="margin:0 0 .75rem;">Billy Puck Grades is provided free of charge for personal, non-commercial use. You are welcome to share links to the site, reference its ratings and analysis in your own writing, or use the tools for your own enjoyment or research. Attribution ("via Billy Puck Grades" or "billypuckgrades.com") is appreciated but not required for casual use.</p>
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Restrictions</div>
+        <p style="margin:0 0 .75rem;">You may not scrape, copy, or systematically extract data from this site for commercial purposes without written permission. The underlying model, formulas, and output data remain the intellectual property of Billy Puck Grades. The site's source code is not licensed for redistribution.</p>
+        <p style="margin:0 0 .75rem;">Do not use automated tools (bots, scrapers, crawlers) to repeatedly request data from this site at scale. Such requests may be blocked to protect the service for all users.</p>
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">No Warranty</div>
+        <p style="margin:0 0 .75rem;">All ratings, projections, and contract values on this site are model outputs intended for informational and entertainment purposes only. They are not investment advice, gambling recommendations, or professional sports consulting. We make no representations or warranties as to the accuracy, completeness, or suitability of any information on this site.</p>
+
+        <div style="font-size:.72rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Data Accuracy</div>
+        <p style="margin:0;">Player statistics, contract data, and roster information are updated periodically but may not reflect the most recent transactions or game results. Always verify critical information with official sources (NHL.com, PuckPedia, etc.) before making decisions based on it.</p>
+      </div>
+    </div>
+
+    <div class="lb-footer"><a onclick="goAbout()" style="color:var(--teal);cursor:pointer;text-decoration:none;">← Back to About</a></div>
+  </div>
+</div><!-- /#privacyview -->
+
+<script>
+// ── Sitemap table data ─────────────────────────────────────────────────────
+(function buildSiteMap(){
+  const rows = [
+    ['Home',            'Player Search',         'Search any NHL skater or goalie to open their player card'],
+    ['Player Data',     'Player Cards',          'Individual skater cards: ratings, contract value, comparables, progression'],
+    ['',                'Leaderboard',           'Sortable, filterable list of all skaters by rating, value, surplus, and more'],
+    ['',                'Category Leaders',      'Ranked leaderboard for any of ~30 individual skill categories'],
+    ['',                'Breakout Stars',        'Model-identified players trending toward breakout seasons'],
+    ['',                'Awards',                'Model-based Hart, Norris, Selke, Lady Byng, and Calder rankings'],
+    ['Lines',           'Line Combinations',     'Real NHL line-combo stats overlaid with attribute profiles'],
+    ['',                'Player Chemistry',      "How a player's attributes correlate with on-ice line success"],
+    ['Goalies',         'Goalies / Goalie Cards','All NHL goalies with Score% rating, contract data, and individual cards'],
+    ['Team Data',       'Team Overview',         'Full roster, category averages, depth chart, and cap summary for any team'],
+    ['',                'Team Rankings',         'All 32 teams sorted by projected points, rating, or any category'],
+    ['',                'Matchup Tool',          'Head-to-head team comparison across all categories'],
+    ['',                'Offseason Tracker',     'Transactions, Category Improvement, Top Signings, and Steady-State views'],
+    ['Contract Tools',  'Free Agents',           '2026 UFAs and RFAs with model value and fair-value AAV'],
+    ['',                'Extension Candidates',  'Players expiring 2027 with extension pricing'],
+    ['',                'Contract Calculator',   'Custom contract scenarios (1–8 yr) for any skater or goalie'],
+    ['GM Mode',         'GM Simulator',          'Build and manage a roster: add/release/re-sign players, track cap and projected-points impact'],
+    ['About',           'About',                 'How to use the site, glossary, bio, and site map'],
+    ['',                'Privacy &amp; Terms',   'Privacy policy and terms of use'],
+  ];
+  const tbody = document.getElementById('about-sitemap-body');
+  if (!tbody) return;
+  let lastSection = '';
+  tbody.innerHTML = rows.map(([section, page, desc]) => {
+    const sectionCell = section && section !== lastSection
+      ? `<td style="padding:.4rem .6rem;font-weight:600;color:var(--text);white-space:nowrap;vertical-align:top;">${section}</td>`
+      : `<td style="padding:.4rem .6rem;color:var(--text3);font-size:.72rem;vertical-align:top;"></td>`;
+    if (section) lastSection = section;
+    return `<tr style="border-bottom:1px solid var(--border);">${sectionCell}<td style="padding:.4rem .6rem;color:var(--text2);white-space:nowrap;vertical-align:top;">${page}</td><td style="padding:.4rem .6rem;color:var(--text3);">${desc}</td></tr>`;
+  }).join('');
+})();
+
+// ── XML Sitemap injection for SEO ──────────────────────────────────────────
+// Writes a <link rel="sitemap"> tag and dynamically generates the sitemap XML
+// at /sitemap.xml via a service worker if available, or logs it for static hosting.
+(function injectSitemapMeta(){
+  const BASE = 'https://billypuckgrades.com'; // update if domain changes
+  // Add <link rel="sitemap"> for crawlers
+  if (!document.querySelector('link[rel="sitemap"]')) {
+    const link = document.createElement('link');
+    link.rel = 'sitemap'; link.type = 'application/xml'; link.href = '/sitemap.xml';
+    document.head.appendChild(link);
+  }
+  // Console-log the sitemap XML for manual deployment as /sitemap.xml
+  const PAGES = [
+    { loc: BASE + '/', priority: '1.0', changefreq: 'weekly' },
+    { loc: BASE + '/#leaderboard', priority: '0.9', changefreq: 'weekly' },
+    { loc: BASE + '/#stats', priority: '0.8', changefreq: 'weekly' },
+    { loc: BASE + '/#breakout', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#awards', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#combos', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#playerchem', priority: '0.6', changefreq: 'weekly' },
+    { loc: BASE + '/#goalies', priority: '0.8', changefreq: 'weekly' },
+    { loc: BASE + '/#teams', priority: '0.8', changefreq: 'weekly' },
+    { loc: BASE + '/#rankings', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#compare', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#offseasontracker', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#fa', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#ext', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#calc', priority: '0.7', changefreq: 'weekly' },
+    { loc: BASE + '/#about', priority: '0.5', changefreq: 'monthly' },
+    { loc: BASE + '/#privacy', priority: '0.3', changefreq: 'yearly' },
+  ];
+  const today = new Date().toISOString().slice(0,10);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`
+    + PAGES.map(p =>
+        `  <url>\n    <loc>${p.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`
+      ).join('\n')
+    + `\n</urlset>`;
+  // Store on window for retrieval (e.g. from browser console) or service worker
+  window._SITEMAP_XML = xml;
+  // console.log('[BPG] sitemap.xml:\n', xml);
+})();
+</script>
   <script>
     try{var _t=localStorage.getItem('bp-theme');
       // Default is light mode; only switch to dark if explicitly saved
