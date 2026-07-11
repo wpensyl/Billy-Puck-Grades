@@ -124,8 +124,12 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .nav-link:hover{color:var(--text2);background:var(--surface2);}
 .nav-link.active{color:var(--teal);background:var(--teal-dim);}
 /* Hamburger menu for mobile portrait */
-.nav-hamburger{display:none;background:none;border:none;cursor:pointer;padding:.35rem;color:var(--text2);flex-shrink:0;}
+.nav-mobile-search{display:none;flex:1;margin:0 .5rem;}
+.nav-mobile-search-btn{display:flex;align-items:center;gap:.4rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.3rem .65rem;font-size:.72rem;color:var(--text2);cursor:pointer;width:100%;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:500;transition:border-color .15s;}
+.nav-mobile-search-btn:hover{border-color:var(--teal);color:var(--teal);}
+.nav-mobile-search-btn svg{flex-shrink:0;opacity:.6;}
 .nav-hamburger svg{display:block;}
+.nav-hamburger{display:none;background:none;border:none;cursor:pointer;padding:.35rem;color:var(--text2);flex-shrink:0;}
 .nav-hamburger-menu{display:none;position:fixed;top:0;right:0;bottom:0;width:80%;max-width:300px;background:var(--surface);border-left:1px solid var(--border2);z-index:9998;overflow-y:auto;padding:1rem 0;box-shadow:-8px 0 24px rgba(0,0,0,.4);}
 .nav-hamburger-menu.open{display:block;}
 .nav-hm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9997;}
@@ -155,7 +159,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .tag-contract{background:var(--surface3);color:var(--text2);}
 .tag-style{background:var(--blue-dim);color:var(--blue);}
 .overall-badge{flex-shrink:0;display:flex;flex-direction:column;background:var(--border);border:1px solid rgba(45,212,160,.25);border-radius:var(--radius-sm);overflow:hidden;}
-.gc-badge-wrap{margin-top:.5rem;display:inline-block;}
+.gc-badge-wrap{margin-top:.5rem;flex-shrink:0;align-self:flex-start;margin-left:auto;}
 .badge-hdr{font-size:.55rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:.3rem .5rem .15rem;background:var(--surface2);white-space:nowrap;}
 .badge-tiles{display:flex;flex-direction:row;gap:1px;background:var(--border);}
 .deal-expiry{font-size:.78rem;color:var(--text3);margin-top:.3rem;}
@@ -179,7 +183,8 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .gc-header{flex-wrap:wrap;align-items:flex-start;padding:.85rem .9rem;gap:.6rem;}
   /* Hide full nav on mobile portrait, show hamburger instead */
   .nav-links{display:none;}
-  .nav-hamburger{display:flex;align-items:center;justify-content:center;margin-left:auto;}
+  .nav-hamburger{display:flex;align-items:center;justify-content:center;margin-left:0;}
+  .nav-mobile-search{display:flex;}
   .app-nav{gap:.6rem;padding:.6rem 1rem;}
   /* Photo row: photo + info side by side, full width */
   .player-photo,.player-initials{width:58px;height:58px;font-size:1.1rem;flex-shrink:0;}
@@ -208,16 +213,23 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .c-item{border-right:none;border-bottom:1px solid var(--border2);}
   .c-item:nth-child(odd){border-right:1px solid var(--border2);}
   .c-item:nth-last-child(-n+2){border-bottom:none;}
-  /* Goalie 4-box contract strip: force 4 equal columns on mobile (matches player card) */
-  .contract-strip.gc-strip-4{grid-template-columns:repeat(4,1fr);}
+  /* Goalie 4-box contract strip: force 4 equal columns (matches player card) */
+  .contract-strip.gc-strip-4{grid-template-columns:repeat(4,1fr) !important;}
   .contract-strip.gc-strip-4 .c-item{border-right:1px solid var(--border2);border-bottom:none;}
   .contract-strip.gc-strip-4 .c-item:last-child{border-right:none;}
+  .contract-strip.gc-strip-4 .c-lbl{font-size:.5rem;}
+  .contract-strip.gc-strip-4 .c-val{font-size:.7rem;}
   #catboard-cat-nav{flex-wrap:wrap;}
   .cmp-bar-row{grid-template-columns:1fr 80px 1fr;}
 
   /* Goalie card: stack rating badge below bio on mobile */
-  .gc-header{flex-wrap:wrap;}
-  .gc-badge-wrap{width:100% !important;order:3;margin-top:.6rem !important;margin-left:0 !important;flex-shrink:0;}
+  .gc-header{flex-wrap:wrap !important;align-items:flex-start;}
+  /* Photo stays in top-left, info block takes ALL remaining width on its row */
+  .gc-header .player-initials,
+  .gc-header .player-photo{flex-shrink:0;order:1;}
+  .gc-header>div[style*="flex:1"]{order:2;flex:1 1 0;min-width:0;width:0;}
+  /* Badge drops to its own full-width row below */
+  .gc-badge-wrap{order:3;width:100% !important;flex:0 0 100% !important;margin-top:.6rem !important;margin-left:0 !important;}
 }
 .cat-section{padding:.5rem 1.25rem 1rem;}
 .grp-hd{display:flex;align-items:center;gap:.75rem;padding:.6rem 0 .25rem;}
@@ -493,7 +505,10 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   </nav>
   <div class="card-content">
     <div class="player-header" id="player-header"></div>
-    <div class="stat-strip" id="stat-strip"></div>
+    <div class="panel" style="margin-bottom:1rem;padding:0;overflow:hidden;">
+      <div class="panel-hd" style="padding:.5rem 1rem;"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
+      <div class="stat-strip" id="stat-strip"></div>
+    </div>
     <div class="nhl-stat-strip" id="nhl-stat-strip"></div>
     <div id="nhl-analytics-strip"></div>
     <div class="panel" id="cat-panel">
@@ -2951,7 +2966,7 @@ function renderGoalieCard(g) {
         ${g.tier?`<div class="deal-expiry" style="color:var(--teal);font-weight:600;">Tier: ${g.tier}</div>`:''}
         ${g.exp_year?`<div class="deal-expiry">Deal Expiry: ${g.exp_year} ${g.expiry_type||''}</div>`:''}
       </div>
-      <div class="gc-badge-wrap" style="flex-shrink:0;align-self:flex-start;margin-left:auto;">
+      <div class="gc-badge-wrap">
         <div class="overall-badge" style="border-color:rgba(91,156,246,0.25);">
           <div class="badge-hdr" style="color:var(--blue);">Rating (0–100)</div>
           <div class="badge-tiles">
@@ -3309,34 +3324,36 @@ async function renderTeamCompare() {
       const avgB=rowsB.find(r=>r.name===name)?.avg??null;
       const vA=avgA??0,vB=avgB??0;
       const winner=vA>vB?'A':vB>vA?'B':null;
+      const bA=((vA/100)*45).toFixed(2), bB=((vB/100)*45).toFixed(2);
       const tipA = topContributors(teamA, grp, name);
       const tipB = topContributors(teamB, grp, name);
       html+=`<div class="cmp-bar-row" title="${teamA}: ${tipA||'–'} | ${teamB}: ${tipB||'–'}">
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0;overflow:hidden;">
           <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${winner==='A'?'var(--teal)':'var(--text3)'};" title="${tipA}">${avgA??'\u2013'}</span>
-          <div style="flex:0 0 ${vA}%;max-width:45%;min-width:0;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${winner==='A'?1:.45};"></div>
+          <div style="flex:0 0 ${bA}%;min-width:0;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${winner==='A'?1:.45};"></div>
         </div>
         <div class="cmp-cat-name">${name}</div>
         <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
-          <div style="flex:0 0 ${vB}%;max-width:45%;min-width:0;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${winner==='B'?1:.45};"></div>
+          <div style="flex:0 0 ${bB}%;min-width:0;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${winner==='B'?1:.45};"></div>
           <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${winner==='B'?'var(--blue)':'var(--text3)'};">${avgB??'\u2013'}</span>
         </div>
       </div>`;
     }
   }
   // Goaltending section
-  const gA = profA.goalieScore, gB = profB.goalieScore;
+  const gA = profA.goalieScore??0, gB = profB.goalieScore??0;
   const gWinner = gA>gB?'A':gB>gA?'B':null;
+  const gbA=((gA/100)*45).toFixed(2), gbB=((gB/100)*45).toFixed(2);
   html+=`<div class="cmp-section-hd">Goaltending</div>
     <div class="cmp-bar-row">
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0;overflow:hidden;">
-        <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${gWinner==='A'?'var(--teal)':'var(--text3)'};">${gA}</span>
-        <div style="flex:0 0 ${gA}%;max-width:45%;min-width:0;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${gWinner==='A'?1:.45};"></div>
+        <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${gWinner==='A'?'var(--teal)':'var(--text3)'};">${profA.goalieScore??'–'}</span>
+        <div style="flex:0 0 ${gbA}%;min-width:0;height:7px;border-radius:3px 0 0 3px;background:var(--teal);opacity:${gWinner==='A'?1:.45};"></div>
       </div>
       <div class="cmp-cat-name">Goalie<br>Score</div>
       <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
-        <div style="flex:0 0 ${gB}%;max-width:45%;min-width:0;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${gWinner==='B'?1:.45};"></div>
-        <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${gB}</span>
+        <div style="flex:0 0 ${gbB}%;min-width:0;height:7px;border-radius:0 3px 3px 0;background:var(--blue);opacity:${gWinner==='B'?1:.45};"></div>
+        <span style="font-family:DM Mono,monospace;font-size:.68rem;flex-shrink:0;color:${gWinner==='B'?'var(--blue)':'var(--text3)'};">${profB.goalieScore??'–'}</span>
       </div>
     </div>`;
   html+=`</div></div>`;
@@ -4754,10 +4771,10 @@ function buildDepthChart(roster) {
 
   const activeNames = new Set([
     ...lines.flatMap(l=>[l.c,l.lw,l.rw]).filter(Boolean).map(r=>r.p.name),
-    ...pairs.flat().map(r=>r.p.name),
-    ...gols.slice(0,2).map(r=>r.p.name),
+    ...pairs.flat().filter(Boolean).map(r=>r.p.name),
+    ...gols.slice(0,2).filter(Boolean).map(r=>r.p.name),
   ]);
-  const scratches = roster.filter(r=>!activeNames.has(r.p.name));
+  const scratches = roster.filter(r=>r?.p && !activeNames.has(r.p.name));
 
   return {lines, pairs, goalies:gols.slice(0,2), scratches};
 }
@@ -6982,8 +6999,17 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.privacy&&window._NAV.privacy();">Privacy &amp; Terms</div>`;
     document.body.appendChild(hmenu);
 
-    // Add hamburger button to every app-nav (including hidden views)
+    // Add hamburger button and mobile search shortcut to every app-nav
     document.querySelectorAll('.app-nav').forEach(nav => {
+      // Mobile search/Player Cards shortcut (sits between logo and hamburger)
+      const mobileBtn = document.createElement('div');
+      mobileBtn.className = 'nav-mobile-search';
+      mobileBtn.innerHTML = `<button class="nav-mobile-search-btn" onclick="goPlayers()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+        Player Cards</button>`;
+      nav.appendChild(mobileBtn);
+
+      // Hamburger button
       const btn = document.createElement('button');
       btn.className = 'nav-hamburger';
       btn.setAttribute('aria-label', 'Open navigation menu');
@@ -8249,7 +8275,19 @@ document.addEventListener('DOMContentLoaded', () => {
       <div style="font-size:.85rem;color:var(--text3);margin-bottom:1.5rem;">NHL Player Analytics — Player ratings and skillsets, contract value analysis, team analysis tools, and GM simulation.</div>
     </div>
 
+    <!-- ── TABLE OF CONTENTS ─────────────────────────────────────── -->
     <div class="panel" style="margin-bottom:1.25rem;">
+      <div class="panel-hd"><span class="panel-title">Contents</span></div>
+      <div style="padding:.75rem 1.25rem;display:grid;gap:.4rem;">
+        <a onclick="document.getElementById('about-how-to-use').scrollIntoView({behavior:'smooth'})" style="font-size:.85rem;color:var(--teal);cursor:pointer;text-decoration:none;">How to Use This Site</a>
+        <a onclick="document.getElementById('about-glossary').scrollIntoView({behavior:'smooth'})" style="font-size:.85rem;color:var(--teal);cursor:pointer;text-decoration:none;">Glossary &amp; Clarifications</a>
+        <a onclick="document.getElementById('about-bio').scrollIntoView({behavior:'smooth'})" style="font-size:.85rem;color:var(--teal);cursor:pointer;text-decoration:none;">Bio &amp; Background</a>
+        <a onclick="document.getElementById('about-contact').scrollIntoView({behavior:'smooth'})" style="font-size:.85rem;color:var(--teal);cursor:pointer;text-decoration:none;">Contact &amp; Additional Content</a>
+        <a onclick="document.getElementById('about-sitemap').scrollIntoView({behavior:'smooth'})" style="font-size:.85rem;color:var(--teal);cursor:pointer;text-decoration:none;">Site Map</a>
+      </div>
+    </div>
+
+    <div id="about-how-to-use" class="panel" style="margin-bottom:1.25rem;">
       <div class="panel-hd"><span class="panel-title">How to Use This Site</span></div>
       <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.65;color:var(--text2);">
         <p style="margin:0 0 .75rem;">Billy Puck Grades is built around one core question: <em>How do NHL players make their teams better?</em> Everything on the site flows from a model that scores each player on roughly 30 skill categories and translates those scores into ratings (0–100) and dollar values. The model outputs are used to create a variety of analysis tools around player data, team data, and contracts.</p>
@@ -8289,7 +8327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <!-- ── GLOSSARY ───────────────────────────────────────────────── -->
-    <div class="panel" style="margin-bottom:1.25rem;">
+    <div id="about-glossary" class="panel" style="margin-bottom:1.25rem;">
       <div class="panel-hd"><span class="panel-title">Glossary &amp; Clarifications</span></div>
       <div style="padding:1rem 1.25rem;font-size:.84rem;line-height:1.6;color:var(--text2);">
 
@@ -8371,7 +8409,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <!-- ── BIO ───────────────────────────────────────────────────── -->
-    <div class="panel" style="margin-bottom:1.25rem;">
+    <div id="about-bio" class="panel" style="margin-bottom:1.25rem;">
       <div class="panel-hd"><span class="panel-title">Bio &amp; Background</span></div>
       <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.7;color:var(--text2);">
         <p style="margin:0 0 .75rem;">I am an investment research analyst who loves sports, so it was only natural that I would go deep down the sports analytics rabbit hole.</p>
@@ -8390,7 +8428,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <!-- ── CONTACT ──────────────────────────────────────────────── -->
-    <div class="panel" style="margin-bottom:1.25rem;">
+    <div id="about-contact" class="panel" style="margin-bottom:1.25rem;">
       <div class="panel-hd"><span class="panel-title">Contact &amp; Additional Content</span></div>
       <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.7;color:var(--text2);display:grid;gap:.6rem;">
         <div>Questions and comments about the site or broader engagement can be directed toward the <a href="https://x.com/BillyPuckTakes" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">@BillyPuckTakes</a> account on X (Twitter).</div>
@@ -8399,7 +8437,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <!-- ── SITE MAP ───────────────────────────────────────────────── -->
-    <div class="panel" style="margin-bottom:1.25rem;">
+    <div id="about-sitemap" class="panel" style="margin-bottom:1.25rem;">
       <div class="panel-hd"><span class="panel-title">Site Map</span></div>
       <div style="padding:1rem 1.25rem;overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
