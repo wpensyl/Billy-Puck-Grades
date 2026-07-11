@@ -125,9 +125,9 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .nav-link.active{color:var(--teal);background:var(--teal-dim);}
 /* Hamburger menu for mobile portrait */
 .nav-mobile-search{display:none;flex:1;margin:0 .5rem;}
-.nav-mobile-search-btn{display:flex;align-items:center;gap:.4rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.3rem .65rem;font-size:.72rem;color:var(--text2);cursor:pointer;width:100%;white-space:nowrap;font-family:'Karla',sans-serif;font-weight:500;transition:border-color .15s;}
-.nav-mobile-search-btn:hover{border-color:var(--teal);color:var(--teal);}
-.nav-mobile-search-btn svg{flex-shrink:0;opacity:.6;}
+.nav-mobile-search-input{display:flex;align-items:center;gap:.4rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.3rem .65rem;width:100%;cursor:pointer;}
+.nav-mobile-search-input svg{flex-shrink:0;color:var(--text3);}
+.nav-mobile-search-input span{font-size:.72rem;color:var(--text3);font-family:'Karla',sans-serif;font-weight:500;white-space:nowrap;}
 .nav-hamburger svg{display:block;}
 .nav-hamburger{display:none;background:none;border:none;cursor:pointer;padding:.35rem;color:var(--text2);flex-shrink:0;}
 .nav-hamburger-menu{display:none;position:fixed;top:0;right:0;bottom:0;width:80%;max-width:300px;background:var(--surface);border-left:1px solid var(--border2);z-index:9998;overflow-y:auto;padding:1rem 0;box-shadow:-8px 0 24px rgba(0,0,0,.4);}
@@ -183,6 +183,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   .gc-header{flex-wrap:wrap;align-items:flex-start;padding:.85rem .9rem;gap:.6rem;}
   /* Hide full nav on mobile portrait, show hamburger instead */
   .nav-links{display:none;}
+  .nav-search{display:none;}
   .nav-hamburger{display:flex;align-items:center;justify-content:center;margin-left:0;}
   .nav-mobile-search{display:flex;}
   .app-nav{gap:.6rem;padding:.6rem 1rem;}
@@ -505,10 +506,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   </nav>
   <div class="card-content">
     <div class="player-header" id="player-header"></div>
-    <div class="panel" style="margin-bottom:1rem;padding:0;overflow:hidden;">
-      <div class="panel-hd" style="padding:.5rem 1rem;"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
-      <div class="stat-strip" id="stat-strip"></div>
-    </div>
+    <div class="nhl-stat-strip" id="stat-strip" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem;"></div>
     <div class="nhl-stat-strip" id="nhl-stat-strip"></div>
     <div id="nhl-analytics-strip"></div>
     <div class="panel" id="cat-panel">
@@ -1255,12 +1253,14 @@ function renderStatStrip(p) {
     const y = cc.years.find(yr => yr.year === 2027);
     return y ? y.implied_value : null;
   })();
-  document.getElementById('stat-strip').innerHTML = [
+  document.getElementById('stat-strip').innerHTML =
+    `<div style="grid-column:1/-1;background:var(--surface2);padding:.4rem 1rem;font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);">Contract &amp; Value</div>`
+    + [
     {val: fmt$(p.cap), lbl:'Cap hit'},
     {val: fmt$(p.value_2526 ?? p.value), lbl:'25–26 value'},
     {val: fmt$(p.composite_value), lbl:'Hist. avg value'},
-    {val: fmt$(p.proj_years && p.proj_years[0]), lbl:'Proj. 26–27'},
-  ].map(c => `<div class="stat-cell${c.slim?' stat-cell-slim':''}">`
+    {val: fmt$(p.proj_years && p.proj_years[0]), lbl:'Proj. 26–27 value'},
+  ].map(c => `<div class="stat-cell">`
     + `<div class="stat-val">${c.val}</div>`
     + `<div class="stat-lbl">${c.lbl}</div></div>`).join('');
 }
@@ -2991,11 +2991,11 @@ function renderGoalieCard(g) {
     </div>
     <div class="panel" style="margin-bottom:1rem;padding:0;overflow:hidden;">
       <div class="panel-hd" style="padding:.6rem 1rem;"><span class="panel-title">Contract &amp; Value</span><span class="panel-note">Model value vs cap</span></div>
-      <div class="contract-strip gc-strip-4">
-        <div class="c-item"><div class="c-lbl">Cap Hit</div><div class="c-val">${fmtCap(g.cap)}</div></div>
-        <div class="c-item"><div class="c-lbl">25–26 Value</div><div class="c-val">${fmtRaw(g.value_2526)}</div></div>
-        <div class="c-item"><div class="c-lbl">Hist. Avg Value</div><div class="c-val">${fmtRaw(g.value_hist_gpadj || g.value)}</div></div>
-        <div class="c-item"><div class="c-lbl">Proj. 26–27 Value</div><div class="c-val">${fmtRaw(g.proj_value_2627)}</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);">
+        <div class="gc-stat-cell" style="padding:.55rem .4rem;"><div class="gc-stat-lbl" style="margin-bottom:2px;">Cap Hit</div><div class="gc-stat-val" style="font-size:.78rem;">${fmtCap(g.cap)}</div></div>
+        <div class="gc-stat-cell" style="padding:.55rem .4rem;"><div class="gc-stat-lbl" style="margin-bottom:2px;">25–26 Value</div><div class="gc-stat-val" style="font-size:.78rem;">${fmtRaw(g.value_2526)}</div></div>
+        <div class="gc-stat-cell" style="padding:.55rem .4rem;"><div class="gc-stat-lbl" style="margin-bottom:2px;">Hist. Avg Value</div><div class="gc-stat-val" style="font-size:.78rem;">${fmtRaw(g.value_hist_gpadj || g.value)}</div></div>
+        <div class="gc-stat-cell" style="padding:.55rem .4rem;"><div class="gc-stat-lbl" style="margin-bottom:2px;">Proj. 26–27 Value</div><div class="gc-stat-val" style="font-size:.78rem;">${fmtRaw(g.proj_value_2627)}</div></div>
       </div>
     </div>
     <div class="panel" style="margin-bottom:1rem;">
@@ -3324,7 +3324,7 @@ async function renderTeamCompare() {
       const avgB=rowsB.find(r=>r.name===name)?.avg??null;
       const vA=avgA??0,vB=avgB??0;
       const winner=vA>vB?'A':vB>vA?'B':null;
-      const bA=((vA/100)*45).toFixed(2), bB=((vB/100)*45).toFixed(2);
+      const bA=((vA/100)*85).toFixed(2), bB=((vB/100)*85).toFixed(2);
       const tipA = topContributors(teamA, grp, name);
       const tipB = topContributors(teamB, grp, name);
       html+=`<div class="cmp-bar-row" title="${teamA}: ${tipA||'–'} | ${teamB}: ${tipB||'–'}">
@@ -3343,7 +3343,7 @@ async function renderTeamCompare() {
   // Goaltending section
   const gA = profA.goalieScore??0, gB = profB.goalieScore??0;
   const gWinner = gA>gB?'A':gB>gA?'B':null;
-  const gbA=((gA/100)*45).toFixed(2), gbB=((gB/100)*45).toFixed(2);
+  const gbA=((gA/100)*85).toFixed(2), gbB=((gB/100)*85).toFixed(2);
   html+=`<div class="cmp-section-hd">Goaltending</div>
     <div class="cmp-bar-row">
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0;overflow:hidden;">
@@ -4954,8 +4954,8 @@ function renderGMDashboard() {
     });
   });
   dc.pairs.forEach(pair => {
-    pair.forEach(r => {
-      linemateMap[r.p.name] = pair.filter(x=>x!==r);
+    pair.filter(Boolean).forEach(r => {
+      linemateMap[r.p.name] = pair.filter(x=>x&&x!==r);
     });
   });
 
@@ -7001,12 +7001,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add hamburger button and mobile search shortcut to every app-nav
     document.querySelectorAll('.app-nav').forEach(nav => {
-      // Mobile search/Player Cards shortcut (sits between logo and hamburger)
+      // Mobile search shortcut (looks like a search bar, navigates to player cards)
       const mobileBtn = document.createElement('div');
       mobileBtn.className = 'nav-mobile-search';
-      mobileBtn.innerHTML = `<button class="nav-mobile-search-btn" onclick="goPlayers()">
+      mobileBtn.innerHTML = `<div class="nav-mobile-search-input" onclick="goPlayers();setTimeout(()=>{const el=document.getElementById('card-search');if(el){el.focus();}},150);">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-        Player Cards</button>`;
+        <span>Search player...</span></div>`;
       nav.appendChild(mobileBtn);
 
       // Hamburger button
@@ -8290,7 +8290,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="about-how-to-use" class="panel" style="margin-bottom:1.25rem;">
       <div class="panel-hd"><span class="panel-title">How to Use This Site</span></div>
       <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.65;color:var(--text2);">
-        <p style="margin:0 0 .75rem;">Billy Puck Grades is built around one core question: <em>How do NHL players make their teams better?</em> Everything on the site flows from a model that scores each player on roughly 30 skill categories and translates those scores into ratings (0–100) and dollar values. The model outputs are used to create a variety of analysis tools around player data, team data, and contracts.</p>
+        <p style="margin:0 0 .75rem;">Billy Puck Grades is built around one core question: <em>How do NHL players make their teams better?</em> Everything on this site flows from a model that scores each player on roughly 30 skill categories and then translates those scores into ratings (0–100) and dollar values. The model outputs are used to create a variety of analysis tools around player data, team data, and contracts.</p>
 
         <div style="display:grid;gap:.9rem;">
 
@@ -8412,14 +8412,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="about-bio" class="panel" style="margin-bottom:1.25rem;">
       <div class="panel-hd"><span class="panel-title">Bio &amp; Background</span></div>
       <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.7;color:var(--text2);">
-        <p style="margin:0 0 .75rem;">I am an investment research analyst who loves sports, so it was only natural that I would go deep down the sports analytics rabbit hole.</p>
-        <p style="margin:0 0 .75rem;">Let's get one piece of somewhat controversial information out of the way: I did not play hockey growing up. In fact, I can barely skate. But I started following hockey about a decade ago, and I really fell in love with the sport when my hometown team, the Columbus Blue Jackets, swept the Presidents' Trophy-winning Tampa Bay Lightning in the 2019 playoffs. My newfound love transformed into a somewhat unhealthy obsession during the COVID lockdowns. Like many people, I took up a new hobby during that period. Unlike many people, that hobby was watching the full broadcast of every single Stanley Cup Final-clinching game from 2003 onwards and taking notes on what I was seeing. I initially did this because it was an excuse to pass time during a global pandemic, and I wanted to understand the lore and legacy of NHL playoff legends. But in watching all of those Cup-winning teams, I naturally began to think about team-building — the elements of a roster that made a champion. And with the Bubble Playoffs upcoming, I wanted to see whether the CBJ had those elements.</p>
-        <p style="margin:0 0 .75rem;">As a result, I created an Excel file tracking the Blue Jackets' players: point totals, on-ice goal differentials, ages, cap hits. As an analyst by trade, I quickly became unsatisfied with how incomplete my data was. I also realized that a CBJ-specific tracker was meaningless without context from across the league. Thus began a years-long effort to build a database and model that would make me marginally more satisfied in how I understood an NHL player's value to his team. For several years, that model was for my own use and was mainly used to write articles on Medium and to talk hockey with friends. Now I'm excited to have turned it into a web project that anyone can benefit from.</p>
-        <p style="margin:0 0 .75rem;">I believe that my lack of a hockey background has actually helped create a somewhat unique product. I wanted this site to have tools that run as deep as my curiosity does — enough to satisfy the most hockey-obsessed individuals. But I also wanted it to appeal to fans who don't necessarily understand <em>why</em> a player is good. I wanted to create a tool for all kinds of fans: brand-new fans going to their first NHL games who want an intuitive snapshot on what their team's players do well; bandwagon fans looking to quickly get up to speed; and diehards who watch all 82 games of their favorite team but haven't had time to follow players on opposing teams quite as closely.</p>
+        <p style="margin:0 0 .75rem;">This website is the product of a lifetime passion for sports and an ongoing fascination with analytics, and a .</p>
+        <p style="margin:0 0 .75rem;">Let's get one piece of somewhat controversial information out of the way: I did not play hockey growing up. But I started following hockey about a decade ago, and I fell in love with the sport when my hometown team, the Columbus Blue Jackets, swept the Presidents' Trophy-winning Tampa Bay Lightning in the 2019 playoffs. My newfound love transformed into a somewhat unhealthy obsession during the COVID lockdowns. Like many people, I took up a new hobby during that period. Unlike many people, that hobby was watching the full broadcast of every single Stanley Cup Final-clinching game from 2003 onwards and taking notes on what I was seeing. I initially did this because I wanted to understand the lore and legacy of NHL playoff legends. But in watching all of those Cup-winning teams, I naturally began to think about team-building — the elements of a roster that made a champion. And with the Bubble Playoffs upcoming, I wanted to see whether or not the Blue Jackets had those elements.</p>
+        <p style="margin:0 0 .75rem;">So, I created an Excel file tracking the Blue Jackets' players: point totals, on-ice goal differentials, ages, cap hits. As an analyst by trade, I quickly became unsatisfied with how incomplete my data was. I also realized that a CBJ-specific tracker was meaningless without context from across the league. Thus began a years-long effort to build a database and model that would make me marginally more satisfied in how I understood an NHL player's value to his team. For several years, that model was just for my own use, and was mainly applied towards writing articles on Medium and talking hockey with friends. Now, I'm excited to have turned it into a web project that anyone can benefit from.</p>
+        <p style="margin:0 0 .75rem;">I believe that my lack of a hockey background has actually helped to create a somewhat unique product. Obviously, I wanted this site to have tools that would satisfy the most hockey-obsessed individuals. But I also wanted the site to appeal to fans who don't necessarily understand <em>why</em> a player is good. I wanted to create a tool for all kinds of fans: brand-new fans going to their first NHL games who want a quick background on what their team's star players do well; casual fans who have been too busy to watch all of the games and want to get brought up to speed before being called a bandwagoner; diehard fans who watch all 82 games of their favorite team but haven't had time to follow players on opposing teams quite as closely; and hockey analytics nerds who want to play around with contract tools and teambuilding simulators.</p>
 
         <div style="font-size:.78rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">What This Model Is — and What It Isn't</div>
-        <p style="margin:0 0 .75rem;">This model does <em>not</em> create a fully optimized WAR-type metric, and it's not designed to generate a betting edge. It's meant to be a descriptive, comprehensive view of all the different ways that an NHL player makes his team better.</p>
-        <p style="margin:0 0 .75rem;">The model intertwines a player's tangible actions (recorded stats and micro-stats) with the team's analytical performance while the player is on the ice, while attempting to isolate player quality from the quality of the surrounding team and competition. All those actions and analytics are converted into an overall performance statistic, then assigned a dollar value based on the distribution of NHL salaries at the player's position.</p>
+        <p style="margin:0 0 .75rem;">This model does <em>not</em> create a fully optimized Wins Above Replacement-type metric, and it's not designed to generate a betting edge. It's meant to be a descriptive, comprehensive view of all the different ways that an NHL player makes his team better.</p>
+        <p style="margin:0 0 .75rem;">The model intertwines a player's tangible actions (recorded stats and micro-stats) with the team's analytical performance while the player is on the ice, and attempts to isolate player quality from the quality of the surrounding team and competition. All those actions and analytics are converted into an overall performance statistic, and then assigned a dollar value based on the distribution of NHL salaries at the player's position.</p>
         <p style="margin:0 0 .75rem;">The model tends to reward more well-rounded players. It doesn't strip away less predictive statistical categories (though it applies less weight to them), because I want to account for all the different ways hockey players can impact games. The Value statistic has been iteratively optimized many times using statistical analysis, and the current model explains over 60% of the variance in team point totals over the past four seasons. But that predictive power is a validation tool, not the primary purpose. The primary purpose is not much different than my purpose for watching all those Stanley Cup Final broadcasts: to identify all the cool things a player is doing on the ice to help their team win, and to quantify how proficient the player is at doing those things.</p>
 
         <div style="font-size:.78rem;font-weight:700;color:var(--text);margin:.9rem 0 .35rem;">Data Sources</div>
