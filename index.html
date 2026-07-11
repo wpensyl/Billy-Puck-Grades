@@ -124,10 +124,11 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .nav-link:hover{color:var(--text2);background:var(--surface2);}
 .nav-link.active{color:var(--teal);background:var(--teal-dim);}
 /* Hamburger menu for mobile portrait */
-.nav-mobile-search{display:none;flex:1;margin:0 .5rem;}
-.nav-mobile-search-input{display:flex;align-items:center;gap:.4rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:.3rem .65rem;width:100%;cursor:pointer;}
-.nav-mobile-search-input svg{flex-shrink:0;color:var(--text3);}
-.nav-mobile-search-input span{font-size:.72rem;color:var(--text3);font-family:'Karla',sans-serif;font-weight:500;white-space:nowrap;}
+.nav-mobile-search{display:none;flex:1;margin:0 .5rem;position:relative;}
+.nav-mobile-search-icon{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
+.nav-mobile-search-real{width:100%;padding:.32rem .6rem .32rem 2rem;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:.72rem;color:var(--text2);font-family:'Karla',sans-serif;outline:none;transition:border-color .15s;}
+.nav-mobile-search-real::placeholder{color:var(--text3);}
+.nav-mobile-search-real:focus{border-color:var(--teal);}
 .nav-hamburger svg{display:block;}
 .nav-hamburger{display:none;background:none;border:none;cursor:pointer;padding:.35rem;color:var(--text2);flex-shrink:0;}
 .nav-hamburger-menu{display:none;position:fixed;top:0;right:0;bottom:0;width:80%;max-width:300px;background:var(--surface);border-left:1px solid var(--border2);z-index:9998;overflow-y:auto;padding:1rem 0;box-shadow:-8px 0 24px rgba(0,0,0,.4);}
@@ -506,7 +507,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   </nav>
   <div class="card-content">
     <div class="player-header" id="player-header"></div>
-    <div class="nhl-stat-strip" id="stat-strip" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem;"></div>
+    <div id="stat-strip"></div>
     <div class="nhl-stat-strip" id="nhl-stat-strip"></div>
     <div id="nhl-analytics-strip"></div>
     <div class="panel" id="cat-panel">
@@ -921,7 +922,7 @@ function renderDropdown(results, ddEl) {
   ddEl.className = 'dropdown open';
   ddEl.innerHTML = results.map((p, i) => `
     <div class="dd-item" data-idx="${i}">
-      <span class="dd-pos-badge ${p._type}">${p.pos || p._type}</span>
+      <span class="dd-pos-badge ${p._type}">${fmtPos(p.pos) || p._type}</span>
       <div><div class="dd-name">${p.name}</div><div class="dd-meta">${p.current_team||p.team||''} · ${p._type==='G'?'Goalie':(displayRole(p.actual_role,p._type)||p.actual_role||p.role||'')}</div></div>
       <div style="margin-left:auto;font-family:DM Mono,monospace;font-size:.8rem;color:var(--teal);">${p._type==='G'?(p.overall_2526??'–'):(p.overall_pct??'–')}</div>
     </div>`).join('');
@@ -1253,16 +1254,21 @@ function renderStatStrip(p) {
     const y = cc.years.find(yr => yr.year === 2027);
     return y ? y.implied_value : null;
   })();
-  document.getElementById('stat-strip').innerHTML =
-    `<div style="grid-column:1/-1;background:var(--surface2);padding:.4rem 1rem;font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);">Contract &amp; Value</div>`
-    + [
-    {val: fmt$(p.cap), lbl:'Cap hit'},
-    {val: fmt$(p.value_2526 ?? p.value), lbl:'25–26 value'},
-    {val: fmt$(p.composite_value), lbl:'Hist. avg value'},
-    {val: fmt$(p.proj_years && p.proj_years[0]), lbl:'Proj. 26–27 value'},
-  ].map(c => `<div class="stat-cell">`
-    + `<div class="stat-val">${c.val}</div>`
-    + `<div class="stat-lbl">${c.lbl}</div></div>`).join('');
+  const _ss = document.getElementById('stat-strip');
+  _ss.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1rem;';
+  _ss.innerHTML =
+    `<div style="grid-column:1/-1;background:var(--surface2);padding:.35rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+      <span style="font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);">Contract &amp; Value</span>
+      <span style="font-size:.65rem;color:var(--text3);">Model value vs cap</span>
+    </div>` +
+    [
+      {val: fmt$(p.cap),                           lbl:'Cap hit'},
+      {val: fmt$(p.value_2526 ?? p.value),         lbl:'25\u201326 value'},
+      {val: fmt$(p.composite_value),               lbl:'Hist. avg value'},
+      {val: fmt$(p.proj_years && p.proj_years[0]), lbl:'Proj. 26\u201327 value'},
+    ].map(c =>
+      `<div class="stat-cell"><div class="stat-val">${c.val}</div><div class="stat-lbl">${c.lbl}</div></div>`
+    ).join('');
 }
 
 function renderNHLStats(stats, player) {
@@ -1793,7 +1799,7 @@ function renderLeaderboard() {
     return `<tr data-name="${p.name}">
       <td class="lb-rank">${i+1}</td>
       <td><span class="lb-player-name">${p.name}</span></td>
-      <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
+      <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${fmtPos(p.pos)||p._type}</span></td>
       <td style="color:var(--text2);">${p.team||'–'}</td>
       <td style="font-size:.82rem;color:var(--text2);">${p.role||'–'}</td>
       <td class="lb-overall" style="color:${ac};">${ov}</td>
@@ -2044,7 +2050,7 @@ async function renderTeamView(teamCode) {
           return `<tr data-name="${p.name}">
             <td class="lb-rank">${i+1}</td>
             <td><span class="lb-player-name">${p.name}</span>${nhlJerseyCache[p.name]?' <span style="font-size:.72rem;color:var(--text3);font-family:\'DM Mono\',monospace;">(#'+nhlJerseyCache[p.name]+')</span>':''}</td>
-            <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
+            <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${fmtPos(p.pos)||p._type}</span></td>
             <td style="font-size:.78rem;color:${pac};font-weight:500;">${displayRole(p.role,p._type)||p.role||'–'}</td>
             <td style="font-size:.78rem;color:var(--text3);">${(typeof displayRole==="function"?displayRole(p.actual_role,p._type):p.actual_role)||'–'}</td>
             <td class="lb-overall" style="color:${pac};">${ov}</td>
@@ -2665,7 +2671,7 @@ function renderCatBoard() {
     return `<tr data-name="${p.name}" style="cursor:pointer;">
       <td class="lb-rank">${i+1}</td>
       <td><span class="lb-player-name">${p.name}</span></td>
-      <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${p.pos||p._type}</span></td>
+      <td><span class="dd-pos-badge ${p._type}" style="font-size:.68rem;padding:1px 6px;">${fmtPos(p.pos)||p._type}</span></td>
       <td style="color:var(--text2);font-size:.82rem;">${p.current_team||p.team||'\u2013'}</td>
       <td style="font-size:.78rem;color:${p._type==='D'?'#5b9cf6':'#2dd4a0'};font-weight:500;">${p.role||'\u2013'}</td>
       <td style="font-size:.78rem;color:var(--text3);">${(typeof displayRole==="function"?displayRole(p.actual_role,p._type):p.actual_role)||'\u2013'}</td>
@@ -4175,7 +4181,7 @@ function renderCalcResult() {
     : `<div class="calc-init-box">${initials(p.name)}</div>`;
   document.getElementById('calc-name').textContent = p.name;
   document.getElementById('calc-meta1').textContent =
-    `${p.current_team||p.team||'–'} · ${p.pos||p._type||'–'} · Age ${p.age?Math.floor(p.age):'–'} · ${p.height||'–'} / ${p.weight||'–'} lb`;
+    `${p.current_team||p.team||'–'} · ${fmtPos(p.pos)||p._type||'–'} · Age ${p.age?Math.floor(p.age):'–'} · ${p.height||'–'} / ${p.weight||'–'} lb`;
   document.getElementById('calc-meta2').textContent = isGoalieCalc
     ? `${p.tier||'Goalie'} · Exp: ${expLbl}`
     : `${p.actual_role||'–'} · ${p.playstyle||'–'} · Exp: ${expLbl}`;
@@ -4971,7 +4977,7 @@ function renderGMDashboard() {
     if (_wk.length) catSwHtml=catSwHtml.replace('</div>',`<div><span style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-right:.4rem;">Weaknesses</span>${_wk.slice(0,6).map(w=>_pill(w.cat,w.rank,'var(--coral)')).join('')}</div></div>`);
   } catch(e) { catSwHtml=''; }
 
-  const myFAs  = roster.filter(r=>r.p.exp_year==='2026'&&r.gmRole==='current');
+  const myFAs  = roster.filter(r=>r?.p && r.p.exp_year==='2026'&&r.gmRole==='current');
 
   // Depth chart HTML helper
   const lineSlot = (r, label) => {
@@ -5012,8 +5018,8 @@ function renderGMDashboard() {
       ${dPairSlot(pair[0],'LD')}${dPairSlot(pair[1],'RD')}
     </tr>`).join('');
 
-  const scratchHtml = dc.scratches.filter(r=>r.p._type!=='G').length
-    ? dc.scratches.filter(r=>r.p._type!=='G').map(r=>{
+  const scratchHtml = dc.scratches.filter(r=>r?.p&&r.p._type!=='G').length
+    ? dc.scratches.filter(r=>r?.p&&r.p._type!=='G').map(r=>{
         const ov = r.p.overall_pct != null ? Math.round(r.p.overall_pct) : (r.p.overall_2526 ?? null);
         const ovStr = ov != null ? ` <span style="color:var(--teal);font-family:DM Mono,monospace;font-size:.68rem;">${ov}</span>` : '';
         return `<span style="font-size:.72rem;color:var(--text3);margin-right:.5rem;">${r.p.name} (${posDisplayGlobal(r.p)})${ovStr}</span>`;
@@ -5109,7 +5115,7 @@ function renderGMDashboard() {
             <th>Player</th><th>Pos</th><th>Age</th><th>Role</th><th>Exp</th>
             <th>Cap Hit</th><th>Trade Value</th><th></th>
           </tr></thead>
-          <tbody>${roster.map(r=>gmRosterRow(r,linemateMap[r.p.name]||[])).join('')}</tbody>
+          <tbody>${roster.filter(r=>r?.p).map(r=>gmRosterRow(r,linemateMap[r.p.name]||[])).join('')}</tbody>
         </table>
       </div>
     </div>
@@ -5122,6 +5128,7 @@ function renderGMDashboard() {
     </div>`;
 }
 function gmRosterRow(r, linemates) {  // linemates = roster entries for this player's line
+  if (!r?.p) return '';
   const p = r.p;
   const fmtM = v => v!=null?'$'+(v/1e6).toFixed(2)+'M':'–';
   const mono = "font-family:DM Mono,monospace;font-size:.78rem;";
@@ -5134,7 +5141,7 @@ function gmRosterRow(r, linemates) {  // linemates = roster entries for this pla
 
   return `<tr data-pname="${p.name}">
     <td style="font-weight:500;font-size:.82rem;cursor:pointer;" onclick="showPlayer(ALL_PLAYERS.find(x=>x.name==='${p.name.replace(/'/g,"\\'")}'))">${p.name}</td>
-    <td style="color:var(--text3);font-size:.78rem;">${p.pos||p._type||'–'}</td>
+    <td style="color:var(--text3);font-size:.78rem;">${fmtPos(p.pos)||p._type||'–'}</td>
     <td style="color:var(--text3);font-size:.78rem;">${p.age?p.age.toFixed(0)+'y':'–'}</td>
     <td><span style="font-size:.68rem;font-weight:600;color:${roleClr};">${roleLbl}</span></td>
     <td style="font-size:.75rem;color:${expClr};">${p.exp_year||'–'} ${p.expiry_type||''}</td>
@@ -5358,7 +5365,7 @@ function gmOpenSignUFA() {
     }).slice(0,60);
     document.getElementById('gm-ufa-list').innerHTML = filtered.map(p=>`
       <div onclick="gmSelectUFA('${p.name.replace(/'/g,"\\'")}',this)" style="cursor:pointer;padding:.35rem .75rem;border-radius:4px;display:flex;justify-content:space-between;font-size:.8rem;align-items:center;">
-        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${p.pos||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.actual_role||p.role||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
+        <span><strong>${p.name}</strong> <span style="color:var(--text3);font-size:.7rem;">${fmtPos(p.pos)||p._type} · ${p.age?p.age.toFixed(0)+'y':''} · ${p.actual_role||p.role||'–'}${p.playstyle?' · '+p.playstyle:''}</span></span>
         <span style="font-family:DM Mono,monospace;font-size:.75rem;color:${barColor(p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526??0))};" >${p.overall_pct!=null?Math.round(p.overall_pct):(p.overall_2526!=null?Math.round(p.overall_2526):'–')}</span>
       </div>`).join('') || '<div style="color:var(--text3);padding:.5rem;">No matches</div>';
   }
@@ -5821,8 +5828,10 @@ const displayRole = (role, type) => {
   }
   return role;
 };
+const _POS_NORM = {'L':'LW','R':'RW','LD':'LD','RD':'RD','C':'C','LW':'LW','RW':'RW','G':'G','F':'F','D':'D'};
+const fmtPos = v => _POS_NORM[v] || v || '–';
 const posDisplayGlobal = p => {
-  const nm = {'L':'LW','R':'RW','LD':'LD','RD':'RD','C':'C','LW':'LW','RW':'RW'};
+  const nm = _POS_NORM;
   const pri = nm[p.pos] || p.pos || '–';
   const ap  = (p.alt_pos||[]).filter(x => x!==pri && x!==p.pos);
   return ap.length ? `${pri} (${ap.join(',')})` : pri;
@@ -7001,12 +7010,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add hamburger button and mobile search shortcut to every app-nav
     document.querySelectorAll('.app-nav').forEach(nav => {
-      // Mobile search shortcut (looks like a search bar, navigates to player cards)
+      // Mobile search input (real <input> that navigates to player cards on first focus)
       const mobileBtn = document.createElement('div');
       mobileBtn.className = 'nav-mobile-search';
-      mobileBtn.innerHTML = `<div class="nav-mobile-search-input" onclick="goPlayers();setTimeout(()=>{const el=document.getElementById('card-search');if(el){el.focus();}},150);">
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-        <span>Search player...</span></div>`;
+      mobileBtn.innerHTML = `
+        <svg class="nav-mobile-search-icon" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+        <input type="text" class="nav-mobile-search-real" placeholder="Search player..." autocomplete="off" spellcheck="false">`;
+      const mobileInput = mobileBtn.querySelector('input');
+      mobileInput.addEventListener('focus', () => {
+        // Navigate to player cards view, then hand off to real search
+        goPlayers();
+        setTimeout(() => {
+          const real = document.getElementById('card-search');
+          if (real) {
+            real.value = mobileInput.value;
+            real.focus();
+            real.dispatchEvent(new Event('input'));
+          }
+          mobileInput.blur();
+          mobileInput.value = '';
+        }, 120);
+      });
       nav.appendChild(mobileBtn);
 
       // Hamburger button
@@ -8412,7 +8436,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="about-bio" class="panel" style="margin-bottom:1.25rem;">
       <div class="panel-hd"><span class="panel-title">Bio &amp; Background</span></div>
       <div style="padding:1rem 1.25rem;font-size:.85rem;line-height:1.7;color:var(--text2);">
-        <p style="margin:0 0 .75rem;">This website is the product of a lifetime passion for sports and an ongoing fascination with analytics, and a .</p>
         <p style="margin:0 0 .75rem;">Let's get one piece of somewhat controversial information out of the way: I did not play hockey growing up. But I started following hockey about a decade ago, and I fell in love with the sport when my hometown team, the Columbus Blue Jackets, swept the Presidents' Trophy-winning Tampa Bay Lightning in the 2019 playoffs. My newfound love transformed into a somewhat unhealthy obsession during the COVID lockdowns. Like many people, I took up a new hobby during that period. Unlike many people, that hobby was watching the full broadcast of every single Stanley Cup Final-clinching game from 2003 onwards and taking notes on what I was seeing. I initially did this because I wanted to understand the lore and legacy of NHL playoff legends. But in watching all of those Cup-winning teams, I naturally began to think about team-building — the elements of a roster that made a champion. And with the Bubble Playoffs upcoming, I wanted to see whether or not the Blue Jackets had those elements.</p>
         <p style="margin:0 0 .75rem;">So, I created an Excel file tracking the Blue Jackets' players: point totals, on-ice goal differentials, ages, cap hits. As an analyst by trade, I quickly became unsatisfied with how incomplete my data was. I also realized that a CBJ-specific tracker was meaningless without context from across the league. Thus began a years-long effort to build a database and model that would make me marginally more satisfied in how I understood an NHL player's value to his team. For several years, that model was just for my own use, and was mainly applied towards writing articles on Medium and talking hockey with friends. Now, I'm excited to have turned it into a web project that anyone can benefit from.</p>
         <p style="margin:0 0 .75rem;">I believe that my lack of a hockey background has actually helped to create a somewhat unique product. Obviously, I wanted this site to have tools that would satisfy the most hockey-obsessed individuals. But I also wanted the site to appeal to fans who don't necessarily understand <em>why</em> a player is good. I wanted to create a tool for all kinds of fans: brand-new fans going to their first NHL games who want a quick background on what their team's star players do well; casual fans who have been too busy to watch all of the games and want to get brought up to speed before being called a bandwagoner; diehard fans who watch all 82 games of their favorite team but haven't had time to follow players on opposing teams quite as closely; and hockey analytics nerds who want to play around with contract tools and teambuilding simulators.</p>
