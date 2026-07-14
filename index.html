@@ -228,7 +228,9 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
   #catboard-cat-nav{flex-wrap:wrap;}
   .cmp-bar-row{grid-template-columns:1fr 80px 1fr;}
 
-  /* Goalie card: stack rating badge below bio on mobile */
+  /* Team Rankings tiles: wrap to 3-column on mobile so nothing gets cut off */
+  .tm-summary-strip{grid-template-columns:repeat(3,1fr);}
+  .tm-summary-strip .tm-stat:last-child{grid-column:span 1;}
   .gc-header{flex-wrap:wrap !important;align-items:flex-start;}
   /* Photo stays in top-left, info block takes ALL remaining width on its row */
   .gc-header .player-initials,
@@ -1891,8 +1893,14 @@ async function renderTeamView(teamCode) {
   players.sort((a,b) => (b.t1_composite??b.overall_pct??0) - (a.t1_composite??a.overall_pct??0));
   document.getElementById('tm-info').textContent = `${players.length} players · ${liveRoster ? 'Live NHL roster' : 'Model data'}`;
 
-  const totalCap = players.reduce((s,p)=>s+(p.cap||0),0);
-  const totalSurplus = players.reduce((s,p)=>s+(p.surplus||0),0);
+  // Include goalie cap hits in the total (goalies are in ALL_GOALIES, not ALL_PLAYERS)
+  const teamGoaliesForCap = (posFilter === 'all' || !posFilter)
+    ? ALL_GOALIES.filter(g => liveRoster ? liveRoster.has(g.name) : (g.current_team === teamCode || g.team === teamCode))
+    : [];
+  const totalCap = players.reduce((s,p)=>s+(p.cap||0),0)
+                 + teamGoaliesForCap.reduce((s,g)=>s+(g.cap||0),0);
+  const totalSurplus = players.reduce((s,p)=>s+(p.surplus||0),0)
+                     + teamGoaliesForCap.reduce((s,g)=>s+(g.surplus||0),0);
 
 
   // Category breakdown
@@ -4355,8 +4363,14 @@ function renderPlayerChem(player) {
   // ── Attribute correlation bars ──────────────────────────────────────────────
   const attrR = rec.attr_r || {};
   const attrD = rec.attr_d || {};
-  // Sort by absolute correlation, show top 12
+  const CHEM_EXCLUDE = new Set([
+    'Relative Offense','Relative Defense','Power Play','Penalty Kill',
+    'Time on Ice','On-Ice Offense','On-Ice Defense','Quality of Comp.',
+    'Quality of Competition',
+  ]);
+  // Sort by absolute correlation, show top 12, excluding unwanted categories
   const sorted = Object.entries(attrR)
+    .filter(([attr]) => !CHEM_EXCLUDE.has(attr))
     .sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]))
     .slice(0,12);
 
@@ -5773,7 +5787,7 @@ function gmAnalyze() {
           <div style="font-size:.7rem;color:var(--text3);">Projected Points</div>
           <div style="font-family:DM Mono,monospace;font-size:1.8rem;font-weight:600;color:${projPts>=100?'var(--teal)':projPts>=88?'var(--text)':'var(--coral)'};">${projPts} pts</div>
           <div style="font-size:.78rem;color:var(--text3);">vs original: ${projPts>basePts?'+':''}<span style="color:${projPts>=basePts?'var(--teal)':'var(--coral)'};">${projPts-basePts} pts</span></div>
-          <div style="font-size:.78rem;color:var(--text3);margin-top:.2rem;">Estimated rank: <strong style="color:var(--text)">#${rank} of 32</strong> (±9 pts MAE)</div>
+          <div style="font-size:.78rem;color:var(--text3);margin-top:.2rem;">Estimated rank: <strong style="color:var(--text)">#${rank} of 32</strong> (±8 pts)</div>
         </div>
         <div>
           <div style="font-size:.7rem;color:var(--text3);">Cap situation</div>
@@ -5799,7 +5813,7 @@ function gmAnalyze() {
             + txRow('Lost:',lost,'var(--coral)')
           : '<div style="font-size:.78rem;color:var(--text3);margin-bottom:.25rem;">No roster transactions made.</div>';
       })()}
-      <div style="font-size:.7rem;color:var(--text3);">Points model: R²=0.457, MAE=±9 pts. Chemistry flags based on attribute complementarity regression findings.</div>
+      <div style="font-size:.7rem;color:var(--text3);"></div>
     </div>`;
   } catch(e) { console.error('gmAnalyze:',e); const _ae=document.getElementById('gm-action-area'); if(_ae) _ae.innerHTML='<div style="color:var(--coral);font-size:.85rem;padding:.75rem;">Analysis error — re-select your team first.</div>'; }
 }
