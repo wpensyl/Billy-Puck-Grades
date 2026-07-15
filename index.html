@@ -479,7 +479,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <div class="nav-dd-menu" id="nddm-pd">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -581,6 +581,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
       </div>
     </div>
     <div class="panel" id="contract-panel"></div>
+    <div class="panel" id="desc-panel" style="margin-top:.75rem;display:none;"></div>
     <div class="card-footer" style="line-height:1.8;">Billy Puck Grades · 2026–27 NHL Season · Updated <span id='site-updated-date'>July 2026</span><br><span style="font-size:.65rem;opacity:.7;">Data: Natural Stat Trick · Evolving-Hockey · All Three Zones · PuckIQ · PuckPedia · MoneyPuck · NHL EDGE</span></div>
   </div>
 </div>
@@ -595,7 +596,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <div class="nav-dd-menu" id="nddm-pd-lb">
           <div class="nav-dd-item active" data-view="leaderboard">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -663,7 +664,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
         <div class="nav-dd-menu" id="nddm-pd-tm">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -1199,6 +1200,7 @@ async function showPlayer(p) {
   renderProgression(p);
   document.getElementById('comp-list').innerHTML = '<div class="comp-loading"><span class="pulse">Loading comparables...</span></div>';
   renderContract(p);
+  renderDescription(p);
   // Async: NHL API
   // Jersey number - show immediately if cached, else after prefetch updates
   const jerseyEl = document.getElementById('ph-jersey');
@@ -1631,6 +1633,453 @@ function renderComps(p, tabKey, pool) {
   });
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTO DESCRIPTION PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+function renderDescription(p) {
+  const el = document.getElementById('desc-panel');
+  if (!el) return;
+  el.style.display = 'none';
+  el.innerHTML = '';
+
+  // ── helpers ────────────────────────────────────────────────────────────────
+  function getCat(grp, name) {
+    const name_lo = name.toLowerCase();
+    const arr = (p.categories || {})[grp] || [];
+    const c = arr.find(x => x.name.toLowerCase() === name_lo);
+    return c ? c.pct : null;
+  }
+  function getMs(name) {
+    const name_lo = name.toLowerCase();
+    const ms = p.microstats || [];
+    const m = ms.find(x => x.name.toLowerCase() === name_lo);
+    return m ? m.pct : null;
+  }
+  function norm4(grp, name) {
+    const name_lo = name.toLowerCase();
+    const arr = (p.cat_norms_4yr || {})[grp] || [];
+    const c = arr.find(x => x.name.toLowerCase() === name_lo);
+    return c ? c.pct : null;
+  }
+  // cat_history: most-recent and prior seasons
+  function histSeasons(grp, name) {
+    const name_lo = name.toLowerCase();
+    const arr = (p.cat_history || {})[grp] || [];
+    const cat = arr.find(x => x.name.toLowerCase() === name_lo);
+    if (!cat || !cat.seasons) return {};
+    return cat.seasons;
+  }
+  function recentTwoPcts(grp, name) {
+    const s = histSeasons(grp, name);
+    const keys = Object.keys(s).sort();
+    if (keys.length < 2) return [s[keys[keys.length-1]] ?? null, null];
+    return [s[keys[keys.length-1]], s[keys[keys.length-2]]]; // [current, prior]
+  }
+  function consistentlyHigh(grp, name, thresh=72) {
+    const s = histSeasons(grp, name);
+    const vals = Object.values(s).filter(v => v != null);
+    if (vals.length < 2) return false;
+    return vals.filter(v => v >= thresh).length >= Math.max(2, Math.ceil(vals.length * 0.6));
+  }
+  function consistentlyLow(grp, name, thresh=30) {
+    const s = histSeasons(grp, name);
+    const vals = Object.values(s).filter(v => v != null);
+    if (vals.length < 2) return false;
+    return vals.filter(v => v <= thresh).length >= Math.max(2, Math.ceil(vals.length * 0.6));
+  }
+  function yoyDelta(grp, name) {
+    const [cur, prev] = recentTwoPcts(grp, name);
+    if (cur == null || prev == null) return null;
+    return cur - prev;
+  }
+  function H(n) { return n != null && n >= 72; }  // high
+  function VH(n) { return n != null && n >= 84; }  // very high
+  function M(n) { return n != null && n >= 45 && n < 72; }
+  function L(n)  { return n != null && n < 35; }  // low
+  function VL(n) { return n != null && n < 20; }  // very low
+  function safe(n, fallback=null) { return (n == null) ? fallback : n; }
+
+  const isD  = p._type === 'D';
+  const age  = p.age || 0;
+  const toi  = getCat('Usage', 'Time on Ice');
+  const qoc  = getCat('Usage', 'Quality of Comp.');
+  const role = (p.actual_role || p.role || '').toLowerCase();
+  const playstyle = p.playstyle || '';
+
+  // Current season category values
+  const speed    = getCat('Athletic & Compete', 'Speed');
+  const endu     = getCat('Athletic & Compete', 'Endurance');
+  const phys     = getCat('Athletic & Compete', 'Physicality');
+  const goals    = getCat('Scoring', 'Goalscoring');
+  const finish   = getCat('Scoring', 'Finishing');
+  const shotVol  = getCat('Scoring', 'Shot Volume');
+  const shotQual = getCat('Scoring', 'Shot Quality');
+  const shotSpd  = getCat('Scoring', 'Shot Speed');
+  const passing  = getCat('Offense', 'Passing');
+  const playdri  = getCat('Offense', 'Playdriving');
+  const rush     = getCat('Offense', 'Rush Offense');
+  const fore     = getCat('Offense', 'Forecheck Offense');
+  const cycle    = getCat('Offense', 'Cycle Offense');
+  const net      = getCat('Offense', 'Net-Front Presence');
+  const faceoff  = getCat('Offense', 'Faceoffs');
+  const entDef   = getCat('Defense', 'Entry Defense');
+  const suppress = getCat('Defense', 'Shot Suppression');
+  const takeawy  = getCat('Defense', 'Takeaways');
+  const exits    = getCat('Defense', 'Def. Zone Exits');
+  const ppc      = getCat('Special Teams', 'Power Play');
+  const pkc      = getCat('Special Teams', 'Penalty Kill');
+  const offProd  = getCat('Analytics', 'On-Ice Offense');
+  const defProd  = getCat('Analytics', 'On-Ice Defense');
+  const offAna   = getCat('Analytics', 'Relative Offense');
+  const defAna   = getCat('Analytics', 'Relative Defense');
+  const relOZ    = getCat('Analytics', 'Relative Offense');
+  const relDZ    = getCat('Analytics', 'Relative Defense');
+
+  // Microstats
+  const ms_hits       = getMs('Hits');
+  const ms_pim        = getMs('Penalty Minutes');
+  const ms_penDrawn   = getMs('Penalties Drawn');
+  const ms_entCarried = getMs('% of Entries Carried In');
+  const ms_entFail    = getMs('Zone Entry Failure Rate');
+  const ms_entWork    = getMs('Zone Entry Work Rate');
+  const ms_entDenial  = getMs('Entry Denial Rate');
+  const ms_foreWork   = getMs('Forecheck Work Rate');
+  const ms_foreRecov  = getMs('Forecheck Recovery Success');
+  const ms_retrWork   = getMs('Retrievals Work Rate');
+  const ms_retrSucc   = getMs('Retrievals Success Rate');
+  const ms_exitsRetr  = getMs('Exits off Retrievals%');
+  const ms_exitWork   = getMs('Def. Zone Exit Work Rate');
+  const ms_exitFail   = getMs('Zone Exit Failure Rate');
+  const ms_missedPass = getMs('Missed Pass/DZ Exchange');
+  const ms_giveaway   = getMs('Giveaways Rate');
+  const ms_dzInvolve  = getMs('Def. Zone Involvement');
+  const ms_dzAssists  = getMs('Assists from the Def. Zone');
+  const ms_shotsDang  = getMs('Shots off Dangerous Passes');
+  const ms_retrScore  = getMs('Puck Retrievals Score');
+  const ms_cycleContr = getMs('Cycle Offense Contribution');
+  const ms_rebounds   = getMs('Rebounds Created');
+  const ms_oneTimer   = getMs('One Timer Assists');
+
+  // 4-year norms
+  const n4_goals  = norm4('Scoring','Goalscoring');
+  const n4_finish = norm4('Scoring','Finishing');
+  const n4_toi    = norm4('Usage','Time on Ice');
+  const n4_qoc    = norm4('Usage','Quality of Comp.');
+  const n4_pass   = norm4('Offense','Passing');
+
+  // ── Build description blocks ────────────────────────────────────────────────
+  const blocks = [];   // each block = { tag, text }
+
+  // 1. ROLE / DEPLOYMENT CONTEXT
+  const sheltered = L(qoc);
+  const toughMins = VH(qoc);
+  const topLine   = VH(toi) || role.includes('top');
+  const bottom6   = L(toi) || role.includes('4th') || role.includes('bottom 6');
+  let roleBlock = '';
+  if (toughMins && topLine)     roleBlock = `Deployed in ${isD?'top-pair':'top-line'} minutes against elite competition`;
+  else if (toughMins)           roleBlock = `Draws consistently tough competition despite limited offensive deployment`;
+  else if (sheltered && topLine) roleBlock = `Top-line deployment in sheltered minutes — production aided by favorable matchups`;
+  else if (sheltered)            roleBlock = `Primarily used in a sheltered role against softer competition`;
+  else if (topLine)              roleBlock = `${isD?'Top-pair':'Top-line'} deployment with average matchup difficulty`;
+  else if (bottom6)              roleBlock = `Bottom-${isD?'pair':'six'} deployment`;
+  if (roleBlock) blocks.push({ tag:'ROLE', text: roleBlock + '.' });
+
+  // 2. ROLE CHANGE FLAG
+  const deltaTOI = yoyDelta('Usage','Time on Ice');
+  const deltaQoC = yoyDelta('Usage','Quality of Comp.');
+  if (deltaTOI != null && Math.abs(deltaTOI) >= 20) {
+    const dir = deltaTOI > 0 ? 'significantly more' : 'significantly fewer';
+    blocks.push({ tag:'CHANGE', text: `Role shift: earning ${dir} ice time than last season (${deltaTOI>0?'+':''}${Math.round(deltaTOI)} pts TOI).` });
+  }
+  if (deltaQoC != null && Math.abs(deltaQoC) >= 20) {
+    const dir = deltaQoC > 0 ? 'tougher' : 'easier';
+    blocks.push({ tag:'CHANGE', text: `Facing ${dir} competition than last season (QoC shift: ${deltaQoC>0?'+':''}${Math.round(deltaQoC)} pts).` });
+  }
+
+  // 3. OFFENSIVE PROFILE
+  const offPhrases = [];
+
+  // Goalscoring style
+  if (H(goals)) {
+    if (VH(finish) && H(shotQual) && H(shotVol))
+      offPhrases.push('a true goal scorer — combines elite finishing with shot volume and dangerous-chance generation');
+    else if (VH(finish) && consistentlyHigh('Scoring','Finishing') && L(shotVol))
+      offPhrases.push('an efficient finisher — converts at a high rate despite modest shot volume, with consistently strong finishing across multiple seasons');
+    else if (VH(finish) && H(shotQual))
+      offPhrases.push('a sharp-angle scorer — elite finishing driven by shot quality and shot selection rather than raw volume');
+    else if (VH(shotVol) && M(finish))
+      offPhrases.push('a high-volume shooter whose goal totals are more about quantity of looks than elite finishing efficiency');
+    else if (VH(shotSpd))
+      offPhrases.push('a dangerous scorer with an elite-level shot');
+    else
+      offPhrases.push('a consistent goal threat');
+  } else if (H(finish) && !H(goals)) {
+    offPhrases.push('a streaky finisher — above-average conversion rate but limited shot generation caps scoring upside');
+  }
+
+  // Playmaking
+  if (VH(passing) && VH(playdri))
+    offPhrases.push('a genuine playmaker — consistently elite passing and playdriving scores');
+  else if (H(passing))
+    offPhrases.push('an above-average playmaker');
+
+  // Offensive IQ
+  if (H(passing) && H(shotQual) && H(ms_shotsDang))
+    offPhrases.push('strong offensive IQ — creates and converts off dangerous passes');
+
+  // Shot
+  if (VH(shotSpd) && !H(goals))
+    offPhrases.push('a bomb of a shot that has not yet translated into elite goal totals');
+
+  // Offensive style sources
+  const stylePhrs = [];
+  if (VH(fore) || (H(fore) && playstyle.toLowerCase().includes('forecheck')))
+    stylePhrs.push('forecheck');
+  if (VH(rush) || (H(rush) && ms_dzAssists != null && H(ms_dzAssists)))
+    stylePhrs.push('transition/rush');
+  if (VH(cycle) || H(ms_cycleContr))
+    stylePhrs.push('cycle');
+  if (H(net) || H(ms_rebounds))
+    stylePhrs.push('net-front');
+  if (stylePhrs.length)
+    offPhrases.push(`primary offensive threats come from ${stylePhrs.join(', ')} play`);
+
+  // Puck carrier
+  if (H(ms_entCarried) && H(ms_entWork))
+    offPhrases.push('carries the puck into the zone at a high rate — skilled at zone entry');
+
+  // Transition offense
+  if (H(rush) && H(ms_dzAssists) && H(ms_entCarried))
+    offPhrases.push('converts transition play into offense — generating scoring off defensive-zone exits and rush opportunities');
+
+  if (offPhrases.length)
+    blocks.push({ tag:'OFFENSE', text: 'Offensively: ' + offPhrases.join('; ') + '.' });
+
+  // 4. DEFENSIVE PROFILE
+  const defPhrases = [];
+
+  // Relied upon in DZ
+  if (H(defProd) && (H(ms_dzInvolve) || H(ms_retrWork)))
+    defPhrases.push('heavily relied upon in the defensive zone — high defensive-zone involvement and retrieval work rate');
+  else if (H(defProd))
+    defPhrases.push('strong defensive producer');
+
+  // Efficient vs high-volume DZ
+  if (H(ms_retrSucc) && H(ms_exitsRetr) && L(ms_exitFail))
+    defPhrases.push('efficient in the defensive end — above-average retrieval success and zone exit rate');
+  else if (L(ms_retrSucc) && H(ms_retrWork))
+    defPhrases.push('works hard in the defensive zone but retrieval efficiency is a weakness');
+
+  // Mistakes
+  if ((VL(ms_giveaway) || VL(ms_missedPass)) && H(ms_exitFail))
+    defPhrases.push('liable to make mistakes in the defensive zone — prone to giveaways or failed exits');
+  else if (VL(ms_giveaway))
+    defPhrases.push('careless with the puck — high giveaway rate');
+
+  // Puck mover (D specifically)
+  if (isD && H(ms_exitWork) && H(ms_entCarried))
+    defPhrases.push('a puck-moving defenseman — high exit work rate and strong carry-in percentage');
+
+  // Entry defense / stickcheck
+  if (H(entDef) && H(takeawy) && H(ms_foreRecov) && H(ms_entDenial))
+    defPhrases.push('excellent at stickchecking and entry denial — elite takeaway numbers backed by strong forecheck recovery and entry denial rates');
+  else if (H(takeawy) && H(ms_entDenial))
+    defPhrases.push('active in the defensive game — above-average takeaways and entry denial');
+  else if (H(entDef))
+    defPhrases.push('effective at preventing zone entries');
+
+  if (defPhrases.length)
+    blocks.push({ tag:'DEFENSE', text: 'Defensively: ' + defPhrases.join('; ') + '.' });
+
+  // 5. PHYSICAL / COMPETE PROFILE
+  const physPhrases = [];
+  if (VH(speed) && H(endu))
+    physPhrases.push('an elite skater — top-tier speed and endurance');
+  else if (VH(speed))
+    physPhrases.push('an elite skater');
+  else if (H(speed) && H(endu))
+    physPhrases.push('a strong skater with good endurance');
+
+  if (H(phys) && H(ms_hits) && H(ms_foreWork) && H(ms_retrWork))
+    physPhrases.push('plays with and through physicality — high hit totals, aggressive forecheck, and hard retrieval work');
+  else if (H(phys) && H(ms_hits))
+    physPhrases.push('a physical presence');
+
+  if (VH(ms_penDrawn) && L(ms_pim))
+    physPhrases.push('draws penalties at a high rate while staying disciplined');
+  else if (VH(ms_pim) || (p.pim && p.pim > 80))
+    physPhrases.push('takes a lot of penalties — a liability on the discipline front');
+  else if (H(ms_penDrawn))
+    physPhrases.push('draws penalties at an above-average rate');
+
+  if (physPhrases.length)
+    blocks.push({ tag:'PHYSICAL', text: physPhrases.join('; ') + '.' });
+
+  // 6. FACEOFFS
+  if (!isD && faceoff != null) {
+    if (VH(faceoff))      blocks.push({ tag:'FACEOFFS', text: 'Elite faceoff specialist — among the best in the league in the dot.' });
+    else if (H(faceoff))  blocks.push({ tag:'FACEOFFS', text: 'Above-average at faceoffs.' });
+    else if (VL(faceoff)) blocks.push({ tag:'FACEOFFS', text: 'A liability at the dot — well below average faceoff percentage.' });
+  }
+
+  // 7. SPECIAL TEAMS
+  const stPhrases = [];
+  if (VH(ppc))  stPhrases.push('a key power play contributor');
+  if (VH(pkc))  stPhrases.push('a reliable penalty killer');
+  if (stPhrases.length)
+    blocks.push({ tag:'SPECIAL TEAMS', text: stPhrases.join('; and ') + '.' });
+
+  // 8. ANALYTICS PROFILE
+  if ((VH(offAna) && !H(offProd)) || (VH(defAna) && !H(defProd))) {
+    const sides = [];
+    if (VH(offAna) && !H(offProd)) sides.push('offensive');
+    if (VH(defAna) && !H(defProd)) sides.push('defensive');
+    blocks.push({ tag:'ANALYTICS', text: `Analytics darling on the ${sides.join(' and ')} side — strong underlying metrics that don't yet fully appear in the production numbers.` });
+  } else if (H(offProd) && !H(offAna)) {
+    blocks.push({ tag:'ANALYTICS', text: 'Production scores exceed underlying analytics — results-based performer whose output may not be fully sustainable at current rates.' });
+  }
+
+  // 9. YEAR-OVER-YEAR BIGGEST MOVERS
+  const deltas = [];
+  const catMap = [
+    ['Scoring','Goalscoring','Goalscoring'],
+    ['Scoring','Finishing','Finishing'],
+    ['Scoring','Shot Volume','Shot Volume'],
+    ['Offense','Passing','Passing'],
+    ['Offense','Playdriving','Playdriving'],
+    ['Defense','Takeaways','Takeaways'],
+    ['Defense','Entry Defense','Entry Defense'],
+    ['Defense','Shot Suppression','Shot Suppression'],
+    ['Athletic & Compete','Speed','Speed'],
+    ['Athletic & Compete','Endurance','Endurance'],
+  ];
+  for (const [grp, name, label] of catMap) {
+    const d = yoyDelta(grp, name);
+    if (d != null) deltas.push({ label, d });
+  }
+  deltas.sort((a,b) => Math.abs(b.d) - Math.abs(a.d));
+  const bigUp   = deltas.filter(x => x.d >= 15).slice(0,2);
+  const bigDown = deltas.filter(x => x.d <= -15).slice(0,2);
+  if (bigUp.length || bigDown.length) {
+    const parts = [];
+    if (bigUp.length)   parts.push(`biggest improvements this season: ${bigUp.map(x=>`${x.label} (+${Math.round(x.d)})`).join(', ')}`);
+    if (bigDown.length) parts.push(`biggest declines: ${bigDown.map(x=>`${x.label} (${Math.round(x.d)})`).join(', ')}`);
+    blocks.push({ tag:'YEAR-OVER-YEAR', text: parts.join('; ') + '.' });
+  }
+
+  // 10. CONSISTENT STRENGTHS / WEAKNESSES (4-year norms)
+  const strengths = []; const weaknesses = [];
+  for (const [grp, name, label] of catMap) {
+    const n4 = norm4(grp, name);
+    if (n4 != null && n4 >= 78) strengths.push(label);
+    if (n4 != null && n4 <= 25) weaknesses.push(label);
+  }
+  if (strengths.length)
+    blocks.push({ tag:'STRENGTHS', text: `Consistently strong (4-year norms): ${strengths.join(', ')}.` });
+  if (weaknesses.length)
+    blocks.push({ tag:'WEAKNESSES', text: `Consistent weaknesses: ${weaknesses.join(', ')}.` });
+
+  // 11. PREDICTIVE / REGRESSION INSIGHTS
+  const predPhrases = [];
+  const ov = p.overall_pct || 0;
+  const isYoung = age < 25.5;
+  const isPrime = age >= 26 && age < 32;
+  const isVet   = age >= 32;
+  const isStar  = ov >= 72;
+  const isElite = ov >= 84;
+
+  // Breakout potential (young, sub-75 overall)
+  if (isYoung && ov < 75) {
+    const breakoutSignals = [];
+    if (VH(toi))      breakoutSignals.push('strong deployment (TOI)');
+    if (VH(passing) && !isD) breakoutSignals.push('elite passing');
+    if (p.draft_pos && parseFloat(p.draft_pos) <= 32) breakoutSignals.push('top-32 draft pedigree');
+    if (H(takeawy) && !isD) breakoutSignals.push('active takeaway game');
+    if (breakoutSignals.length >= 2)
+      predPhrases.push(`Breakout candidate: fits the profile based on ${breakoutSignals.join(' and ')}`);
+  }
+
+  // DMAN breakout (young)
+  if (isD && isYoung && ov < 75) {
+    const dmanSignals = [];
+    if (VH(speed))   dmanSignals.push('elite skating');
+    if (H(shotQual)) dmanSignals.push('shot selection');
+    if (H(qoc))      dmanSignals.push('tough-matchup deployment');
+    if (dmanSignals.length >= 2)
+      predPhrases.push(`Shows defensive breakout indicators: ${dmanSignals.join(', ')}`);
+  }
+
+  // Star stability (already star)
+  if (isStar) {
+    const instabilityFlags = [];
+    const stabilityStrengths = [];
+    if (VH(toi))     stabilityStrengths.push('heavy deployment');
+    if (H(ppc) && !isD)  stabilityStrengths.push('PP role');
+    if (H(n4_goals) || VH(shotVol)) stabilityStrengths.push('sustained shot generation');
+    if (!isD && VH(faceoff) && isVet) stabilityStrengths.push('elite faceoff skill');
+    // Regression risks
+    const teamZ = getCat('Analytics','Team Z');
+    if (teamZ != null && teamZ >= 80) instabilityFlags.push('playing on a very strong team (ratings may be partially team-driven)');
+    if (!isD && H(defAna) && L(offAna))  instabilityFlags.push('heavy defensive role may limit offensive ceiling');
+    if (isVet && !H(toi)) instabilityFlags.push('declining deployment for a veteran star is a regression flag');
+    if (H(goals) && !consistentlyHigh('Scoring','Goalscoring',70)) instabilityFlags.push('goal-scoring pace has not been consistent across seasons');
+
+    if (stabilityStrengths.length)
+      predPhrases.push(`Star stability indicators: ${stabilityStrengths.join(', ')}`);
+    if (instabilityFlags.length)
+      predPhrases.push(`Regression risk: ${instabilityFlags.join('; ')}`);
+  }
+
+  // Playoff profile
+  const playoffSignals = [];
+  if (!isD && VH(ppc))    playoffSignals.push('PP role translates well to playoffs (strongest independent predictor of playoff overperformance)');
+  if (!isD && H(playdri)) playoffSignals.push('high playdriving — playoff overperformer profile');
+  if (isD && H(takeawy))  playoffSignals.push('high takeaway game — DMAN playoff overperformer signal');
+  if (isD && H(endu))     playoffSignals.push('endurance — D-men with stamina tend to outperform overall rating in playoffs');
+  if (!isD && H(defProd) && L(offProd)) playoffSignals.push('caution: defensive-specialist forwards tend to underperform overall rating in playoffs');
+  if (playoffSignals.length)
+    predPhrases.push(`Playoff outlook: ${playoffSignals.join('; ')}`);
+
+  // Aging / veteran durability
+  if (isVet && isStar) {
+    const vetSignals = [];
+    if (!isD && VH(faceoff)) vetSignals.push('faceoff specialists age well (strongest predictor of veteran forward star retention)');
+    if (!isD && H(entDef))   vetSignals.push('defensive-zone responsibility supports continued deployment');
+    if (!isD && VH(toi))     vetSignals.push('still earning top minutes — the single strongest signal of veteran elite stability');
+    if (isD && H(offAna) && H(relOZ)) vetSignals.push('offensively relevant veteran D-men maintain their value longer');
+    if (isD && VH(phys))    vetSignals.push('caution: high physicality is a negative stability signal for veteran D-men');
+    if (vetSignals.length)
+      predPhrases.push(`Aging profile: ${vetSignals.join('; ')}`);
+  }
+
+  // Mean reversion / category durability notes
+  if (H(goals) && !H(n4_goals) && !consistentlyHigh('Scoring','Goalscoring',65))
+    predPhrases.push('Goalscoring pace above historical norm — some regression expected (low durability category)');
+  if (H(finish) && consistentlyHigh('Scoring','Finishing') && ov >= 60)
+    predPhrases.push('Finishing rate is consistently elite across multiple seasons — genuine high-conversion scorer, not a one-year fluke');
+
+  if (predPhrases.length)
+    blocks.push({ tag:'OUTLOOK', text: predPhrases.join('. ') + '.' });
+
+  // ── If nothing generated, hide panel ───────────────────────────────────────
+  if (blocks.length === 0) return;
+
+  const ac = isD ? 'var(--blue)' : 'var(--teal)';
+  el.innerHTML = `
+    <div class="panel-hd">
+      <span class="panel-title">Player Profile</span>
+      <span class="panel-note" style="font-size:.68rem;color:var(--text3);">Auto-generated from model data</span>
+    </div>
+    <div style="padding:.5rem 1rem 1rem;font-size:.82rem;line-height:1.7;color:var(--text2);">
+      ${blocks.map(b => `
+        <div style="margin-bottom:.6rem;">
+          <span style="font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:${ac};font-weight:700;margin-right:.5rem;">${b.tag}</span>${b.text}
+        </div>`).join('')}
+    </div>`;
+  el.style.display = 'block';
+}
+
 function renderContract(p) {
   const el = document.getElementById('contract-panel');
   const cc = p.contract_calc;
@@ -1899,20 +2348,23 @@ async function renderTeamView(teamCode) {
     : [];
   const totalCap = players.reduce((s,p)=>s+(p.cap||0),0)
                  + teamGoaliesForCap.reduce((s,g)=>s+(g.cap||0),0);
-  const totalSurplus = players.reduce((s,p)=>s+(p.surplus||0),0)
-                     + teamGoaliesForCap.reduce((s,g)=>s+(g.surplus||0),0);
+  // Use projected 26-27 surplus to match the roster table column (which also uses surplus_2627 ?? surplus)
+  const totalSurplus = players.reduce((s,p)=>s+((p.surplus_2627 ?? p.surplus)||0),0)
+                     + teamGoaliesForCap.reduce((s,g)=>s+((g.surplus_2627 ?? g.surplus)||0),0);
 
 
   // Category breakdown
   const ALL_CATS = posFilter === 'D' ? [
-    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],["Athletic & Compete","Consistency"],
+    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
+    // Consistency handled separately via inject block (lives on p.consistency)
     ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot Volume"],["Scoring","Shot Quality"],["Scoring","Shot Speed"],
     ["Offense","Passing"],["Offense","Playdriving"],["Offense","Transition Offense"],["Offense","Off. Zone Involvement"],
     ["Defense","Entry Defense"],["Defense","Shot Suppression"],["Defense","Takeaways"],["Defense","Giveaways"],
     ["Special Teams","Power Play"],["Special Teams","Penalty Kill"],["Special Teams","Penalty Differential"],
     ["Analytics","On-Ice Offense"],["Analytics","On-Ice Defense"],
   ] : [
-    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],["Athletic & Compete","Consistency"],
+    ["Athletic & Compete","Speed"],["Athletic & Compete","Endurance"],["Athletic & Compete","Physicality"],
+    // Consistency is handled separately (it lives on p.consistency, not in categories[])
     ["Scoring","Goalscoring"],["Scoring","Finishing"],["Scoring","Shot Volume"],["Scoring","Shot Quality"],["Scoring","Shot Speed"],
     ["Offense","Passing"],["Offense","Playdriving"],["Offense","Rush Offense"],["Offense","Forecheck Offense"],["Offense","Cycle Offense"],["Offense","Net-Front Presence"],["Offense","Faceoffs"],
     ["Defense","Entry Defense"],["Defense","Shot Suppression"],["Defense","Takeaways"],
@@ -1987,7 +2439,7 @@ async function renderTeamView(teamCode) {
     <div class="tm-summary-strip">
       <div class="tm-stat"><div class="tm-stat-val" style="color:${ac};">${avgOverall}</div><div class="tm-stat-lbl">Avg overall pct</div></div>
       <div class="tm-stat" title="Model projection based on skater composite + goalie rating. 4-season regression, R²=0.61, ±${Math.round(PTS_MAE)} pts MAE."><div class="tm-stat-val" style="color:${projClr};">${projPtsFinal}</div><div class="tm-stat-lbl">Proj. pts (±${Math.round(PTS_MAE)})</div></div>
-      <div class="tm-stat"><div class="tm-stat-val" style="color:${totalSurplus>=0?'var(--teal)':'var(--coral)'};">${totalSurplus>=0?'+':''}$${(Math.abs(totalSurplus)/1e6).toFixed(1)}M</div><div class="tm-stat-lbl">Total surplus</div></div>
+      <div class="tm-stat"><div class="tm-stat-val" style="color:${totalSurplus>=0?'var(--teal)':'var(--coral)'};">${totalSurplus>=0?'+':''}$${(Math.abs(totalSurplus)/1e6).toFixed(1)}M</div><div class="tm-stat-lbl">Proj. surplus</div></div>
       <div class="tm-stat"><div class="tm-stat-val">${'$'+(totalCap/1e6).toFixed(1)+'M'}</div><div class="tm-stat-lbl">Total cap</div></div>
       <div class="tm-stat"><div class="tm-stat-val">${players.length}</div><div class="tm-stat-lbl">Players tracked</div></div>
     </div>`;
@@ -2224,7 +2676,7 @@ function renderAwards(awardId){
 }
 function initAwards(){
   const bar=document.getElementById('award-btn-bar');if(!bar)return;
-  // Trophy buttons only — Breakout Stars/Projected Leaders removed (non-functional)
+  // Trophy buttons only — Breakout Players/Projected Leaders removed (non-functional)
   bar.innerHTML=AWARDS.map(a=>`<button class="award-btn${a.id===activeAward?' active':''}" data-award="${a.id}">${a.name}</button>`).join('');
   bar.addEventListener('click', e => {
     const btn = e.target.closest('.award-btn');
@@ -3526,56 +3978,114 @@ function renderBreakoutAward(type) {
   if (!el) return;
   const data = BREAKOUT_DATA[type === 'F' ? 'fwd' : 'dman'] || [];
   if (!data.length) {
-    el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">No breakout data — run update.py to generate breakout.json.</div>';
+    el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">No breakout data \u2014 run update.py to generate breakout.json.</div>';
     return;
   }
   const top = data.slice(0, 10);
+
+  // Component definitions matching new formula fields
+  const fwdStarComps = [
+    {f:'draft_score', w:38, c:'#f59e0b', l:'Draft'},
+    {f:'toi',         w:35, c:'#2dd4a0', l:'TOI'},
+    {f:'passing',     w:27, c:'#5b9cf6', l:'Passing'},
+  ];
+  const fwdJumpComps = [
+    {f:'toi',     w:25, c:'#2dd4a0', l:'TOI'},
+    {f:'tkwy',    w:22, c:'#a78bfa', l:'Tkwy'},
+    {f:'qoc',     w:15, c:'#fb923c', l:'QoC'},
+    {f:'cycle',   w:10, c:'#34d399', l:'Cycle'},
+    {f:'exits',   w: 8, c:'#f472b6', l:'Exits'},
+  ];
+  const dmanStarComps = [
+    {f:'speed',   w:28, c:'#2dd4a0', l:'Speed'},
+    {f:'shotsel', w:25, c:'#5b9cf6', l:'Shot\u00a0Sel'},
+    {f:'qoc',     w:21, c:'#fb923c', l:'QoC'},
+    {f:'play',    w:12, c:'#a78bfa', l:'Play'},
+    {f:'endu',    w: 8, c:'#f59e0b', l:'Endu'},
+  ];
+  const dmanJumpComps = [
+    {f:'speed',   w:35, c:'#2dd4a0', l:'Speed'},
+    {f:'shotsel', w:30, c:'#5b9cf6', l:'Shot\u00a0Sel'},
+    {f:'goals',   w:20, c:'#f472b6', l:'Goals'},
+  ];
+
+  const isFwd = type === 'F';
+  const ac = isFwd ? 'var(--teal)' : 'var(--blue)';
+  const starComps = isFwd ? fwdStarComps : dmanStarComps;
+  const jumpComps = isFwd ? fwdJumpComps : dmanJumpComps;
+
   el.innerHTML = `
-    <div style="font-size:.72rem;color:var(--text3);padding:.5rem 1rem 0;">
-      ${type==='F'
-        ? 'Score = Breakout probability (60%) \u00b7 TOI\u00d733% + Physicality\u00d725% + Shot Speed\u00d721% + Playdriving\u00d721% (40%)'
-        : 'Score = Breakout probability (60%) \u00b7 PP\u00d730% + Shot Suppression\u00d728% + Physicality\u00d726% + TOI\u00d717% (40%)'}
-      &nbsp;\u00b7&nbsp; Age &lt;${type==='F'?25:26}, Overall &lt;80th pct, min 20 GP
+    <div style="font-size:.72rem;color:var(--text3);padding:.5rem 1rem .25rem;line-height:1.5;">
+      ${isFwd
+        ? '<strong style="color:var(--text2);">Star component (55%):</strong> Draft pedigree\u00d738% + TOI\u00d735% + Passing\u00d727%<br>'
+          + '<strong style="color:var(--text2);">Jump component (45%):</strong> TOI\u00d725% + Takeaways\u00d722% + QoC\u00d715% + PIM\u00d712% + Cycle\u00d710% + Exits\u00d78% + Passing\u00d78%'
+        : '<strong style="color:var(--text2);">Star component (60%):</strong> Speed\u00d728% + Shot Selection\u00d725% + QoC\u00d721% + Playdriving\u00d712% + Endurance\u00d78% + PIM\u00d76%<br>'
+          + '<strong style="color:var(--text2);">Jump component (40%):</strong> Speed\u00d735% + Shot Selection\u00d730% + Goalscoring\u00d720% + Off Production\u00d715%'}
+      &nbsp;\u00b7&nbsp; Age &lt;${isFwd ? 25.5 : 26}, Overall &lt;75th pct, min 20 GP
     </div>
     ${top.map((p, i) => {
-      const ac = type==='D' ? 'var(--blue)' : 'var(--teal)';
-      const comps = type === 'F'
-        ? [{v:p.toi,w:33,c:'#2dd4a0',l:'TOI'},{v:p.phys,w:25,c:'#a78bfa',l:'Phys'},{v:p.spd,w:21,c:'#f472b6',l:'Spd'},{v:p.play,w:21,c:'#fb923c',l:'Play'}]
-        : [{v:p.pp,w:30,c:'#5b9cf6',l:'PP'},{v:p.supp,w:28,c:'#34d399',l:'Supp'},{v:p.phys,w:26,c:'#a78bfa',l:'Phys'},{v:p.toi,w:17,c:'#fb923c',l:'TOI'}];
-      const scoreBar = comps.map(c =>
-        `<div style="flex:${c.w};height:5px;background:${c.c};opacity:${(c.v||0)/100};" title="${c.l}: ${c.v||0}"></div>`
+      const starBar = starComps.map(c =>
+        `<div style="flex:${c.w};height:5px;background:${c.c};opacity:${((p[c.f]||0))/100};" title="${c.l}: ${p[c.f]||0}"></div>`
       ).join('');
-      const probPct = p.prob != null ? Math.round(p.prob * 100) : null;
-      const probClr = probPct >= 30 ? 'var(--teal)' : probPct >= 15 ? 'var(--mid)' : 'var(--text3)';
+      const jumpBar = jumpComps.map(c =>
+        `<div style="flex:${c.w};height:5px;background:${c.c};opacity:${((p[c.f]||0))/100};" title="${c.l}: ${p[c.f]||0}"></div>`
+      ).join('');
+      const starScore = p.star_score ?? p.score;
+      const jumpScore = p.jump_score ?? p.score;
       return `<div class="award-card" data-name="${p.name}" style="cursor:pointer;margin-bottom:.5rem;">
         <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;">
           <div style="font-family:DM Mono,monospace;font-size:.85rem;color:var(--text3);width:20px;text-align:right;flex-shrink:0;">${i+1}</div>
           <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:.5rem;">
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
               <span style="font-size:.88rem;font-weight:500;">${p.name}</span>
               <span style="font-size:.7rem;color:var(--text3);">${p.team} \u00b7 Age ${Math.floor(p.age)}</span>
             </div>
-            <div style="font-size:.7rem;color:var(--text3);">Overall: <span style="color:${barColor(p.overall)};font-family:DM Mono,monospace;">${p.overall}</span> &nbsp;\u00b7&nbsp; GP: ${p.gp}${probPct!=null?`&nbsp;\u00b7&nbsp; Breakout prob: <span style="color:${probClr};font-family:DM Mono,monospace;font-weight:600;">${probPct}%</span>`:''}</div>
-            <div style="display:flex;gap:1px;height:5px;margin-top:4px;border-radius:2px;overflow:hidden;">${scoreBar}</div>
+            <div style="font-size:.7rem;color:var(--text3);margin-top:1px;">
+              Overall: <span style="color:${barColor(p.overall)};font-family:DM Mono,monospace;">${p.overall}</span>
+              &nbsp;\u00b7&nbsp; GP: ${p.gp}
+              ${isFwd && p.draft_score > 0 ? `&nbsp;\u00b7&nbsp; Draft score: <span style="font-family:DM Mono,monospace;color:var(--mid);">${p.draft_score}</span>` : ''}
+            </div>
+            <div style="margin-top:4px;">
+              <div style="font-size:.58rem;color:var(--text3);margin-bottom:1px;">STAR</div>
+              <div style="display:flex;gap:1px;height:5px;border-radius:2px;overflow:hidden;">${starBar}</div>
+            </div>
+            <div style="margin-top:3px;">
+              <div style="font-size:.58rem;color:var(--text3);margin-bottom:1px;">JUMP</div>
+              <div style="display:flex;gap:1px;height:5px;border-radius:2px;overflow:hidden;">${jumpBar}</div>
+            </div>
           </div>
-          <div style="text-align:right;flex-shrink:0;">
+          <div style="text-align:right;flex-shrink:0;min-width:40px;">
             <div style="font-family:DM Mono,monospace;font-size:1.15rem;font-weight:500;color:${ac};">${p.score}</div>
-            <div style="font-size:.62rem;color:var(--text3);">score</div>
+            <div style="font-size:.58rem;color:var(--text3);">\u2605${starScore} / \u2191${jumpScore}</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);">
-          ${comps.map(c => `<div style="background:var(--surface2);padding:.25rem .4rem;text-align:center;">
-            <div style="font-size:.58rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);">${c.l}</div>
-            <div style="font-family:DM Mono,monospace;font-size:.75rem;font-weight:500;color:${c.c};">${c.v||0}</div>
+        <div style="display:grid;grid-template-columns:repeat(${starComps.length},1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);">
+          ${starComps.map(c => `<div style="background:var(--surface2);padding:.25rem .4rem;text-align:center;">
+            <div style="font-size:.56rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);">${c.l}</div>
+            <div style="font-family:DM Mono,monospace;font-size:.75rem;font-weight:500;color:${c.c};">${p[c.f]||0}</div>
           </div>`).join('')}
         </div>
       </div>`;
     }).join('')}
     <div style="font-size:.7rem;color:var(--text3);margin-top:1rem;padding:1rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);line-height:1.6;">
-      <div style="font-weight:600;color:var(--text2);margin-bottom:.35rem;">Methodology — ${type==='F'?'Forward':'Defenseman'} Breakout Model (Survivorship-Corrected)</div>
-      ${type==='F'
-        ? `Logistic regression trained on ${399} FWD player-season pairs (2021\u201325), including NHL exits as breakout failures — correcting the survivorship bias of earlier models that excluded retired/cut players. AUC = 0.806. Predictors: current z-score, age, and prior-year momentum. Category aptitude (TOI deployment, Physicality, Shot Speed, Playdriving) contributes 40% of the composite score. Baseline breakout rate: ~9.3% for age-eligible candidates.`
-        : `Logistic regression trained on ${280} DMAN player-season pairs (2021\u201325), including NHL exits as failures. AUC = 0.874. Predictors: current z-score, age, prior-year momentum. Category aptitude (PP role, Shot Suppression, Physicality, TOI) contributes 40%. Baseline breakout rate: ~6.1%. Note: prior models overstated breakout probability by excluding players who exited the NHL; survivorship correction reduces displayed probabilities accordingly.`}
+      <div style="font-weight:600;color:var(--text2);margin-bottom:.35rem;">Methodology \u2014 ${isFwd ? 'Forward' : 'Defenseman'} Breakout Model</div>
+      ${isFwd
+        ? `Based on logistic regression across 2,310 forward year-over-year progressions (2021\u201326),
+           controlling for prior overall rating and age. The <em>Star component</em> identifies players
+           likely to reach top-tier overall ratings: draft pedigree (OR=0.46, p&lt;0.0001), TOI deployment
+           (OR=2.85, p=0.0001), and Passing skill (OR=1.90, p=0.04) are the only categories with significant
+           positive signal. The <em>Jump component</em> identifies players likely to make large year-over-year
+           gains: TOI (OR=3.25, p&lt;0.0001), Takeaways (OR=2.55, p&lt;0.001), QoC (OR=1.50, p=0.02),
+           PIM (OR=1.41, p=0.004), Cycle Offense, and Defensive Zone Exits.
+           Eligibility: age &lt; 25.5, overall rating below 75th percentile, minimum 20 GP.`
+        : `Based on logistic regression across 835 defenseman year-over-year progressions (2021\u201326).
+           The <em>Star component</em> identifies D-men likely to break into elite territory: Speed (OR=2.65, p=0.002),
+           Shot Selection / Shot Quality (OR=2.41, p=0.001), Quality of Competition deployment (OR=2.15, p=0.017),
+           Playdriving (OR=2.29, p=0.044), Endurance (OR=3.16 in early-breakout sub-analysis), and PIM engagement
+           (OR=2.01, p=0.022). The <em>Jump component</em> identifies large-improvement candidates: Speed, Shot Selection,
+           Goalscoring (OR=1.73, p=0.025), and Offensive Production. Draft position is not a significant
+           predictor for defensemen and is excluded from the formula.
+           Eligibility: age &lt; 26, overall rating below 75th percentile, minimum 20 GP.`}
     </div>`;
   el.querySelectorAll('.award-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -5787,7 +6297,7 @@ function gmAnalyze() {
           <div style="font-size:.7rem;color:var(--text3);">Projected Points</div>
           <div style="font-family:DM Mono,monospace;font-size:1.8rem;font-weight:600;color:${projPts>=100?'var(--teal)':projPts>=88?'var(--text)':'var(--coral)'};">${projPts} pts</div>
           <div style="font-size:.78rem;color:var(--text3);">vs original: ${projPts>basePts?'+':''}<span style="color:${projPts>=basePts?'var(--teal)':'var(--coral)'};">${projPts-basePts} pts</span></div>
-          <div style="font-size:.78rem;color:var(--text3);margin-top:.2rem;">Estimated rank: <strong style="color:var(--text)">#${rank} of 32</strong> (±8 pts)</div>
+          <div style="font-size:.78rem;color:var(--text3);margin-top:.2rem;">Estimated rank: <strong style="color:var(--text)">#${rank} of 32</strong></div>
         </div>
         <div>
           <div style="font-size:.7rem;color:var(--text3);">Cap situation</div>
@@ -6820,11 +7330,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Goalie card view nav
   const goGoalieCard = () => { if (currentGoalie) showGoalieCard(currentGoalie); else goGoalies(); };
 
-  // ── Breakout Stars + Team Rankings nav wiring ─────────────────────────────
+  // ── Breakout Players + Team Rankings nav wiring ─────────────────────────────
   document.querySelectorAll('[id^="nav-breakout"]').forEach(el=>el.addEventListener('click',()=>goBreakout('fwd')));
   document.querySelectorAll('[id^="nav-rankings"]').forEach(el=>el.addEventListener('click',goRankings));
 
-  // Breakout Stars sub-tabs
+  // Breakout Players sub-tabs
   document.getElementById('bk-tab-fwd')?.addEventListener('click', ()=>{ document.querySelectorAll('#bk-sub-tabs .season-btn').forEach(b=>b.classList.remove('active')); document.getElementById('bk-tab-fwd').classList.add('active'); renderBreakoutAward('F'); });
   document.getElementById('bk-tab-dman')?.addEventListener('click', ()=>{ document.querySelectorAll('#bk-sub-tabs .season-btn').forEach(b=>b.classList.remove('active')); document.getElementById('bk-tab-dman').classList.add('active'); renderBreakoutAward('D'); });
   document.getElementById('bk-tab-proj')?.addEventListener('click', ()=>{ document.querySelectorAll('#bk-sub-tabs .season-btn').forEach(b=>b.classList.remove('active')); document.getElementById('bk-tab-proj').classList.add('active'); renderProjLeaders(); });
@@ -6864,7 +7374,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(id)?.addEventListener('click', goFA));
   document.querySelectorAll('[id^="nav-fa"]').forEach(el=>el.addEventListener('click', goFA));
 
-  // Breakout Stars view nav
+  // Breakout Players view nav
   document.getElementById('nav-logo-bk')?.addEventListener('click',()=>showView('landing'));
   document.getElementById('nav-players-bk')?.addEventListener('click',goPlayers);
   document.getElementById('nav-leaderboard-bk')?.addEventListener('click',goLeaderboard);
@@ -7031,7 +7541,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.players&&window._NAV.players();">Player Cards</div>
       <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.leaderboard&&window._NAV.leaderboard();">Leaderboard</div>
       <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.stats&&window._NAV.stats();">Category Leaders</div>
-      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.breakout&&window._NAV.breakout();">Breakout Stars</div>
+      <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.breakout&&window._NAV.breakout();">Breakout Players</div>
       <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.awards&&window._NAV.awards();">Awards</div>
       <div class="nav-hm-section">Lines</div>
       <div class="nav-hm-item" onclick="closeHamburger();window._NAV&&window._NAV.combos&&window._NAV.combos();">Line Combinations</div>
@@ -7126,7 +7636,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-go">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7180,7 +7690,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-aw">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item active" data-view="awards">Awards</div>
         </div>
       </div>
@@ -7230,7 +7740,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-gcv">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7271,7 +7781,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-cs">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item active" data-view="stats">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7344,7 +7854,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-cmp">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7399,7 +7909,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-fa">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7512,7 +8022,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-bk">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item active" data-view="breakout">Breakout Stars</div>
+          <div class="nav-dd-item active" data-view="breakout">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7541,14 +8051,14 @@ document.addEventListener('DOMContentLoaded', () => {
   </nav>
   <div class="lb-content">
     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid var(--border);" id="bk-sub-tabs">
-      <button class="season-btn active" id="bk-tab-fwd">Breakout Stars — FWD</button>
-      <button class="season-btn" id="bk-tab-dman">Breakout Stars — DMAN</button>
+      <button class="season-btn active" id="bk-tab-fwd">Breakout Players — FWD</button>
+      <button class="season-btn" id="bk-tab-dman">Breakout Players — DMAN</button>
       <button class="season-btn blue" id="bk-tab-proj">Projected Leaders</button>
     </div>
     <div id="bk-content-panel">
       <div style="padding:2rem;text-align:center;color:var(--text3);">Select a view above.</div>
     </div>
-    <div class="lb-footer">Billy Puck Grades · Breakout Stars · 2025–26</div>
+    <div class="lb-footer">Billy Puck Grades · Breakout Players · 2025–26</div>
   </div>
 </div>
 
@@ -7563,7 +8073,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-tr">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7663,7 +8173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-ext">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7784,7 +8294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-lc">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -7919,7 +8429,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -8015,7 +8525,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="combos" onclick="navGoView(event,'combos')">Line Combinations</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -8088,7 +8598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-gm">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -8148,7 +8658,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu" id="nddm-pd-ost">
           <div class="nav-dd-item" data-view="leaderboard" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" data-view="stats" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" data-view="breakout" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" data-view="awards" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -8333,7 +8843,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="nav-dd-menu">
           <div class="nav-dd-item" onclick="navGoView(event,'leaderboard')">Leaderboard</div>
           <div class="nav-dd-item" onclick="navGoView(event,'stats')">Category Leaders</div>
-          <div class="nav-dd-item" onclick="navGoView(event,'breakout')">Breakout Stars</div>
+          <div class="nav-dd-item" onclick="navGoView(event,'breakout')">Breakout Players</div>
           <div class="nav-dd-item" onclick="navGoView(event,'awards')">Awards</div>
         </div>
       </div>
@@ -8394,7 +8904,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           <div><strong style="color:var(--text);">Category Leaders</strong> — Under <em>Player Data → Category Leaders</em>. Ranked leaderboard for any individual skill category. Identify who leads the league in Speed, Passing, Shot Quality, Entry Defense, and ~25 other categories.</div>
 
-          <div><strong style="color:var(--text);">Breakout Stars</strong> — Under <em>Player Data → Breakout Stars</em>. Model-identified players whose underlying metrics suggest significant improvement relative to their prior history.</div>
+          <div><strong style="color:var(--text);">Breakout Players</strong> — Under <em>Player Data → Breakout Players</em>. Model-identified players whose underlying metrics suggest significant improvement relative to their prior history.</div>
 
           <div><strong style="color:var(--text);">Awards</strong> — Under <em>Player Data → Awards</em>. Model-based rankings for Hart, Norris, Selke, Lady Byng, and Calder awards.</div>
 
@@ -8626,7 +9136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ['Player Data',     'Player Cards',          'Individual skater cards: ratings, contract value, comparables, progression'],
     ['',                'Leaderboard',           'Sortable, filterable list of all skaters by rating, value, surplus, and more'],
     ['',                'Category Leaders',      'Ranked leaderboard for any of ~30 individual skill categories'],
-    ['',                'Breakout Stars',        'Model-identified players trending toward breakout seasons'],
+    ['',                'Breakout Players',        'Model-identified players trending toward breakout seasons'],
     ['',                'Awards',                'Model-based Hart, Norris, Selke, Lady Byng, and Calder rankings'],
     ['Lines',           'Line Combinations',     'Real NHL line-combo stats overlaid with attribute profiles'],
     ['',                'Player Chemistry',      "How a player's attributes correlate with on-ice line success"],
