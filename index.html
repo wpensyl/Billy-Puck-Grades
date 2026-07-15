@@ -1635,9 +1635,10 @@ function renderComps(p, tabKey, pool) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AUTO DESCRIPTION PANEL
+// AUTO DESCRIPTION PANEL — disabled pending rule finalization
 // ─────────────────────────────────────────────────────────────────────────────
 function renderDescription(p) {
+  return; // disabled until descriptor rules are finalized
   const el = document.getElementById('desc-panel');
   if (!el) return;
   el.style.display = 'none';
@@ -3971,7 +3972,7 @@ function populateSnapshotSelector() {
 // PHASE 2: BREAKOUT STARS + PROJECTED SEASON LEADERS
 // Rendered inside the Awards tab, wired via the award button bar
 // ══════════════════════════════════════════════════════════════════════════════
-const PROJ_SEASONS_LABELS = ['2025\u201326','2026\u201327','2027\u201328','2028\u201329','2029\u201330','2030\u201331','2031\u201332','2032\u201333'];
+const PROJ_SEASONS_LABELS = ['2026\u201327','2027\u201328','2028\u201329','2029\u201330','2030\u201331','2031\u201332','2032\u201333','2033\u201334'];
 
 function renderBreakoutAward(type) {
   const el = document.getElementById('bk-content-panel') || document.getElementById('award-panel');
@@ -4024,14 +4025,27 @@ function renderBreakoutAward(type) {
       &nbsp;\u00b7&nbsp; Age &lt;${isFwd ? 25.5 : 26}, Overall &lt;75th pct, min 20 GP
     </div>
     ${top.map((p, i) => {
+      const starScore = p.star_score ?? p.score;
+      const jumpScore = p.jump_score ?? p.score;
+      // Bars: each segment width = (component_pct * weight/100), scaled so full bar = starScore/100 of container
+      // Simpler: wrap bars in a container that is starScore% wide
       const starBar = starComps.map(c =>
         `<div style="flex:${c.w};height:5px;background:${c.c};opacity:${((p[c.f]||0))/100};" title="${c.l}: ${p[c.f]||0}"></div>`
       ).join('');
       const jumpBar = jumpComps.map(c =>
         `<div style="flex:${c.w};height:5px;background:${c.c};opacity:${((p[c.f]||0))/100};" title="${c.l}: ${p[c.f]||0}"></div>`
       ).join('');
-      const starScore = p.star_score ?? p.score;
-      const jumpScore = p.jump_score ?? p.score;
+      // Draft display: show pick number if available
+      const draftPick = p.draft_pos ?? null;
+      const draftLabel = draftPick != null
+        ? (draftPick <= 5   ? `🥇 Pick #${draftPick}`
+          : draftPick <= 15  ? `Pick #${draftPick}`
+          : draftPick <= 32  ? `Pick #${draftPick}`
+          : `Pick #${draftPick}`)
+        : (p.draft_score > 0 ? `Draft score: ${p.draft_score}` : null);
+      const draftColor = draftPick != null
+        ? (draftPick <= 5 ? 'var(--teal)' : draftPick <= 15 ? 'var(--mid)' : draftPick <= 32 ? 'var(--text2)' : 'var(--text3)')
+        : 'var(--mid)';
       return `<div class="award-card" data-name="${p.name}" style="cursor:pointer;margin-bottom:.5rem;">
         <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;">
           <div style="font-family:DM Mono,monospace;font-size:.85rem;color:var(--text3);width:20px;text-align:right;flex-shrink:0;">${i+1}</div>
@@ -4043,20 +4057,28 @@ function renderBreakoutAward(type) {
             <div style="font-size:.7rem;color:var(--text3);margin-top:1px;">
               Overall: <span style="color:${barColor(p.overall)};font-family:DM Mono,monospace;">${p.overall}</span>
               &nbsp;\u00b7&nbsp; GP: ${p.gp}
-              ${isFwd && p.draft_score > 0 ? `&nbsp;\u00b7&nbsp; Draft score: <span style="font-family:DM Mono,monospace;color:var(--mid);">${p.draft_score}</span>` : ''}
+              ${draftLabel ? `&nbsp;\u00b7&nbsp; <span style="font-family:DM Mono,monospace;color:${draftColor};">${draftLabel}</span>` : ''}
             </div>
-            <div style="margin-top:4px;">
-              <div style="font-size:.58rem;color:var(--text3);margin-bottom:1px;">STAR</div>
-              <div style="display:flex;gap:1px;height:5px;border-radius:2px;overflow:hidden;">${starBar}</div>
-            </div>
-            <div style="margin-top:3px;">
-              <div style="font-size:.58rem;color:var(--text3);margin-bottom:1px;">JUMP</div>
-              <div style="display:flex;gap:1px;height:5px;border-radius:2px;overflow:hidden;">${jumpBar}</div>
+            <div style="margin-top:5px;">
+              <div style="display:flex;align-items:center;gap:.35rem;margin-bottom:2px;">
+                <span style="font-size:.57rem;color:var(--text3);width:28px;flex-shrink:0;">STAR</span>
+                <div style="flex:1;background:var(--border2);border-radius:2px;height:5px;overflow:hidden;">
+                  <div style="width:${starScore}%;height:100%;border-radius:2px;overflow:hidden;display:flex;gap:1px;">${starBar}</div>
+                </div>
+                <span style="font-family:DM Mono,monospace;font-size:.65rem;color:${ac};width:22px;text-align:right;">${starScore}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:.35rem;">
+                <span style="font-size:.57rem;color:var(--text3);width:28px;flex-shrink:0;">JUMP</span>
+                <div style="flex:1;background:var(--border2);border-radius:2px;height:5px;overflow:hidden;">
+                  <div style="width:${jumpScore}%;height:100%;border-radius:2px;overflow:hidden;display:flex;gap:1px;">${jumpBar}</div>
+                </div>
+                <span style="font-family:DM Mono,monospace;font-size:.65rem;color:var(--text3);width:22px;text-align:right;">${jumpScore}</span>
+              </div>
             </div>
           </div>
-          <div style="text-align:right;flex-shrink:0;min-width:40px;">
+          <div style="text-align:right;flex-shrink:0;min-width:36px;">
             <div style="font-family:DM Mono,monospace;font-size:1.15rem;font-weight:500;color:${ac};">${p.score}</div>
-            <div style="font-size:.58rem;color:var(--text3);">\u2605${starScore} / \u2191${jumpScore}</div>
+            <div style="font-size:.58rem;color:var(--text3);">score</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(${starComps.length},1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);">
@@ -4103,7 +4125,7 @@ function renderProjLeaders() {
     el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);">No projection data — run update.py to generate breakout.json.</div>';
     return;
   }
-  const selSeason = document.getElementById('proj-season-sel')?.value || '2025-26';
+  const selSeason = document.getElementById('proj-season-sel')?.value || '2026-27';
   const selType   = document.getElementById('proj-type-sel')?.value || 'fwd';
   const seasonKey = Object.keys(proj).find(k => k === selSeason || k.replace('-','\u2013') === selSeason) || Object.keys(proj)[0];
   const players = (proj[seasonKey] || {})[selType] || [];
