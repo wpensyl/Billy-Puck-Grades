@@ -3373,14 +3373,41 @@ function renderMicrostatPanel(p) {
   compEl.style.display = 'none';
 
   // ── Grouped microstat bars ───────────────────────────────────────────────
+  const isD = p._type === 'D' || p._type === 'LD' || p._type === 'RD';
   const MICRO_GROUPS = [
-    { label: 'In-Zone Offense',       keys: ['Rebounds Created','Shots off Dangerous Passes','One Timer Assists','One Timers',...((p._type==='D'||p._type==='LD'||p._type==='RD')?['Cycle Offense Contribution']:[])], },
-    { label: 'Forecheck',             keys: ['Forecheck Work Rate','Forecheck Recovery Success'] },
-    { label: 'Offensive Zone Entries',keys: ['Zone Entry Work Rate','% of Entries Carried In','Zone Entry Failure Rate'] },
-    { label: 'Entry Defense',         keys: ['Entry Denial Rate','Frequency of Chances Allowed'] },
-    { label: 'In-Zone Defense',       keys: ['Def. Zone Involvement','Shot Block Rate','Puck Retrievals Score','Retrievals Work Rate','Retrievals Success Rate','Exits off Retrievals%','Missed Pass/DZ Exchange'] },
-    { label: 'Def. Zone Exits',       keys: ['Def. Zone Exit Work Rate','Zone Exit Failure Rate','Rate of Assisted Exits','Rate of Exits w/ Possession','Assists from the Def. Zone'] },
-    { label: 'Physical Play & Penalties', keys: ['Hits','Giveaways Rate','Penalty Minutes','Penalties Drawn'] },
+    { label: 'In-Zone Offense', keys: [
+        'Primary Assists','Chance Assists','Secondary Setups','Indiv. Points %',
+        'Rebounds Created','Rebounds','Deflections',
+        'Shots off Dangerous Passes','One Timer Assists','One Timers',
+        'In-Zone Playmaking','In-Zone Shot Generation',
+        'Perimeter Playmaking','Down Low Playmaking',
+        ...(isD ? ['Cycle Offense Contribution'] : []),
+      ]},
+    { label: 'Forecheck', keys: [
+        'Forecheck Work Rate','Forecheck Playmaking','Shots off Possession Changes','Forecheck Recovery Success',
+      ]},
+    { label: 'Offensive Zone Entries', keys: [
+        'Zone Entry Work Rate','% of Entries Carried In','Zone Entry Failure Rate',
+        'Rush Chances','Rush Playmaking','NZ Ast/TO','Offensive Giveaways',
+      ]},
+    { label: 'Entry Defense', keys: [
+        'Entry Denial Rate','Frequency of Chances Allowed',
+      ]},
+    { label: 'In-Zone Defense', keys: [
+        'Shot Blocking','DZ Giveaways',
+        'Def. Zone Involvement','Puck Retrievals Score','Retrievals Work Rate',
+        'Retrievals Success Rate','Exits off Retrievals%','Missed Pass/DZ Exchange',
+      ]},
+    { label: 'Def. Zone Exits', keys: [
+        'Def. Zone Exit Work Rate','Zone Exit Failure Rate',
+        'Exits w/ Possession %','Unassisted Exit %','Transition Puck Carrying %',
+        'Rate of Assisted Exits','Rate of Exits w/ Possession',
+        'Puck Handling Efficiency','Counter Attacks',
+        'Assists from the Def. Zone',
+      ]},
+    { label: 'Physical Play & Penalties', keys: [
+        'Hits','Giveaways Rate','Penalty Minutes','Penalties Drawn',
+      ]},
   ];
 
   const microMap = {};
