@@ -280,9 +280,9 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 .contract-strip{display:flex;border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);flex-wrap:wrap;}
 .contract-strip-btm{border:1px solid var(--border2);border-radius:0 0 var(--radius-sm) var(--radius-sm);overflow:hidden;margin-top:.75rem;background:transparent;}
 .contract-strip-btm .c-item:nth-last-child(-n+2){border-bottom:none !important;}
-.c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border2);border-radius:0;}
+.c-item{flex:1;min-width:110px;padding:.75rem 1rem;border-right:1px solid var(--border2);border-radius:0;display:flex;flex-direction:column;}
 .c-item:first-child{border-left:none;}.c-item:last-child{border-right:none;}
-.c-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:3px;}
+.c-lbl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:3px;min-height:2.1em;display:flex;align-items:flex-end;}
 .c-val{font-family:DM Mono,monospace;font-size:.9rem;font-weight:500;}
 .c-val.pos{color:var(--teal);}
 .c-val.neg{color:var(--coral);}
@@ -960,11 +960,10 @@ function wireSearch(inputEl, ddEl, getPosFilter) {
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-const fmt$ = v => v == null ? '–' : '$' + Math.round(v).toLocaleString();
+const fmt$ = v => v == null ? '–' : '$' + (v/1000000).toFixed(2) + 'M';
 const fmtSurplus = v => {
   if (v == null) return '–';
-  const s = Math.round(v);
-  return (s >= 0 ? '+$' : '-$') + Math.abs(s).toLocaleString();
+  return (v >= 0 ? '+$' : '-$') + (Math.abs(v)/1000000).toFixed(2) + 'M';
 };
 const barClass = p => p >= 70 ? 'strong' : p <= 30 ? 'weak' : 'mid';
 const barColor = p => p >= 70 ? '#2dd4a0' : p <= 30 ? '#f4624a' : '#6b7280';
@@ -1638,447 +1637,570 @@ function renderComps(p, tabKey, pool) {
 // AUTO DESCRIPTION PANEL — disabled pending rule finalization
 // ─────────────────────────────────────────────────────────────────────────────
 function renderDescription(p) {
-  return; // disabled until descriptor rules are finalized
   const el = document.getElementById('desc-panel');
   if (!el) return;
   el.style.display = 'none';
   el.innerHTML = '';
 
-  // ── helpers ────────────────────────────────────────────────────────────────
-  function getCat(grp, name) {
-    const name_lo = name.toLowerCase();
-    const arr = (p.categories || {})[grp] || [];
-    const c = arr.find(x => x.name.toLowerCase() === name_lo);
-    return c ? c.pct : null;
-  }
-  function getMs(name) {
-    const name_lo = name.toLowerCase();
-    const ms = p.microstats || [];
-    const m = ms.find(x => x.name.toLowerCase() === name_lo);
-    return m ? m.pct : null;
-  }
-  function norm4(grp, name) {
-    const name_lo = name.toLowerCase();
-    const arr = (p.cat_norms_4yr || {})[grp] || [];
-    const c = arr.find(x => x.name.toLowerCase() === name_lo);
-    return c ? c.pct : null;
-  }
-  // cat_history: most-recent and prior seasons
-  function histSeasons(grp, name) {
-    const name_lo = name.toLowerCase();
-    const arr = (p.cat_history || {})[grp] || [];
-    const cat = arr.find(x => x.name.toLowerCase() === name_lo);
-    if (!cat || !cat.seasons) return {};
-    return cat.seasons;
-  }
-  function recentTwoPcts(grp, name) {
-    const s = histSeasons(grp, name);
-    const keys = Object.keys(s).sort();
-    if (keys.length < 2) return [s[keys[keys.length-1]] ?? null, null];
-    return [s[keys[keys.length-1]], s[keys[keys.length-2]]]; // [current, prior]
-  }
-  function consistentlyHigh(grp, name, thresh=72) {
-    const s = histSeasons(grp, name);
-    const vals = Object.values(s).filter(v => v != null);
-    if (vals.length < 2) return false;
-    return vals.filter(v => v >= thresh).length >= Math.max(2, Math.ceil(vals.length * 0.6));
-  }
-  function consistentlyLow(grp, name, thresh=30) {
-    const s = histSeasons(grp, name);
-    const vals = Object.values(s).filter(v => v != null);
-    if (vals.length < 2) return false;
-    return vals.filter(v => v <= thresh).length >= Math.max(2, Math.ceil(vals.length * 0.6));
-  }
-  function yoyDelta(grp, name) {
-    const [cur, prev] = recentTwoPcts(grp, name);
-    if (cur == null || prev == null) return null;
-    return cur - prev;
-  }
-  function H(n) { return n != null && n >= 72; }  // high
-  function VH(n) { return n != null && n >= 84; }  // very high
-  function M(n) { return n != null && n >= 45 && n < 72; }
-  function L(n)  { return n != null && n < 35; }  // low
-  function VL(n) { return n != null && n < 20; }  // very low
-  function safe(n, fallback=null) { return (n == null) ? fallback : n; }
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const gc = (grp, nm) => { const nl=nm.toLowerCase(), arr=(p.categories||{})[grp]||[], c=arr.find(x=>x.name.toLowerCase()===nl); return c?c.pct:null; };
+  const gm = nm => { const nl=nm.toLowerCase(), m=(p.microstats||[]).find(x=>x.name.toLowerCase()===nl); return m?m.pct:null; };
+  const g4 = (grp,nm) => { const nl=nm.toLowerCase(), arr=(p.cat_norms_4yr||{})[grp]||[], c=arr.find(x=>x.name.toLowerCase()===nl); return c?c.pct:null; };
+  const histS = (grp,nm) => { const nl=nm.toLowerCase(), arr=(p.cat_history||{})[grp]||[], c=arr.find(x=>x.name.toLowerCase()===nl); return c?c.seasons||{}:{}; };
+  const yoyD = (grp,nm) => { const s=histS(grp,nm), k=Object.keys(s).sort(); if(k.length<2)return null; const v1=s[k[k.length-1]],v2=s[k[k.length-2]]; return(v1!=null&&v2!=null)?v1-v2:null; };
+  const consHigh = (grp,nm,th=72) => { const vals=Object.values(histS(grp,nm)).filter(v=>v!=null); return vals.length>=2&&vals.filter(v=>v>=th).length>=Math.max(2,Math.ceil(vals.length*0.6)); };
+  const seasonsN = () => { const grp=(p.cat_history||{})['Scoring']||[]; return grp.length?Object.values(grp[0].seasons||{}).filter(v=>v!=null).length:1; };
+  const topCats = (n=10) => { const sc=[]; for(const[g,cats]of Object.entries(p.categories||{}))for(const c of cats)if(c.pct!=null)sc.push([c.pct,c.name]); return sc.sort((a,b)=>b[0]-a[0]).slice(0,n).map(x=>x[1]); };
 
-  const isD  = p._type === 'D';
-  const age  = p.age || 0;
-  const toi  = getCat('Usage', 'Time on Ice');
-  const qoc  = getCat('Usage', 'Quality of Comp.');
-  const role = (p.actual_role || p.role || '').toLowerCase();
-  const playstyle = p.playstyle || '';
+  const H  = v => v!=null&&v>=72;
+  const VH = v => v!=null&&v>=84;
+  const EL = v => v!=null&&v>=95;
+  const L  = v => v!=null&&v<=37;
+  const VL = v => v!=null&&v<=20;
+  const M  = v => v!=null&&v>37&&v<72;   // strictly between Low and High
 
-  // Current season category values
-  const speed    = getCat('Athletic & Compete', 'Speed');
-  const endu     = getCat('Athletic & Compete', 'Endurance');
-  const phys     = getCat('Athletic & Compete', 'Physicality');
-  const goals    = getCat('Scoring', 'Goalscoring');
-  const finish   = getCat('Scoring', 'Finishing');
-  const shotVol  = getCat('Scoring', 'Shot Volume');
-  const shotQual = getCat('Scoring', 'Shot Quality');
-  const shotSpd  = getCat('Scoring', 'Shot Speed');
-  const passing  = getCat('Offense', 'Passing');
-  const playdri  = getCat('Offense', 'Playdriving');
-  const rush     = getCat('Offense', 'Rush Offense');
-  const fore     = getCat('Offense', 'Forecheck Offense');
-  const cycle    = getCat('Offense', 'Cycle Offense');
-  const net      = getCat('Offense', 'Net-Front Presence');
-  const faceoff  = getCat('Offense', 'Faceoffs');
-  const entDef   = getCat('Defense', 'Entry Defense');
-  const suppress = getCat('Defense', 'Shot Suppression');
-  const takeawy  = getCat('Defense', 'Takeaways');
-  const exits    = getCat('Defense', 'Def. Zone Exits');
-  const ppc      = getCat('Special Teams', 'Power Play');
-  const pkc      = getCat('Special Teams', 'Penalty Kill');
-  const offProd  = getCat('Analytics', 'On-Ice Offense');
-  const defProd  = getCat('Analytics', 'On-Ice Defense');
-  const offAna   = getCat('Analytics', 'Relative Offense');
-  const defAna   = getCat('Analytics', 'Relative Defense');
-  const relOZ    = getCat('Analytics', 'Relative Offense');
-  const relDZ    = getCat('Analytics', 'Relative Defense');
+  // Pronoun helper: replace player name with he/his/him in follow-on sentences
+  const subPron = (sents, nm) => sents.map((s,i) => {
+    if(i===0) return s;
+    s = s.replace(new RegExp(`\\b${nm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}'s\\b`,'g'), 'his');
+    s = s.replace(new RegExp(`\\b${nm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'g'), 'He');
+    return s;
+  });
+
+  const isD = p._type==='D' || ['LD','RD','D'].includes((p.pos||'').toUpperCase());
+  const age = p.age||0; const ov = p.overall_pct||0;
+  const playstyle = (p.playstyle||'').toLowerCase();
+  const sn = seasonsN();
+
+  // All categories
+  const toi=gc('Usage','Time on Ice'), qoc=gc('Usage','Quality of Comp.');
+  const pp=gc('Special Teams','Power Play'), pk=gc('Special Teams','Penalty Kill');
+  const pend=gc('Special Teams','Penalty Differential');
+  const goals=gc('Scoring','Goalscoring'), finish=gc('Scoring','Finishing');
+  const shotv=gc('Scoring','Shot Volume'), shotq=gc('Scoring','Shot Quality');
+  const shotsp=gc('Scoring','Shot Speed');
+  const passing=gc('Offense','Passing'), playd=gc('Offense','Playdriving');
+  const rush=gc('Offense','Rush Offense'), fore=gc('Offense','Forecheck Offense');
+  const cycle=gc('Offense','Cycle Offense'), net=gc('Offense','Net-Front Presence');
+  const face=gc('Offense','Faceoffs');
+  const speed=gc('Athletic & Compete','Speed'), endu=gc('Athletic & Compete','Endurance');
+  const phys=gc('Athletic & Compete','Physicality');
+  const entdef=gc('Defense','Entry Defense'), supp=gc('Defense','Shot Suppression');
+  const takeaw=gc('Defense','Takeaways'), exits=gc('Defense','Def. Zone Exits');
+  const offprod=gc('Analytics','On-Ice Offense'), defprod=gc('Analytics','On-Ice Defense');
+  const offana=gc('Analytics','Relative Offense'), defana=gc('Analytics','Relative Defense');
+  const teamz=offana; // proxy
 
   // Microstats
-  const ms_hits       = getMs('Hits');
-  const ms_pim        = getMs('Penalty Minutes');
-  const ms_penDrawn   = getMs('Penalties Drawn');
-  const ms_entCarried = getMs('% of Entries Carried In');
-  const ms_entFail    = getMs('Zone Entry Failure Rate');
-  const ms_entWork    = getMs('Zone Entry Work Rate');
-  const ms_entDenial  = getMs('Entry Denial Rate');
-  const ms_foreWork   = getMs('Forecheck Work Rate');
-  const ms_foreRecov  = getMs('Forecheck Recovery Success');
-  const ms_retrWork   = getMs('Retrievals Work Rate');
-  const ms_retrSucc   = getMs('Retrievals Success Rate');
-  const ms_exitsRetr  = getMs('Exits off Retrievals%');
-  const ms_exitWork   = getMs('Def. Zone Exit Work Rate');
-  const ms_exitFail   = getMs('Zone Exit Failure Rate');
-  const ms_missedPass = getMs('Missed Pass/DZ Exchange');
-  const ms_giveaway   = getMs('Giveaways Rate');
-  const ms_dzInvolve  = getMs('Def. Zone Involvement');
-  const ms_dzAssists  = getMs('Assists from the Def. Zone');
-  const ms_shotsDang  = getMs('Shots off Dangerous Passes');
-  const ms_retrScore  = getMs('Puck Retrievals Score');
-  const ms_cycleContr = getMs('Cycle Offense Contribution');
-  const ms_rebounds   = getMs('Rebounds Created');
-  const ms_oneTimer   = getMs('One Timer Assists');
+  const ms_soh=gm('Shot off HD/60'), ms_cc=gm('Shots off Dangerous Passes')||gm('Shot off HD/60');
+  const ms_ot=gm('One Timer Assists')||gm('One Timers'), ms_reb=gm('Rebounds Created');
+  const ms_carry=gm('% of Entries Carried In'), ms_ew=gm('Zone Entry Work Rate');
+  const ms_fr=gm('Forecheck Recovery Success'), ms_cyc=gm('Cycle Offense Contribution');
+  const ms_dzinv=gm('Def. Zone Involvement'), ms_rw=gm('Retrievals Work Rate');
+  const ms_rs=gm('Retrievals Success Rate'), ms_exitw=gm('Def. Zone Exit Work Rate');
+  const ms_exitf=gm('Zone Exit Failure Rate'), ms_dzg=gm('DZ Giveaways');
+  const ms_mp=gm('Missed Pass/DZ Exchange'), ms_ed=gm('Entry Denial Rate');
+  const ms_da=gm('Assists from the Def. Zone'), ms_er=gm('Exits off Retrievals%');
+  const ms_un=gm('Unassisted Exit %'), ms_pim=gm('Penalty Minutes');
+  const ms_hits=gm('Hits'), ms_fw=gm('Forecheck Work Rate'), ms_ht=gm('Hits Taken');
+  const ms_ozg=gm('OZ Giveaways'), ms_denials=gm('Denials per 60');
+  const ms_chag=gm('Chance Against%'), ms_grit=gm('Gritty Shots');
+  const ms_perim=gm('Perimeter Playmaking'), ms_downlow=gm('Down Low Playmaking');
+  const ms_rushass=gm('Rush Playmaking'), ms_shotrush=gm('Shots off Rush');
+  const ms_ac=gm('Assists off Cycle'), ms_sc=gm('Shots off Cycle');
+  const ms_tp=gm('Transition Puck Carrying %'), ms_phe=gm('Puck Handling Efficiency');
+  const ms_fg=gm('Forecheck Playmaking'), ms_nz=gm('NZ Ast/TO');
+  const ms_shotrec=gm('Shots off Possession Changes');
 
-  // 4-year norms
-  const n4_goals  = norm4('Scoring','Goalscoring');
-  const n4_finish = norm4('Scoring','Finishing');
-  const n4_toi    = norm4('Usage','Time on Ice');
-  const n4_qoc    = norm4('Usage','Quality of Comp.');
-  const n4_pass   = norm4('Offense','Passing');
+  const n4g=g4('Scoring','Goalscoring'), n4f=g4('Scoring','Finishing');
+  const ht = (() => { const s=p.height; if(!s)return null; const m=String(s).match(/(\d+)'?\s*(\d+)/); return m?+m[1]+ +m[2]/12:parseFloat(s)||null; })();
+  const wt = p.weight;
+  const draft = p.draft_pos;
 
-  // ── Build description blocks ────────────────────────────────────────────────
-  const blocks = [];   // each block = { tag, text }
+  // Prior overall for tier/ascending logic
+  const pov = (() => { const h=(p.progression||{}).overall||[]; const v=h.filter(s=>s.pct!=null&&s.season!=='2025-26'); return v.length?v[v.length-1].pct:null; })();
 
-  // 1. ROLE / DEPLOYMENT CONTEXT
-  const sheltered = L(qoc);
-  const toughMins = VH(qoc);
-  const topLine   = VH(toi) || role.includes('top');
-  const bottom6   = L(toi) || role.includes('4th') || role.includes('bottom 6');
-  let roleBlock = '';
-  if (toughMins && topLine)     roleBlock = `Deployed in ${isD?'top-pair':'top-line'} minutes against elite competition`;
-  else if (toughMins)           roleBlock = `Draws consistently tough competition despite limited offensive deployment`;
-  else if (sheltered && topLine) roleBlock = `Top-line deployment in sheltered minutes — production aided by favorable matchups`;
-  else if (sheltered)            roleBlock = `Primarily used in a sheltered role against softer competition`;
-  else if (topLine)              roleBlock = `${isD?'Top-pair':'Top-line'} deployment with average matchup difficulty`;
-  else if (bottom6)              roleBlock = `Bottom-${isD?'pair':'six'} deployment`;
-  if (roleBlock) blocks.push({ tag:'ROLE', text: roleBlock + '.' });
+  const ROLE_BARE = {
+    'Elite':'Elite','Top Line':'Top-Line','Top Pair':'Top-Pair','T6':'Top-6',
+    '2nd Pair':'Second-Pair','M6':'Middle-6','3rd Pair':'Third-Pair',
+    'T7':'Depth','4th Line':'Fourth-Line','Bad':'Depth','Fringe':'Depth'
+  };
+  const approxRole = pct => {
+    if(!pct) return '4th Line';
+    if(pct>=95) return 'Elite';
+    if(pct>=84) return isD?'Top Pair':'Top Line';
+    if(pct>=72) return isD?'2nd Pair':'T6';
+    if(pct>=58) return isD?'3rd Pair':'M6';
+    return '4th Line';
+  };
+  const bl = ROLE_BARE[p.role||'']||'notable';
+  const art = bl[0].match(/[AEIOUaeiou]/)?'an':'a';
+  const priorRole = pov!=null ? approxRole(pov) : null;
+  const ascending = priorRole!=null && priorRole!==(p.role||'') && ov>(pov||0) && age<32;
+  const consistent = sn>=3 && !ascending;
 
-  // 2. ROLE CHANGE FLAG
-  const deltaTOI = yoyDelta('Usage','Time on Ice');
-  const deltaQoC = yoyDelta('Usage','Quality of Comp.');
-  if (deltaTOI != null && Math.abs(deltaTOI) >= 20) {
-    const dir = deltaTOI > 0 ? 'significantly more' : 'significantly fewer';
-    blocks.push({ tag:'CHANGE', text: `Role shift: earning ${dir} ice time than last season (${deltaTOI>0?'+':''}${Math.round(deltaTOI)} pts TOI).` });
-  }
-  if (deltaQoC != null && Math.abs(deltaQoC) >= 20) {
-    const dir = deltaQoC > 0 ? 'tougher' : 'easier';
-    blocks.push({ tag:'CHANGE', text: `Facing ${dir} competition than last season (QoC shift: ${deltaQoC>0?'+':''}${Math.round(deltaQoC)} pts).` });
-  }
+  const nm = p.name||'Player'; const pos = isD?'defenseman':'forward';
 
-  // 3. OFFENSIVE PROFILE
-  const offPhrases = [];
+  // ── PARAGRAPH 1: Tier + Role + Change ────────────────────────────────────
+  let t1;
+  if(ascending) t1=`${nm} is an ascending ${bl} ${pos}`;
+  else if(consistent) t1=`${nm} has been a consistently ${bl} ${pos}`;
+  else t1=`${nm} is ${art} ${bl} ${pos}`;
 
-  // Goalscoring style
-  if (H(goals)) {
-    if (VH(finish) && H(shotQual) && H(shotVol))
-      offPhrases.push('a true goal scorer — combines elite finishing with shot volume and dangerous-chance generation');
-    else if (VH(finish) && consistentlyHigh('Scoring','Finishing') && L(shotVol))
-      offPhrases.push('an efficient finisher — converts at a high rate despite modest shot volume, with consistently strong finishing across multiple seasons');
-    else if (VH(finish) && H(shotQual))
-      offPhrases.push('a sharp-angle scorer — elite finishing driven by shot quality and shot selection rather than raw volume');
-    else if (VH(shotVol) && M(finish))
-      offPhrases.push('a high-volume shooter whose goal totals are more about quantity of looks than elite finishing efficiency');
-    else if (VH(shotSpd))
-      offPhrases.push('a dangerous scorer with an elite-level shot');
-    else
-      offPhrases.push('a consistent goal threat');
-  } else if (H(finish) && !H(goals)) {
-    offPhrases.push('a streaky finisher — above-average conversion rate but limited shot generation caps scoring upside');
-  }
+  // Role clause
+  let rc=null;
+  if(VH(toi)&&VH(qoc))        rc=`deployed in top-${isD?'pair':'line'} minutes against elite competition`;
+  else if(VH(qoc)&&!VH(toi))  rc=`who plays in a shutdown role`;
+  else if(VH(toi)&&L(qoc))    rc=`who sees top-${isD?'pair':'line'} deployment in sheltered minutes`;
+  else if(L(qoc)&&!VH(toi))   rc=`primarily used in a sheltered role against softer competition`;
+  else if(VH(toi)&&M(qoc))    rc=`who sees top-${isD?'pair':'line'} deployment with average matchup difficulty`;
+  else if(VH(toi))             rc=`who sees top-${isD?'pair':'line'} deployment`;
+  else if(L(toi)||(p.role||'').match(/4th Line|Bad|Fringe|T7/)) rc=`who sees bottom-${isD?'pair':'six'} deployment`;
 
-  // Playmaking
-  if (VH(passing) && VH(playdri))
-    offPhrases.push('a genuine playmaker — consistently elite passing and playdriving scores');
-  else if (H(passing))
-    offPhrases.push('an above-average playmaker');
+  // PP/PK clause
+  let st=null;
+  const comp5v5=offprod;
+  if(isD&&VH(pp)&&H(passing))        st=`at 5v5, and quarterbacks the power play as well`;
+  else if(H(pp)&&H(comp5v5)&&H(pk))  st=`at 5v5, and contributes in all situations`;
+  else if(H(pp)&&H(comp5v5))         st=`at 5v5, and is also a solid contributor on the Power Play`;
+  else if(H(pp)&&!H(comp5v5))        st=`at 5v5, and is a Power Play specialist`;
+  else if(H(pk)&&!H(pp))             st=`at 5v5, and is also relied upon as a Penalty Kill specialist`;
+  else if(H(pp)&&H(pk)&&!H(comp5v5)) st=`at 5v5, and is also relied upon on both the Power Play and Penalty Kill`;
 
-  // Offensive IQ
-  if (H(passing) && H(shotQual) && H(ms_shotsDang))
-    offPhrases.push('strong offensive IQ — creates and converts off dangerous passes');
+  const clauses=[rc,st].filter(Boolean);
+  let p1sents=[t1+(clauses.length?`, ${clauses.join(', ')}`:'')+'.'];
 
-  // Shot
-  if (VH(shotSpd) && !H(goals))
-    offPhrases.push('a bomb of a shot that has not yet translated into elite goal totals');
+  // Tier shift (z-score proxy: 100pct ≈ 6z, threshold 0.75z ≈ 12.5pct, 1.25z ≈ 21pct)
+  const CAT_PAIRS=[['Scoring','Goalscoring'],['Offense','Passing'],['Scoring','Shot Volume'],
+    ['Defense','Takeaways'],['Defense','Entry Defense'],['Athletic & Compete','Speed'],
+    ['Offense','Playdriving'],['Scoring','Finishing'],['Defense','Def. Zone Exits'],
+    ['Athletic & Compete','Endurance'],['Offense','Rush Offense'],['Offense','Forecheck Offense'],
+    ['Offense','Cycle Offense'],['Athletic & Compete','Physicality'],['Defense','Shot Suppression'],
+    ['Special Teams','Power Play'],['Special Teams','Penalty Kill']];
 
-  // Offensive style sources
-  const stylePhrs = [];
-  if (VH(fore) || (H(fore) && playstyle.toLowerCase().includes('forecheck')))
-    stylePhrs.push('forecheck');
-  if (VH(rush) || (H(rush) && ms_dzAssists != null && H(ms_dzAssists)))
-    stylePhrs.push('transition/rush');
-  if (VH(cycle) || H(ms_cycleContr))
-    stylePhrs.push('cycle');
-  if (H(net) || H(ms_rebounds))
-    stylePhrs.push('net-front');
-  if (stylePhrs.length)
-    offPhrases.push(`primary offensive threats come from ${stylePhrs.join(', ')} play`);
-
-  // Puck carrier
-  if (H(ms_entCarried) && H(ms_entWork))
-    offPhrases.push('carries the puck into the zone at a high rate — skilled at zone entry');
-
-  // Transition offense
-  if (H(rush) && H(ms_dzAssists) && H(ms_entCarried))
-    offPhrases.push('converts transition play into offense — generating scoring off defensive-zone exits and rush opportunities');
-
-  if (offPhrases.length)
-    blocks.push({ tag:'OFFENSE', text: 'Offensively: ' + offPhrases.join('; ') + '.' });
-
-  // 4. DEFENSIVE PROFILE
-  const defPhrases = [];
-
-  // Relied upon in DZ
-  if (H(defProd) && (H(ms_dzInvolve) || H(ms_retrWork)))
-    defPhrases.push('heavily relied upon in the defensive zone — high defensive-zone involvement and retrieval work rate');
-  else if (H(defProd))
-    defPhrases.push('strong defensive producer');
-
-  // Efficient vs high-volume DZ
-  if (H(ms_retrSucc) && H(ms_exitsRetr) && L(ms_exitFail))
-    defPhrases.push('efficient in the defensive end — above-average retrieval success and zone exit rate');
-  else if (L(ms_retrSucc) && H(ms_retrWork))
-    defPhrases.push('works hard in the defensive zone but retrieval efficiency is a weakness');
-
-  // Mistakes
-  if ((VL(ms_giveaway) || VL(ms_missedPass)) && H(ms_exitFail))
-    defPhrases.push('liable to make mistakes in the defensive zone — prone to giveaways or failed exits');
-  else if (VL(ms_giveaway))
-    defPhrases.push('careless with the puck — high giveaway rate');
-
-  // Puck mover (D specifically)
-  if (isD && H(ms_exitWork) && H(ms_entCarried))
-    defPhrases.push('a puck-moving defenseman — high exit work rate and strong carry-in percentage');
-
-  // Entry defense / stickcheck
-  if (H(entDef) && H(takeawy) && H(ms_foreRecov) && H(ms_entDenial))
-    defPhrases.push('excellent at stickchecking and entry denial — elite takeaway numbers backed by strong forecheck recovery and entry denial rates');
-  else if (H(takeawy) && H(ms_entDenial))
-    defPhrases.push('active in the defensive game — above-average takeaways and entry denial');
-  else if (H(entDef))
-    defPhrases.push('effective at preventing zone entries');
-
-  if (defPhrases.length)
-    blocks.push({ tag:'DEFENSE', text: 'Defensively: ' + defPhrases.join('; ') + '.' });
-
-  // 5. PHYSICAL / COMPETE PROFILE
-  const physPhrases = [];
-  if (VH(speed) && H(endu))
-    physPhrases.push('an elite skater — top-tier speed and endurance');
-  else if (VH(speed))
-    physPhrases.push('an elite skater');
-  else if (H(speed) && H(endu))
-    physPhrases.push('a strong skater with good endurance');
-
-  if (H(phys) && H(ms_hits) && H(ms_foreWork) && H(ms_retrWork))
-    physPhrases.push('plays with and through physicality — high hit totals, aggressive forecheck, and hard retrieval work');
-  else if (H(phys) && H(ms_hits))
-    physPhrases.push('a physical presence');
-
-  if (VH(ms_penDrawn) && L(ms_pim))
-    physPhrases.push('draws penalties at a high rate while staying disciplined');
-  else if (VH(ms_pim) || (p.pim && p.pim > 80))
-    physPhrases.push('takes a lot of penalties — a liability on the discipline front');
-  else if (H(ms_penDrawn))
-    physPhrases.push('draws penalties at an above-average rate');
-
-  if (physPhrases.length)
-    blocks.push({ tag:'PHYSICAL', text: physPhrases.join('; ') + '.' });
-
-  // 6. FACEOFFS
-  if (!isD && faceoff != null) {
-    if (VH(faceoff))      blocks.push({ tag:'FACEOFFS', text: 'Elite faceoff specialist — among the best in the league in the dot.' });
-    else if (H(faceoff))  blocks.push({ tag:'FACEOFFS', text: 'Above-average at faceoffs.' });
-    else if (VL(faceoff)) blocks.push({ tag:'FACEOFFS', text: 'A liability at the dot — well below average faceoff percentage.' });
+  if(pov!=null){
+    const dpct=ov-pov, dz=dpct/100*6;
+    if(Math.abs(dz)>=0.75){
+      const dir=dpct>0;
+      const deltas=CAT_PAIRS.map(([g,cn])=>{const dv=yoyD(g,cn);return dv!=null&&(dv>0)===dir?[Math.abs(dv),cn]:null;}).filter(Boolean).sort((a,b)=>b[0]-a[0]);
+      const top3=deltas.slice(0,3).map(x=>x[1]);
+      const mag=Math.abs(dz)>=1.25?'dramatic':'significant';
+      const d_toi=yoyD('Usage','Time on Ice'), d_qoc=yoyD('Usage','Quality of Comp.');
+      const toiUp=d_toi!=null&&d_toi>=20, toiDn=d_toi!=null&&d_toi<=-20;
+      const qocUp=d_qoc!=null&&d_qoc>=20, qocDn=d_qoc!=null&&d_qoc<=-20;
+      const cats=top3.length>1?top3.slice(0,-1).join(', ')+' and '+top3[top3.length-1]:top3[0]||'';
+      const imp=`improved ${cats}`, wkr=`weaker ${cats}`;
+      let ts='';
+      if(dir){
+        if(qocUp&&toiUp)         ts=`Despite playing tougher minutes than the previous season, ${nm} took advantage of his greater 5v5 role and saw ${mag} overall improvement in 2025-26, highlighted by ${imp}.`;
+        else if(qocUp)           ts=`Despite playing tougher minutes than the previous season, ${nm} saw ${mag} overall improvement in 2025-26, highlighted by ${imp}.`;
+        else if(qocDn&&toiUp)    ts=`${nm} saw his 5v5 role grow, but in more sheltered minutes, which helped contribute toward ${mag} overall improvement in 2025-26; other key drivers included ${imp}.`;
+        else if(toiUp)           ts=`${nm} saw ${mag} overall improvement in 2025-26, highlighted by ${imp}; and his breakout was accompanied by higher 5v5 deployment.`;
+        else if(toiDn)           ts=`${nm} saw ${mag} overall improvement in 2025-26, highlighted by ${imp}; this occurred despite a reduction in ice time at 5v5.`;
+        else if(qocDn)           ts=`${nm} saw ${mag} overall improvement in 2025-26, highlighted by ${imp}; however, he did benefit from an easier 5v5 role vs. the previous season.`;
+        else                     ts=`${nm} saw ${mag} overall improvement in 2025-26, highlighted by ${imp}.`;
+      } else {
+        if(qocDn&&toiDn)         ts=`${nm} saw a ${mag} overall decline in 2025-26, primarily due to ${wkr}; and his decline was accompanied by a more sheltered, smaller 5v5 role.`;
+        else if(qocUp&&toiDn)    ts=`${nm} played in a more limited but tougher role in 2025-26, which contributed to a decline, with particular weakness in ${wkr}.`;
+        else if(toiDn)           ts=`${nm} saw a ${mag} overall decline in 2025-26, primarily due to ${wkr}; and his decline was accompanied by less deployment at 5v5.`;
+        else                     ts=`${nm} saw a ${mag} overall decline in 2025-26, primarily due to ${wkr}.`;
+      }
+      if(ts) p1sents.push(ts);
+    }
   }
 
-  // 7. SPECIAL TEAMS
-  const stPhrases = [];
-  if (VH(ppc))  stPhrases.push('a key power play contributor');
-  if (VH(pkc))  stPhrases.push('a reliable penalty killer');
-  if (stPhrases.length)
-    blocks.push({ tag:'SPECIAL TEAMS', text: stPhrases.join('; and ') + '.' });
+  // YoY role/context shift (no tier shift)
+  if(p1sents.length===1){
+    const d_toi=yoyD('Usage','Time on Ice'), d_qoc=yoyD('Usage','Quality of Comp.');
+    if(d_toi!=null&&d_qoc!=null&&Math.abs(d_toi)>=20&&Math.abs(d_qoc)>=20)
+      p1sents.push(`${nm} earned ${d_toi>0?'significantly more':'significantly less'} ice time than last season, and did so facing ${d_qoc>0?'tougher':'easier'} competition.`);
+    else if(d_toi!=null&&Math.abs(d_toi)>=20)
+      p1sents.push(`${nm} earned ${d_toi>0?'significantly more':'significantly less'} ice time than last season.`);
+    else if(d_qoc!=null&&Math.abs(d_qoc)>=20)
+      p1sents.push(`${nm} faced ${d_qoc>0?'tougher':'easier'} competition than last season.`);
+  }
+  const para1 = subPron(p1sents, nm).join(' ');
 
-  // 8. ANALYTICS PROFILE
-  if ((VH(offAna) && !H(offProd)) || (VH(defAna) && !H(defProd))) {
-    const sides = [];
-    if (VH(offAna) && !H(offProd)) sides.push('offensive');
-    if (VH(defAna) && !H(defProd)) sides.push('defensive');
-    blocks.push({ tag:'ANALYTICS', text: `Analytics darling on the ${sides.join(' and ')} side — strong underlying metrics that don't yet fully appear in the production numbers.` });
-  } else if (H(offProd) && !H(offAna)) {
-    blocks.push({ tag:'ANALYTICS', text: 'Production scores exceed underlying analytics — results-based performer whose output may not be fully sustainable at current rates.' });
+  // ── PARAGRAPH 2: Offense ──────────────────────────────────────────────────
+  const S2=[]; const N2=()=>S2.length?'He':nm;
+
+  // 3a goalscoring
+  if(H(goals)){
+    if(VH(finish)&&H(shotq)&&H(shotv)) S2.push(`${nm} is a true goal scorer, combining high-end finishing with high shot volume and quality.`);
+    else if(VH(finish)&&L(shotv))      S2.push(`${nm} is an efficient finisher, converting at a high rate despite modest shot volume.`);
+    else if(VH(finish)&&L(shotq))      S2.push(`${nm} is a sniper, with high-end finishing despite taking shots from bad angles.`);
+    else if(VH(shotv)&&M(finish))      S2.push(`${nm} is a high-volume shooter whose goal totals are more about quantity of looks than elite finishing efficiency.`);
+    else if(VH(shotsp)&&VH(goals))     S2.push(`${nm} is a dangerous scorer with high-end shot speed.`);
+    else                               S2.push(`${nm} is a goalscoring threat.`);
+    if(H(shotq)&&VH(ms_soh||0))        S2.push(`He puts himself in great position to score, both with and without the puck.`);
+    else if(H(shotq))                   S2.push(`He puts himself in great position to score.`);
+  }
+  // Puck dies on stick
+  if(H(toi)&&L(offana)&&H(teamz||0)&&L(goals)&&(ms_soh==null||M(ms_soh)))
+    S2.push(`The puck tends to die on his stick — he benefits from a strong supporting cast but has not been able to turn his opportunities into production.`);
+  // 3b finishing without goalscoring
+  if(VH(finish)&&!H(goals)) S2.push(`${N2()} flashes a quality shot, but limited chance generation has capped his scoring upside.`);
+
+  // Playdriver (fires after goalscoring opener if applicable)
+  if(H(shotq)&&H(playd)&&H(offana)){
+    const ms_chp=ms_soh||ms_cc;
+    if(H(shotv)&&L(passing))        S2.push(`${N2()} tilts the ice in his team's favor individually as a chance generator.`);
+    else if(H(passing)&&L(shotv))   S2.push(`${N2()} tilts the ice in his team's favor as a playmaker.`);
+    else                             S2.push(`${N2()} tilts the ice in his team's favor and contributes towards high-quality chances.`);
   }
 
-  // 9. YEAR-OVER-YEAR BIGGEST MOVERS
-  const deltas = [];
-  const catMap = [
-    ['Scoring','Goalscoring','Goalscoring'],
-    ['Scoring','Finishing','Finishing'],
-    ['Scoring','Shot Volume','Shot Volume'],
-    ['Offense','Passing','Passing'],
-    ['Offense','Playdriving','Playdriving'],
-    ['Defense','Takeaways','Takeaways'],
-    ['Defense','Entry Defense','Entry Defense'],
-    ['Defense','Shot Suppression','Shot Suppression'],
-    ['Athletic & Compete','Speed','Speed'],
-    ['Athletic & Compete','Endurance','Endurance'],
-  ];
-  for (const [grp, name, label] of catMap) {
-    const d = yoyDelta(grp, name);
-    if (d != null) deltas.push({ label, d });
-  }
-  deltas.sort((a,b) => Math.abs(b.d) - Math.abs(a.d));
-  const bigUp   = deltas.filter(x => x.d >= 15).slice(0,2);
-  const bigDown = deltas.filter(x => x.d <= -15).slice(0,2);
-  if (bigUp.length || bigDown.length) {
-    const parts = [];
-    if (bigUp.length)   parts.push(`biggest improvements this season: ${bigUp.map(x=>`${x.label} (+${Math.round(x.d)})`).join(', ')}`);
-    if (bigDown.length) parts.push(`biggest declines: ${bigDown.map(x=>`${x.label} (${Math.round(x.d)})`).join(', ')}`);
-    blocks.push({ tag:'YEAR-OVER-YEAR', text: parts.join('; ') + '.' });
+  // 3c mean reversion
+  if(VH(goals)&&n4g!=null&&!H(n4g)&&ov>=60) S2.push(`${nm}'s goalscoring pace is above his historical norm — some regression is expected, as this is a low-durability statistical category.`);
+  if(VH(finish)&&n4f!=null&&!H(n4f)&&ov>=60) S2.push(`His finishing rate was above his historical norm this season, and is likely to see some regression.`);
+  if(H(finish)&&consHigh('Scoring','Finishing')&&ov>=60) S2.push(`His finishing rate has been elite across multiple seasons, indicating genuine goalscoring talent, not just the benefit of a one-year fluke.`);
+
+  // 3d playmaking
+  if(VH(passing)&&VH(playd))  S2.push(`${N2()} is a genuine playmaker, with the ability to create high-quality chances for himself and his teammates.`);
+  else if(H(passing)){
+    if(H(ms_da||0)&&H(ms_nz||0)&&VH(passing))
+      S2.push(isD?`${N2()} is particularly skilled at stretch passes and making plays to get the puck up ice into dangerous situations.`:`${N2()} demonstrates his high-level passing across all 3 zones.`);
+    else S2.push(`${N2()} is an above-average playmaker with good vision.`);
   }
 
-  // 10. CONSISTENT STRENGTHS / WEAKNESSES (4-year norms)
-  const strengths = []; const weaknesses = [];
-  for (const [grp, name, label] of catMap) {
-    const n4 = norm4(grp, name);
-    if (n4 != null && n4 >= 78) strengths.push(label);
-    if (n4 != null && n4 <= 25) weaknesses.push(label);
-  }
-  if (strengths.length)
-    blocks.push({ tag:'STRENGTHS', text: `Consistently strong (4-year norms): ${strengths.join(', ')}.` });
-  if (weaknesses.length)
-    blocks.push({ tag:'WEAKNESSES', text: `Consistent weaknesses: ${weaknesses.join(', ')}.` });
+  // 3e offensive IQ
+  if(H(passing)&&H(shotq)&&H(ms_cc||0)) S2.push(`${N2()} has a solid offensive IQ, with strong vision and sense for positioning within the offensive zone.`);
 
-  // 11. PREDICTIVE / REGRESSION INSIGHTS
-  const predPhrases = [];
-  const ov = p.overall_pct || 0;
-  const isYoung = age < 25.5;
-  const isPrime = age >= 26 && age < 32;
-  const isVet   = age >= 32;
-  const isStar  = ov >= 72;
-  const isElite = ov >= 84;
+  // 3f shot speed
+  if(VH(shotsp)&&!H(goals))            S2.push(`${N2()} has a bomb of a shot that has not yet translated into elite goal totals.`);
+  else if(VH(shotsp)&&VH(ms_ot||0))    S2.push(`${N2()} has a bomb of a shot, and frequently uses it for one-timers.`);
+  else if(VH(ms_ot||0)&&!VH(shotsp))   S2.push(`${N2()} has a dangerous one-timer.`);
 
-  // Breakout potential (young, sub-75 overall)
-  if (isYoung && ov < 75) {
-    const breakoutSignals = [];
-    if (VH(toi))      breakoutSignals.push('strong deployment (TOI)');
-    if (VH(passing) && !isD) breakoutSignals.push('elite passing');
-    if (p.draft_pos && parseFloat(p.draft_pos) <= 32) breakoutSignals.push('top-32 draft pedigree');
-    if (H(takeawy) && !isD) breakoutSignals.push('active takeaway game');
-    if (breakoutSignals.length >= 2)
-      predPhrases.push(`Breakout candidate: fits the profile based on ${breakoutSignals.join(' and ')}`);
-  }
+  // 3g offensive styles — correct labels per spec
+  const foreF=VH(fore)||(H(fore)&&playstyle.includes('forecheck'));
+  const rushF=VH(rush)||(H(rush)&&playstyle.includes('rush'));
+  const cycF =VH(cycle)||(H(cycle)&&playstyle.includes('cycle'))||H(ms_cyc||0);
+  const netF =H(net)||H(ms_reb||0);
 
-  // DMAN breakout (young)
-  if (isD && isYoung && ov < 75) {
-    const dmanSignals = [];
-    if (VH(speed))   dmanSignals.push('elite skating');
-    if (H(shotQual)) dmanSignals.push('shot selection');
-    if (H(qoc))      dmanSignals.push('tough-matchup deployment');
-    if (dmanSignals.length >= 2)
-      predPhrases.push(`Shows defensive breakout indicators: ${dmanSignals.join(', ')}`);
+  const foreQual=(foreF&&VH(ms_fg||0)&&L(ms_shotrush||50))?' by setting up opportunities off of the forecheck':'';
+  const rushQual=(rushF&&VH(ms_rushass||0)&&L(ms_shotrush||50))?' by setting up opportunities off of the rush':'';
+  const cycQual =(cycF&&VH(ms_ac||0)&&L(ms_sc||50))?' by setting up opportunities off of the cycle':'';
+
+  const styles=[];
+  if(foreF) styles.push(`the forecheck${foreQual}`);
+  if(rushF) styles.push(`the rush${rushQual}`);
+  if(cycF)  styles.push(`the cycle${cycQual}`);
+  if(netF)  styles.push('the net-front');
+
+  if(styles.length>=3)       S2.push(`${N2()} is very versatile offensively, with the ability to contribute off of ${styles.slice(0,-1).join(', ')}, and ${styles[styles.length-1]}.`);
+  else if(styles.length===2) S2.push(`${N2()} primarily generates offense from ${styles[0]} and ${styles[1]}.`);
+  else if(styles.length===1) S2.push(`${N2()} primarily generates offense from ${styles[0]}.`);
+
+  // Speed sentences — consolidated into one flowing sentence
+  const speedParts=[];
+  if(VH(ms_fr||0)&&VH(speed)) speedParts.push('win races and get involved on the forecheck');
+  if(VH(ms_ew||0)&&VH(speed)) speedParts.push('separate in transition');
+  if(H(rush)&&H(ms_carry||0)&&VH(speed)) speedParts.push('put defenders on their heels in transition');
+  if(isD&&VH(speed)&&VH(offprod||0)) speedParts.push('take risks in the offensive zone');
+  if(speedParts.length&&VH(speed)){
+    // Check if penalty drawing also needs speed — append if so
+    const penSpeedStr=(H(pend)&&VH(speed))?' and draw penalties at an above-average rate':'';
+    S2.push(`His speed allows him to ${speedParts.join('; ')}${penSpeedStr}.`);
   }
 
-  // Star stability (already star)
-  if (isStar) {
-    const instabilityFlags = [];
-    const stabilityStrengths = [];
-    if (VH(toi))     stabilityStrengths.push('heavy deployment');
-    if (H(ppc) && !isD)  stabilityStrengths.push('PP role');
-    if (H(n4_goals) || VH(shotVol)) stabilityStrengths.push('sustained shot generation');
-    if (!isD && VH(faceoff) && isVet) stabilityStrengths.push('elite faceoff skill');
-    // Regression risks
-    const teamZ = getCat('Analytics','Team Z');
-    if (teamZ != null && teamZ >= 80) instabilityFlags.push('playing on a very strong team (ratings may be partially team-driven)');
-    if (!isD && H(defAna) && L(offAna))  instabilityFlags.push('heavy defensive role may limit offensive ceiling');
-    if (isVet && !H(toi)) instabilityFlags.push('declining deployment for a veteran star is a regression flag');
-    if (H(goals) && !consistentlyHigh('Scoring','Goalscoring',70)) instabilityFlags.push('goal-scoring pace has not been consistent across seasons');
+  // Additional style commentary
+  if(VH(ms_grit||0)&&VH(goals)) S2.push(`${N2()} has a nose for the net.`);
+  if(H(rush)&&H(fore)&&H(phys)&&H(offprod)) S2.push(`${N2()} is a modern power forward, playing with speed and physicality.`);
+  if(H(ms_fw||0)&&H(ms_hits||0)&&H(ms_reb||0)&&M(ms_ozg||50)){
+    if(ht&&wt&&ht<5.917&&wt<184) S2.push(`${N2()} is a bulldog offensively despite his size, playing with a competitive, physical style.`);
+    else S2.push(`${N2()} is a bulldog offensively, playing with a competitive, physical style.`);
+  }
+  if(L(toi)&&VH(fore)) S2.push(`${N2()} is a grinder offensively.`);
+  if(VH(ms_perim||0)&&H(passing)) S2.push(`${N2()} shows an ability to make plays off the walls into more dangerous areas of the ice.`);
+  if(VH(ms_downlow||0)&&H(passing)) S2.push(`${N2()} shows an ability to make plays down low below the goal line.`);
+  if(VH(goals)&&VH(ms_shotrec||0)) S2.push(`${N2()} is very opportunistic, generating a lot of offense off sudden changes in possession.`);
+  if(ht&&wt&&ht>=6.167&&wt>=205&&M(speed||0)&&H(offprod)) S2.push(`${N2()} pairs his size with skill, which makes him dangerous offensively.`);
+  if(ht&&wt&&ht<5.917&&wt<184&&H(endu)&&H(speed)&&L(ms_ht||50)&&H(fore)) S2.push(`${N2()} is a waterbug who brings consistent energy all over the ice.`);
 
-    if (stabilityStrengths.length)
-      predPhrases.push(`Star stability indicators: ${stabilityStrengths.join(', ')}`);
-    if (instabilityFlags.length)
-      predPhrases.push(`Regression risk: ${instabilityFlags.join('; ')}`);
+  // 3h zone entry
+  if(H(ms_carry||0)&&H(ms_ew||0)&&H(rush)) S2.push(`${N2()} is skilled at zone entries, carrying the puck into the zone at a high rate.`);
+  if(VH(ms_tp||0)&&VH(ms_ew||0)&&H(exits))
+    S2.push(`${N2()} is a ${isD?'vital puck-mover':'critical transitional puck-handler'} for his team — he wants the puck on his stick in transition and carries it very effectively all over the ice.`);
+  else if(VH(ms_tp||0)&&(H(rush)||H(ms_dzinv||0)))
+    S2.push(`${N2()} is very skilled at carrying the puck in transition.`);
+  if(VH(ms_phe||0)&&(H(rush)||H(ms_dzinv||0))&&M(gm('Giveaways')||50))
+    S2.push(`${N2()} is very efficient handling the puck in transition, limiting mistakes while making the most of his puck touches.`);
+
+  // 3i faceoffs (forwards only)
+  if(!isD){
+    if(EL(face))       S2.push(`${N2()} is an elite faceoff specialist — among the best in the league in the dot.`);
+    else if(VH(face))  S2.push(`${N2()} is above-average at faceoffs.`);
+    else if(H(face)&&!(p.pos||'').match(/^C$/i)) S2.push(`${N2()} can take face-offs, despite primarily being a winger.`);
   }
 
-  // Playoff profile
-  const playoffSignals = [];
-  if (!isD && VH(ppc))    playoffSignals.push('PP role translates well to playoffs (strongest independent predictor of playoff overperformance)');
-  if (!isD && H(playdri)) playoffSignals.push('high playdriving — playoff overperformer profile');
-  if (isD && H(takeawy))  playoffSignals.push('high takeaway game — DMAN playoff overperformer signal');
-  if (isD && H(endu))     playoffSignals.push('endurance — D-men with stamina tend to outperform overall rating in playoffs');
-  if (!isD && H(defProd) && L(offProd)) playoffSignals.push('caution: defensive-specialist forwards tend to underperform overall rating in playoffs');
-  if (playoffSignals.length)
-    predPhrases.push(`Playoff outlook: ${playoffSignals.join('; ')}`);
-
-  // Aging / veteran durability
-  if (isVet && isStar) {
-    const vetSignals = [];
-    if (!isD && VH(faceoff)) vetSignals.push('faceoff specialists age well (strongest predictor of veteran forward star retention)');
-    if (!isD && H(entDef))   vetSignals.push('defensive-zone responsibility supports continued deployment');
-    if (!isD && VH(toi))     vetSignals.push('still earning top minutes — the single strongest signal of veteran elite stability');
-    if (isD && H(offAna) && H(relOZ)) vetSignals.push('offensively relevant veteran D-men maintain their value longer');
-    if (isD && VH(phys))    vetSignals.push('caution: high physicality is a negative stability signal for veteran D-men');
-    if (vetSignals.length)
-      predPhrases.push(`Aging profile: ${vetSignals.join('; ')}`);
+  // 3j penalty drawing (only if not already in speed sentence)
+  const speedHandledPen=speedParts.length&&VH(speed)&&H(pend)&&VH(speed);
+  if(!speedHandledPen){
+    if(VH(pend)&&L(ms_pim||50))  S2.push(`${N2()} draws penalties at a high rate while staying disciplined.`);
+    else if(H(pend)&&VH(speed))  S2.push(`${N2()} also uses his speed to draw penalties at an above-average rate.`);
+    else if(H(pend))              S2.push(`${N2()} draws penalties at an above-average rate.`);
   }
 
-  // Mean reversion / category durability notes
-  if (H(goals) && !H(n4_goals) && !consistentlyHigh('Scoring','Goalscoring',65))
-    predPhrases.push('Goalscoring pace above historical norm — some regression expected (low durability category)');
-  if (H(finish) && consistentlyHigh('Scoring','Finishing') && ov >= 60)
-    predPhrases.push('Finishing rate is consistently elite across multiple seasons — genuine high-conversion scorer, not a one-year fluke');
+  const para2 = S2.join(' ');
 
-  if (predPhrases.length)
-    blocks.push({ tag:'OUTLOOK', text: predPhrases.join('. ') + '.' });
+  // ── PARAGRAPH 3: Defense ──────────────────────────────────────────────────
+  const S3=[]; const N3=()=>S3.length?'He':nm;
 
-  // ── If nothing generated, hide panel ───────────────────────────────────────
-  if (blocks.length === 0) return;
+  // 4a overall archetype
+  if(VH(defprod)&&VH(defana)&&VH(takeaw)&&VH(supp)&&(VH(ms_denials||0)||EL(ms_dzinv||0))&&VH(qoc))
+    S3.push(`${nm} is a true shutdown defender, contributing a high level of activity in the defensive end coupled with excellent underlying results, all despite facing matchup minutes.`);
+  else if(isD&&L(offprod)&&L(playd||50)){
+    if(VH(defprod)&&VH(defana))        S3.push(`${nm} is a solid stay-at-home defenseman.`);
+    else if(M(defprod||0)&&H(defana))  S3.push(`${nm} is a stay-at-home defenseman who has shown competence in his own end.`);
+  }
+  if(H(offprod)&&H(defana)&&H(defprod)) S3.push(`${N3()} is a solid two-way player.`);
+  if(!isD&&L(toi)&&H(offana||0)&&H(teamz||0)) S3.push(`${N3()} is a reliable Bottom-6 forward.`);
+  if(isD&&L(toi)&&H(defana||0)&&H(teamz||0))  S3.push(`${N3()} is a reliable depth defenseman.`);
 
-  const ac = isD ? 'var(--blue)' : 'var(--teal)';
-  el.innerHTML = `
+  // 4b stickcheck / entry defense
+  if(H(entdef)&&H(takeaw)&&H(ms_fr||0)&&H(ms_ed||0))
+    S3.push(`${N3()} is excellent at stick checking, demonstrating the ability to generate turnovers on the forecheck and kill transition plays defensively.`);
+  else if(H(takeaw)&&H(ms_ed||0)) S3.push(`${N3()} backchecks well, effectively killing opposing rushes.`);
+  else if(H(entdef)&&H(ms_denials||0)) S3.push(`${N3()} is effective at defending opposing rushes.`);
+  if(isD&&VH(speed)&&H(supp)&&H(ms_chag||0)&&H(ms_denials||0))
+    S3.push(`His speed allows him to keep good gap control, match attacking players' pace, and steer attackers into tougher areas of the ice.`);
+  if(isD&&ht&&ht>=6.25&&H(supp)&&H(takeaw)&&H(entdef))
+    S3.push(`${N3()} uses his length to his advantage, with an active stick and the ability to shrink dangerous areas of the ice for attackers.`);
+  if(H(takeaw)&&H(entdef)&&VH(phys)) S3.push(`${N3()} is not fun to play against, combining an active stick with a punishing playstyle.`);
+
+  // 4c in-zone defense
+  if(H(supp)&&H(ms_dzinv||0)&&H(ms_rw||0)&&H(ms_rs||0)&&L(ms_dzg||50)&&L(ms_exitf||50)&&H(takeaw))
+    S3.push(`${N3()} is a solid all-around in-zone defender, actively playing the puck and showing good underlying suppression results.`);
+  else if(H(defprod)&&H(ms_dzinv||0)&&VH(ms_rw||0)&&VH(ms_rs||0)&&H(qoc))
+    S3.push(`${N3()} is heavily relied upon to retrieve pucks while facing forechecking pressure, and is able to execute against that pressure with good success.`);
+  else if(H(ms_dzinv||0)&&H(ms_rw||0)&&L(ms_rs||50)&&H(qoc))
+    S3.push(`${N3()} takes on a high level of responsibility in the defensive zone, but struggles under that pressure.`);
+  if(isD&&H(ms_exitw||0)&&VH(ms_rs||0)&&L(ms_exitf||50)&&H(ms_dzinv||0)&&H(defprod))
+    S3.push(`${N3()} is clean with the puck in his own zone against forechecking pressure.`);
+  if((H(ms_dzg||0)||VH(ms_mp||0))&&H(ms_exitf||0))
+    S3.push(`${N3()} is liable to make mistakes in the defensive zone that can result in loss of possession.`);
+  else if(VH(ms_dzg||0)&&VH(ms_exitf||0)&&L(defana||50))
+    S3.push(`${N3()} can be careless handling the puck in the defensive zone, which has led to dangerous opportunities for attackers.`);
+
+  // 4d zone exits
+  if(H(ms_rs||0)&&H(ms_er||0)&&L(ms_exitf||50)) S3.push(`${N3()} is efficient in the defensive end, with above-average retrieval success and zone exit rate.`);
+  if(isD&&VH(speed)&&H(ms_exitw||0)&&VH(ms_rs||0)&&H(ms_er||0)) S3.push(`${N3()} uses his speed to evade the forecheck and get pucks out of the zone.`);
+  if(isD&&H(ms_exitw||0)&&H(ms_rs||0)&&VH(ms_da||0)&&H(ms_un||0)) S3.push(`${N3()} creates plays down-ice within his own defensive zone.`);
+  if(isD&&VH(ms_ozg||0)&&L(defana||50)) S3.push(`${N3()} sometimes takes unnecessary risks in the offensive zone, which can lead to dangerous chances going the other way.`);
+  if(VH(ms_pim||0)&&EL(phys)&&VH(ms_hits||0)) S3.push(`${N3()} is an enforcer on the ice.`);
+  else if(VH(ms_pim||0)&&L(defana||50)) S3.push(`${N3()} can be a bit of a liability defensively, which results in him taking a lot of penalties.`);
+  if(!isD&&VL(ms_pim||50)&&EL(ov)&&EL(toi)) S3.push(`${N3()} is a Lady Byng candidate given his very disciplined play.`);
+
+  const para3 = S3.join(' ');
+
+  // ── PARAGRAPH 4: Physical + Analytics ────────────────────────────────────
+  const S4=[]; const N4=()=>S4.length?'He':nm;
+
+  if(!isD&&(p.pos||'').toUpperCase()==='C'&&ht&&ht<5.917&&wt&&wt<184) S4.push(`${nm} is undersized for a center.`);
+  else if(isD&&ht&&ht<6.0&&wt&&wt<190) S4.push(`${nm} is an undersized defenseman.`);
+
+  if(VH(speed)&&H(endu))   S4.push(`${N4()} is an elite skater with top-tier speed and endurance.`);
+  else if(VH(speed))        S4.push(`${N4()} shows elite burst.`);
+  else if(H(speed)&&H(endu)) S4.push(`${N4()} is a high-end skater with a good motor.`);
+  if(VH(speed)&&H(pk))     S4.push(`His high-end speed comes in use on the penalty kill.`);
+
+  if(H(phys)&&H(ms_hits||0)&&H(ms_fw||0)&&H(ms_rw||0)&&H(ms_ht||0))
+    S4.push(`${N4()} plays with physicality across the ice, applying pressure in the offensive zone and playing through contact in the defensive zone.`);
+  else if(H(phys)&&H(ms_hits||0)) S4.push(`${N4()} is a physical presence on the ice.`);
+
+  if((p.gp||82)<60&&sn>=3) S4.push(`There are concerns about his durability and ability to hold up over an 82-game season.`);
+
+  const avgAna=(offana!=null&&defana!=null)?(offana+defana)/2:null;
+  const avgProd=(offprod!=null&&defprod!=null)?(offprod+defprod)/2:null;
+  if(avgAna!=null&&avgProd!=null&&VH(avgAna)&&L(avgProd))
+    S4.push(`${N4()} is an analytics darling, with strong underlying metrics that don't yet fully appear in the production numbers.`);
+  if(H(offprod)&&L(offana||50))
+    S4.push(`${N4()}'s production scores exceed underlying analytics, indicating that his counting stats have not translated to more dominant team performance.`);
+
+  const para4 = S4.join(' ');
+
+  // ── PARAGRAPH 5: Outlook ──────────────────────────────────────────────────
+  // Structured with opening sentence + thematic groupings + transitions
+  const outSents=[];
+  const isYoung=age<25.5, isVet=age>=32;
+  const top10=topCats(10), top5=topCats(5), top6=topCats(6);
+
+  // 7a FWD breakout
+  if(!isD&&age<25.5&&ov<75){
+    const sigs=[];
+    if(H(toi))       sigs.push('his heavy deployment at even strength');
+    if(VH(passing))  sigs.push('his strong playmaking ability');
+    if(draft&&parseFloat(draft)<=32) sigs.push(`his strong draft pedigree (pick #${Math.round(parseFloat(draft))})`);
+    if(H(takeaw))    sigs.push('his ability to generate turnovers');
+    if(H(toi)&&sigs.length>=2){
+      if(H(pend))    sigs.push('his ability to draw penalties');
+      if(VH(qoc))    sigs.push('his difficult matchup deployment');
+      outSents.push(`${nm} fits the profile of a breakout candidate based on ${sigs.slice(0,-1).join(', ')} and ${sigs[sigs.length-1]}.`);
+    } else if(age<23.5&&H(toi)&&H(takeaw)&&sigs.length>=2){
+      outSents.push(`${nm} fits the profile of a breakout candidate based on ${sigs.slice(0,-1).join(', ')} and ${sigs[sigs.length-1]}.`);
+    }
+    if(H(supp)&&H(ms_grit||0)&&H(phys))
+      outSents.push(`However, ${nm} is actually less likely to break out as a star based on his heavy defensive role, his reliance on gritty plays, and his focus on playing a heavy game.`);
+    if(VH(takeaw)&&VH(cycle)&&H(toi)&&draft&&parseFloat(draft)<32)
+      outSents.push(`He also fits the profile of a breakout player in the medium-term based on his ability to generate turnovers, in-zone offense, his heavy deployment, and his strong draft pedigree.`);
+  }
+
+  // 7b DMAN breakout
+  if(isD&&age<25.5&&ov<75){
+    const sigs=[];
+    if(VH(speed)) sigs.push('his high-end skate speed');
+    if(H(shotq))  sigs.push('his tendency to generate high-quality chances');
+    if(H(qoc))    sigs.push('his difficult matchup deployment');
+    if(VH(pend))  sigs.push('his ability to draw more penalties than he takes');
+    if(VH(playd)) sigs.push('his ability to drive play offensively');
+    if(sigs.length>=3){
+      if(VH(goals)) sigs.push('his goalscoring ability');
+      outSents.push(`${nm} fits the profile of a breakout candidate based on ${sigs.slice(0,-1).join(', ')} and ${sigs[sigs.length-1]}.`);
+    } else if(age<23.5&&VH(speed)&&H(shotq)){
+      const addons=[VH(qoc)?'his difficult matchup deployment':null,VH(endu)?'his high motor':null,VH(playd)?'his ability to drive play offensively':null].filter(Boolean);
+      const base='his high-end skate speed and his tendency to generate high-quality chances';
+      outSents.push(`${nm} fits the profile of a breakout candidate based on ${base}${addons.length?', and '+addons.join(', '):''}.`);
+    }
+  }
+
+  // Opening regression sentence (fires if any stability/risk/playoff/aging signals exist)
+  const stabPos=[], stabRisk=[];
+
+  // 7c.1/7c.3 stability positives
+  if(ov>=80&&!isD){
+    if(VH(toi)) stabPos.push('his heavy deployment');
+    if(VH(qoc)&&25<age&&age<32) stabPos.push('his difficult deployment');
+    if(consHigh('Scoring','Goalscoring')||VH(shotv)) stabPos.push('his consistent shot generation over the years');
+    if(VH(face)&&isVet) stabPos.push('his elite faceoff skill, which tends to be predictive of more stable aging curves for veterans');
+    if(age<25&&H(qoc)) stabPos.push('his difficult deployment despite his young age');
+    if(age<25&&H(pk))  stabPos.push('his reliability on the PK despite his young age');
+    if(age<25&&H(takeaw)) stabPos.push('his strong stick checking at a young age');
+    if(H(pp)&&25<age&&age<32) stabPos.push('his large role on the Power Play');
+    if(isVet&&H(entdef)) stabPos.push('his ability to defend against zone entries as a veteran');
+    if(ov>=90){
+      if(H(cycle)&&age>25) stabPos.push('his ability to generate in-zone offense');
+      if(VH(toi)&&age>25&&!stabPos.includes('his heavy deployment')) stabPos.push('his heavy deployment');
+      if(H(pp)&&25<age&&age<32&&!stabPos.includes('his large role on the Power Play')) stabPos.push('his large role on the Power Play');
+      if(H(speed)&&25<age&&age<32) stabPos.push('his strong skating ability into his prime');
+      if(H(takeaw)&&25<age&&age<32) stabPos.push('his ability to generate turnovers');
+    }
+  }
+  if(ov>=80&&isD){
+    if(age<25&&H(finish)) stabPos.push('his finishing talent');
+    if(age<25&&H(speed))  stabPos.push('his strong skating ability');
+    if(age<25&&H(takeaw)) stabPos.push('his strong stick checking at a young age');
+    if(age<25&&VH(toi))   stabPos.push('his heavy deployment at a young age');
+    if(25<age&&age<32&&H(takeaw)) stabPos.push('his ability to generate turnovers');
+    if(25<age&&age<32&&H(exits))  stabPos.push('his reliability in getting the puck out of the zone');
+    if(25<age&&age<32&&H(passing)) stabPos.push('his playmaking ability');
+    if(isVet&&(H(offana)||H(offprod))) stabPos.push('his strong underlying offensive analytics, which tends to be more stable for veteran defensemen');
+    if(ov>=90){
+      if(age<25&&H(passing)&&!stabPos.includes('his playmaking ability')) stabPos.push('his playmaking ability at a young age');
+      if(25<age&&age<32&&H(toi)) stabPos.push('his heavy deployment');
+      if(25<age&&age<32&&H(pend)) stabPos.push('his strong differential in drawing penalties vs. taking penalties');
+      if(25<age&&age<32&&H(endu)) stabPos.push('his skating endurance');
+    }
+  }
+
+  // 7d regression risk
+  if(H(teamz||0)&&!isD) stabRisk.push(`his performance may have been partially inflated by playing in a favorable team environment`);
+  if(!isD&&H(defana||0)&&L(offana||50)) stabRisk.push(`his heavy defensive role may translate to a lower offensive ceiling`);
+  if(isVet&&!H(toi)) stabRisk.push(`his declining deployment as a veteran`);
+  if(!isD&&H(goals)&&!consHigh('Scoring','Goalscoring')) stabRisk.push(`his goalscoring pace has not been consistent across seasons`);
+  if(!isD&&age<25&&H(goals)&&!consHigh('Scoring','Goalscoring',65)) stabRisk.push(`goalscoring rates at young ages carry higher variance`);
+  if(isD&&H(phys)&&isVet) stabRisk.push(`the steeper aging curve for physical veteran defensemen`);
+  if(isD&&H(phys)&&25<age&&age<32) stabRisk.push(`the less stable performance profiles for more physical defensemen`);
+  if(isD&&VH(supp)&&age<25) stabRisk.push(`younger defensemen can see significant regression in shot suppression metrics across different team environments`);
+
+  // Opening sentence if any projections exist
+  if(stabPos.length||stabRisk.length||outSents.length){
+    // Insert after breakout sents if they exist, otherwise as first
+    const openSent=`Based on regression analysis, we are able to make more confident projections around ${nm}'s outlook.`;
+    if(outSents.length) outSents.splice(0,0,openSent);
+    else outSents.push(openSent);
+  }
+
+  // Stability + risk sentence (combined with semicolons and "however")
+  if(stabPos.length&&stabRisk.length){
+    const posStr=stabPos.slice(0,-1).join(', ')+(stabPos.length>1?' and ':'')+stabPos[stabPos.length-1];
+    const riskStr=stabRisk.slice(0,-1).join('; ')+(stabRisk.length>1?'; and ':'')+stabRisk[stabRisk.length-1];
+    outSents.push(`Specifically, we expect him to remain a high-end player given ${posStr}; however, there is some risk given that ${riskStr}.`);
+  } else if(stabPos.length){
+    const posStr=stabPos.slice(0,-1).join(', ')+(stabPos.length>1?' and ':'')+stabPos[stabPos.length-1];
+    outSents.push(`Specifically, we expect him to remain a high-end player given ${posStr}.`);
+  } else if(stabRisk.length){
+    const riskStr=stabRisk.slice(0,-1).join('; ')+(stabRisk.length>1?'; and ':'')+stabRisk[stabRisk.length-1];
+    outSents.push(`However, there is some risk in his profile given that ${riskStr}.`);
+  }
+
+  // 7e playoff
+  const plPos=[], plCaut=[];
+  if(!isD&&VH(pp)) plPos.push(`his Power Play production is the strongest independent predictor of playoff overperformance for forwards`);
+  if(!isD&&H(playd)) plPos.push(`his playdriving profile matches that of a playoff overperformer`);
+  if(isD&&H(takeaw)) plPos.push(`his strong checking profile matches that of a playoff overperformer`);
+  if(isD&&H(endu)) plPos.push(`his high-stamina profile matches that of a playoff outperformer`);
+  const DURABLE_F=['Speed','Physicality','Power Play','Penalty Kill','Playdriving','Relative Offense','Relative Defense','Passing','Shot Volume'];
+  const DURABLE_D=['Speed','Physicality','Power Play','Penalty Kill','Playdriving','Shot Volume','Def. Zone Exits','Passing'];
+  const durCats=top10.filter(c=>(isD?DURABLE_D:DURABLE_F).some(d=>c.includes(d)));
+  if((!isD&&durCats.length>=5)||(isD&&durCats.length>=4))
+    plPos.push(`his profile should translate well to the playoffs given the durability of his key strengths — ${durCats.slice(0,isD?4:5).join(', ')}`);
+  if(!isD&&H(defprod)&&offprod!=null&&!H(offprod)) plCaut.push(`defensive-specialist forwards tend to underperform their regular-season rating in the playoffs`);
+  if(VH(goals)&&VH(finish)) plCaut.push(`regular-season finishing levels do not tend to carry over into the smaller playoff sample`);
+  if(plPos.length) outSents.push(`On his playoff outlook, ${plPos.join('; ')}.`);
+  if(plCaut.length) outSents.push(`On the other hand, caution is warranted in that ${plCaut.join('; and ')}.`);
+
+  // 7f aging
+  if(isVet&&ov>=80){
+    if(!isD&&VH(face)) outSents.push(`As a high-end faceoff taker, we are optimistic on his outlook as he ages — faceoffs have been the strongest predictor of veteran forwards' ability to remain within the Elite tier.`);
+    if(!isD&&H(entdef)) outSents.push(`His strong entry defense metrics are also a positive aging signal — these correlate with more durable performance for star forwards.`);
+    if(!isD&&VH(toi)) outSents.push(`He continues to earn top minutes, which is the single strongest signal of sustained elite performance.`);
+    if(isD&&H(offana)&&H(offprod)) outSents.push(`We are optimistic on his aging outlook — veteran defensemen with stronger offensive analytics tend to age better.`);
+    if(isD&&VH(phys)) outSents.push(`However, high physicality is a negative stability signal for veteran defensemen, which is a cause for some caution.`);
+  }
+
+  // 7g general indicators
+  if(!isD&&VH(toi)&&VH(pp)) outSents.push(`On the whole, we are optimistic about his outlook given his strong even-strength deployment and Power Play contribution — the strongest positive predictors of overall improvement.`);
+  const g7off=([VH(toi),VH(pp),VH(shotv),VH(passing),VH(shotsp),VH(playd),VH(goals),VH(offana)].filter(Boolean).length);
+  if(!isD&&g7off>=5) outSents.push(`We are also optimistic that he will produce at a high level offensively given strength in statistically predictive categories.`);
+  if(isD){
+    const d7=([VH(takeaw),VH(pp),VH(toi),VH(shotv),VH(speed),VH(playd),VH(goals),VH(shotq)].filter(Boolean).length);
+    if(d7>=5) outSents.push(`On the whole, we are optimistic about his overall outlook given strength in statistically predictive offensive and deployment categories.`);
+    if(VH(supp)&&VH(defprod)) outSents.push(`We are also optimistic that he will be productive defensively given strength in statistically predictive categories.`);
+  }
+
+  // 7h category durability / regression risk
+  if(!isD){
+    const durCs=top10.filter(c=>['Power Play','Faceoff','Shot Volume','Time on Ice','Playdriving','Quality of Comp'].some(x=>c.includes(x)));
+    if(durCs.length>=3) outSents.push(`His profile should be relatively consistent going forward, given that ${durCs.slice(0,3).join(', ')} are among the most durable statistical categories year-to-year.`);
+    const riskCs5=top5.filter(c=>['Relative Offense','Relative Defense','Entry Defense'].some(x=>c.includes(x)));
+    const riskCs10=top10.filter(c=>['Relative Offense','Grit','Entry Defense','Relative Defense','Cycle Offense','Def. Zone Exits'].some(x=>c.includes(x)));
+    if(riskCs5.length>=2||riskCs10.length>=4){
+      const rc=riskCs5.length>=2?riskCs5:riskCs10.slice(0,4);
+      outSents.push(`That said, his profile does carry some regression risk, given that ${rc.join(', ')} are among the less durable statistical categories year-to-year.`);
+    }
+  } else {
+    const durDs=top10.filter(c=>['Power Play','Shot Volume','Time on Ice','Penalty Kill','Physicality','On-Ice Defense'].some(x=>c.includes(x)));
+    if(durDs.length>=4) outSents.push(`His profile should be relatively consistent going forward, given that ${durDs.slice(0,4).join(', ')} are among the most durable statistical categories year-to-year.`);
+    const riskDs=top6.filter(c=>['Relative Offense','Relative Defense','Entry Defense','Finishing'].some(x=>c.includes(x)));
+    if(riskDs.length>=3) outSents.push(`That said, his profile does carry some regression risk, given that ${riskDs.slice(0,3).join(', ')} are among the less durable statistical categories year-to-year.`);
+  }
+
+  const para5 = outSents.join(' ');
+
+  // ── Render: 5 paragraphs with visual breaks, no labels ───────────────────
+  if(!para1&&!para2&&!para3&&!para4&&!para5){ el.style.display='none'; return; }
+
+  const pStyle=`margin:0 0 .9rem;font-size:.8rem;line-height:1.75;color:var(--text2);`;
+  const divider=`<div style="height:1px;background:var(--border);margin:.75rem 0;opacity:.5;"></div>`;
+  const paras=[para1,para2,para3,para4,para5].filter(Boolean);
+
+  el.innerHTML=`
     <div class="panel-hd">
       <span class="panel-title">Player Profile</span>
-      <span class="panel-note" style="font-size:.68rem;color:var(--text3);">Auto-generated from model data</span>
     </div>
-    <div style="padding:.5rem 1rem 1rem;font-size:.82rem;line-height:1.7;color:var(--text2);">
-      ${blocks.map(b => `
-        <div style="margin-bottom:.6rem;">
-          <span style="font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:${ac};font-weight:700;margin-right:.5rem;">${b.tag}</span>${b.text}
-        </div>`).join('')}
+    <div style="padding:.5rem 1rem 1rem;">
+      ${paras.map((txt,i)=>`<p style="${pStyle}">${txt}</p>${i<paras.length-1?divider:''}`).join('')}
     </div>`;
-  el.style.display = 'block';
+  el.style.display='block';
 }
 
 function renderContract(p) {
@@ -2145,7 +2267,7 @@ function renderContract(p) {
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
         callbacks:{label:ctx=>{
             const lbl = (ctx.datasetIndex===0 && ctx.dataIndex===0) ? 'Value' : ctx.dataset.label;
-            return `${lbl}: $${Math.round(ctx.raw||0).toLocaleString()}`;
+            return `${lbl}: ${fmt$(ctx.raw)}`;
           }}}},
       scales:{
         x:{grid:{display:false},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
@@ -3406,7 +3528,7 @@ function renderMicrostatPanel(p) {
         'Assists from the Def. Zone',
       ]},
     { label: 'Physical Play & Penalties', keys: [
-        'Hits','Giveaways Rate','Penalty Minutes','Penalties Drawn',
+        'Hits','Penalty Minutes','Penalties Drawn',
       ]},
   ];
 
@@ -3453,7 +3575,7 @@ function renderGoalieCard(g) {
   const sv = g.surplus ?? 0;
   const svClr = sv >= 0 ? 'var(--teal)' : 'var(--coral)';
   const ov = Math.round(g.norm_2526 ?? g.overall_2526 ?? g.comp_value_norm ?? 0);  // 25-26 in-season rating
-  const fmtRaw = v => v ? '$' + Math.round(v).toLocaleString() : '\u2013';
+  const fmtRaw = v => fmtCap(v);
 
   el.innerHTML = `
     <div class="gc-header">
@@ -3577,7 +3699,7 @@ function renderGoalieCard(g) {
           plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1f28',titleColor:'#8b90a0',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.07)',borderWidth:1,
             callbacks:{label:ctx=>{
               const lbl = (ctx.datasetIndex===0 && ctx.dataIndex===0) ? 'Value' : ctx.dataset.label;
-              return lbl+': $'+Math.round(ctx.raw||0).toLocaleString();
+              return lbl+': '+fmt$(ctx.raw);
             }}}},
           scales:{
             x:{grid:{display:false},ticks:{color:'#555a6a',font:{family:'Karla',size:11}}},
@@ -4051,6 +4173,35 @@ function renderBreakoutAward(type) {
           + '<strong style="color:var(--text2);">Jump component (40%):</strong> Speed\u00d735% + Shot Selection\u00d730% + Goalscoring\u00d720% + Off Production\u00d715%'}
       &nbsp;\u00b7&nbsp; Age &lt;${isFwd ? 25.5 : 26}, Overall &lt;75th pct, min 20 GP
     </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem .75rem;padding:.25rem 1rem .5rem;border-bottom:1px solid var(--border);">
+      ${(isFwd
+        ? [
+            {c:'#f59e0b',l:'Draft pedigree'},
+            {c:'#2dd4a0',l:'TOI deployment'},
+            {c:'#5b9cf6',l:'Passing'},
+            {c:'#a78bfa',l:'Takeaways'},
+            {c:'#fb923c',l:'QoC'},
+            {c:'#34d399',l:'Cycle offense'},
+            {c:'#f472b6',l:'DZ Exits'},
+          ]
+        : [
+            {c:'#2dd4a0',l:'Speed'},
+            {c:'#5b9cf6',l:'Shot Selection'},
+            {c:'#fb923c',l:'QoC'},
+            {c:'#a78bfa',l:'Playdriving'},
+            {c:'#f59e0b',l:'Endurance'},
+            {c:'#f472b6',l:'Goalscoring'},
+          ]
+      ).map(({c,l}) =>
+        `<div style="display:flex;align-items:center;gap:.3rem;">
+          <div style="width:10px;height:10px;border-radius:2px;background:${c};flex-shrink:0;"></div>
+          <span style="font-size:.65rem;color:var(--text3);">${l}</span>
+        </div>`
+      ).join('')}
+      <div style="display:flex;align-items:center;gap:.3rem;margin-left:.25rem;">
+        <span style="font-size:.65rem;color:var(--text3);font-style:italic;">Opacity = player\u2019s score in that component</span>
+      </div>
+    </div>
     ${top.map((p, i) => {
       const starScore = p.star_score ?? p.score;
       const jumpScore = p.jump_score ?? p.score;
@@ -4064,12 +4215,7 @@ function renderBreakoutAward(type) {
       ).join('');
       // Draft display: show pick number if available
       const draftPick = p.draft_pos ?? null;
-      const draftLabel = draftPick != null
-        ? (draftPick <= 5   ? `🥇 Pick #${draftPick}`
-          : draftPick <= 15  ? `Pick #${draftPick}`
-          : draftPick <= 32  ? `Pick #${draftPick}`
-          : `Pick #${draftPick}`)
-        : (p.draft_score > 0 ? `Draft score: ${p.draft_score}` : null);
+      const draftLabel = draftPick != null ? `Pick #${draftPick}` : null;
       const draftColor = draftPick != null
         ? (draftPick <= 5 ? 'var(--teal)' : draftPick <= 15 ? 'var(--mid)' : draftPick <= 32 ? 'var(--text2)' : 'var(--text3)')
         : 'var(--mid)';
