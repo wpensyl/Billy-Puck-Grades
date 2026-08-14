@@ -457,34 +457,7 @@ body{background:var(--bg);color:var(--text);font-family:'Karla',sans-serif;font-
 
 <div id="landing" class="view">
   <div class="landing-logo">
-    <svg width="88" height="76" viewBox="0 0 708 614" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="365" cy="306" r="288" fill="none" stroke="currentColor" stroke-width="40"/>
-      <path d="
-        M 216 108 L 216 122 L 246 152 L 246 420 L 216 452 L 216 490 L 305 490 L 305 420 L 380 420
-        C 448 420 470 372 442 332 C 466 306 468 246 418 220 C 460 192 448 134 388 108
-        C 364 96 330 88 292 88 L 246 88 Z
-        M 305 158 L 350 158 C 384 158 388 196 356 206 L 305 206 Z
-        M 305 268 L 366 268 C 402 268 408 314 372 326 L 305 326 Z"
-        fill="currentColor" fill-rule="nonzero"/>
-      <path d="M 305 392 L 355 392 L 210 486 C 194 496 172 492 163 476 C 155 461 161 445 178 435 Z"
-            fill="currentColor"/>
-      <rect x="404" y="410" width="34" height="60" rx="3" fill="#BCD6C4"/>
-      <rect x="448" y="378" width="34" height="92" rx="3" fill="#AACAB7"/>
-      <rect x="492" y="330" width="34" height="140" rx="3" fill="#8EBBA4"/>
-      <rect x="536" y="240" width="34" height="230" rx="3" fill="#4F9777"/>
-      <polyline points="128,330 190,270 260,318 372,205 456,168 528,138 582,96"
-                fill="none" stroke="#2dd4a0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="128" cy="330" r="11" fill="#2dd4a0"/>
-      <circle cx="190" cy="270" r="11" fill="#2dd4a0"/>
-      <circle cx="260" cy="318" r="11" fill="#2dd4a0"/>
-      <circle cx="372" cy="205" r="11" fill="#2dd4a0"/>
-      <circle cx="456" cy="168" r="11" fill="#2dd4a0"/>
-      <circle cx="528" cy="138" r="11" fill="#2dd4a0"/>
-      <circle cx="582" cy="96" r="13" fill="#2dd4a0"/>
-      <rect x="300" y="480" width="112" height="30" fill="currentColor"/>
-      <ellipse cx="356" cy="480" rx="56" ry="15" fill="currentColor" opacity=".75"/>
-      <ellipse cx="356" cy="510" rx="56" ry="15" fill="currentColor"/>
-    </svg>
+    <img src="bpg-logo.png" alt="Billy Puck Grades" width="88" height="76" style="display:block;object-fit:contain;">
   </div>
   <div class="wordmark">Billy Puck<span> Grades</span></div>
   <div class="tagline">NHL Player Cards &amp; Analysis Tools</div>
@@ -7612,21 +7585,71 @@ document.addEventListener('DOMContentLoaded', () => {
       { name:'GM Simulator', desc:'Take over any team\u2019s roster \u2014 add free agents, release players, re-sign at custom cap hits, and see real-time cap and projected-points impact.', nav:'gm' },
     ]},
   };
-  const LANDING_ICONS = {
-    player: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill="currentColor"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="currentColor"/></svg>',
-    lines: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><line x1="3" y1="7" x2="21" y2="7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".6"/><line x1="3" y1="17" x2="21" y2="17" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".3"/></svg>',
-    teams: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="4" stroke="currentColor" stroke-width="2"/><line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="1.4" opacity=".5"/></svg>',
-    contracts: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="2"/><line x1="8" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1.6" opacity=".6"/><line x1="8" y1="13" x2="16" y2="13" stroke="currentColor" stroke-width="1.6" opacity=".6"/></svg>',
-    gm: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity=".85"/><rect x="13" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity=".5"/><rect x="3" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity=".5"/><rect x="13" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity=".85"/></svg>',
+  const LANDING_ART = {
+    player: () => `
+      <div style="width:44px;height:52px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);overflow:hidden;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.2);">
+        <div style="height:30px;background:linear-gradient(180deg, var(--teal-dim), rgba(45,212,160,.22));display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:hidden;">
+          <svg width="22" height="22" viewBox="0 0 34 34" style="margin-bottom:-2px;">
+            <circle cx="17" cy="12" r="7" fill="var(--teal)" opacity="0.7"/>
+            <path d="M4 34 C4 22 9 17 17 17 C25 17 30 22 30 34 Z" fill="var(--teal)" opacity="0.7"/>
+          </svg>
+          <div style="position:absolute;top:2px;right:2px;background:var(--teal);color:#08120e;font-size:6px;font-weight:800;border-radius:2px;padding:1px 3px;line-height:1.3;">99</div>
+        </div>
+        <div style="padding:3px 4px;">
+          <div style="height:3px;width:82%;background:var(--text3);opacity:.5;border-radius:2px;margin-bottom:3px;"></div>
+          <div style="height:3px;width:55%;background:var(--text3);opacity:.35;border-radius:2px;"></div>
+        </div>
+      </div>`,
+    lines: (color) => `
+      <div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.2);padding:5px 5px 5px 4px;display:flex;flex-direction:column;justify-content:space-between;flex-shrink:0;">
+        ${[1,2,3].map(line => `
+          <div style="display:flex;align-items:center;gap:3px;">
+            <div style="font-size:5px;font-weight:800;color:${color};opacity:.6;width:6px;">L${line}</div>
+            <div style="display:flex;gap:1.5px;flex:1;">
+              ${[0,1,2].map(() => `<div style="height:8px;flex:1;border-radius:1.5px;background:${color};opacity:${line===1?0.8:line===2?0.5:0.28};"></div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>`,
+    teams: (color) => `
+      <div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="28" height="28" viewBox="0 0 40 40">
+          <rect x="4" y="8" width="32" height="24" rx="7" fill="none" stroke="${color}" stroke-width="2.5"/>
+          <line x1="20" y1="8" x2="20" y2="32" stroke="${color}" stroke-width="1.5" opacity=".5"/>
+          <circle cx="20" cy="20" r="4.5" fill="none" stroke="${color}" stroke-width="1.5" opacity=".6"/>
+        </svg>
+      </div>`,
+    contracts: (color) => `
+      <div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.2);padding:6px 5px;flex-shrink:0;">
+        <div style="font-size:9px;font-weight:800;color:${color};line-height:1;">$8.4M</div>
+        <div style="height:2.5px;width:70%;background:${color};opacity:.35;border-radius:2px;margin:4px 0 3px;"></div>
+        <div style="height:2.5px;width:45%;background:${color};opacity:.35;border-radius:2px;"></div>
+      </div>`,
+    gm: (color) => `
+      <div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.2);padding:4px;display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
+        <div style="height:11px;border-radius:3px;background:${color};opacity:.22;display:flex;align-items:center;justify-content:center;">
+          <svg width="13" height="9" viewBox="0 0 18 12">
+            <path d="M2 11 L2 3 Q2 1 4 1 L14 1 Q16 1 16 3 L16 11" fill="none" stroke="${color}" stroke-width="1.6"/>
+            <line x1="2" y1="4" x2="16" y2="4" stroke="${color}" stroke-width="0.9" opacity=".6"/>
+            <line x1="2" y1="7" x2="16" y2="7" stroke="${color}" stroke-width="0.9" opacity=".6"/>
+            <line x1="6" y1="1" x2="6" y2="11" stroke="${color}" stroke-width="0.9" opacity=".6"/>
+            <line x1="12" y1="1" x2="12" y2="11" stroke="${color}" stroke-width="0.9" opacity=".6"/>
+          </svg>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;flex:1;">
+          ${[0.85,0.5,0.65,0.35].map(op => `<div style="border-radius:2px;background:${color};opacity:${op};"></div>`).join('')}
+        </div>
+      </div>`,
   };
+  const LANDING_COLORS = { player:'var(--teal)', lines:'#5c8ef0', teams:'#5c8ef0', contracts:'#e8b84b', gm:'#f4624a' };
   function renderLandingPages(sec) {
     const wrap = document.getElementById('landing-pages');
     if (!wrap) return;
     const s = LANDING_SECTIONS[sec];
     if (!s) { wrap.innerHTML = ''; return; }
+    const color = LANDING_COLORS[s.icon] || 'var(--teal)';
     wrap.innerHTML = s.pages.map(pg => `
       <div class="landing-page-card" data-nav="${pg.nav}">
-        <div class="landing-page-icon">${LANDING_ICONS[s.icon]}</div>
+        ${LANDING_ART[s.icon](color)}
         <div><div class="landing-page-name">${pg.name}</div><div class="landing-page-desc">${pg.desc}</div></div>
       </div>`).join('');
     wrap.querySelectorAll('.landing-page-card').forEach(card => {
